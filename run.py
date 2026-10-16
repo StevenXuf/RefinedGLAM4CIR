@@ -13,9 +13,9 @@ from torch.utils.data import DataLoader
 
 import prompts
 from feature_extractor import FeatureExtractor
-from generation import (TextGenerator, generate_typos, generate_word_preserving,
+from generation import (TextGenerator, typo_plan, word_preserving_request,
                         validate_modifier, validate_perturbation)
-from loading_data import GLAMGalleryDataset, GLAMQueryDataset, collate_samples, load_image
+from loading_data import GLAMGalleryDataset, GLAMQueryDataset, collate_samples, load_image, search_image_path
 from metrics_computation import compute_metrics, metric_deltas, rank_queries
 from utils import (file_hash, fingerprint, get_config, get_device, output_path,
                    parse_args, read_json, save_json, seed_everything, setup_logging)
@@ -26,13 +26,16 @@ def experiment_signature(cfg):
                         'gallery': file_hash(cfg['paths']['db_processed_name']),
                         'sources': {name: file_hash(Path(__file__).parent / name) for name in
                                     ['run.py', 'loading_data.py', 'generation.py', 'prompts.py',
-                                     'feature_extractor.py', 'metrics_computation.py', 'utils.py']}})
+                                     'feature_extractor.py', 'metrics_computation.py', 'utils.py', 'results.py']}})
 
 
 def load_manifest(cfg):
     manifest = read_json(output_path(cfg, 'manifest.json'))
     if manifest['signature'] != experiment_signature(cfg):
         raise ValueError('Config/data changed: choose a new paths.output_dir to avoid mixing runs')
+    restored = search_image_path(manifest.get('missing_gallery_ids', []), cfg['image_storage_folders'], cfg['paths']['glam_root'])
+    if restored:
+        raise ValueError('Image availability changed: choose a new paths.output_dir to include restored gallery images')
     return manifest
 
 
@@ -44,17 +47,15 @@ def prepare(cfg, logger):
         return manifest
     queries = GLAMQueryDataset(cfg, logger).records
     gallery = GLAMGalleryDataset(cfg, logger, queries)
-    by_id = {g['image_id']: g['path'] for g in gallery.records}
     for query in queries:
-        indices = list(range(len(query['target_ids'])))
-        rng = random.Random(f"{cfg['seed']}:{query['query_id']}")
-        selected = sorted(rng.sample(indices, min(len(indices), cfg['generation']['max_target_images'])))
-        query['conditioning_target_ids'] = [query['target_ids'][i] for i in selected]
-        # Resolve conditioning images through the same gallery records used for retrieval.
-        query['conditioning_target_paths'] = [by_id[name] for name in query['conditioning_target_ids']]
+        query['conditioning_target_ids'] = list(query['target_ids'])
+        query['conditioning_target_paths'] = list(query['target_paths'])
     manifest = {'signature': experiment_signature(cfg), 'config': cfg, 'queries': queries,
                 'gallery': gallery.records, 'full_gallery_size': gallery.full_size,
-                'scope': 'full' if len(gallery) == gallery.full_size else 'subset',
+                'declared_gallery_size': gallery.declared_size, 'missing_gallery_ids': gallery.missing_ids,
+                'scope': 'full',
+                'query_source': 'cir_db.csv id1/id2/query/partition only',
+                'gallery_source': 'db_processed.txt rows matching the requested test split',
                 'conditioning_note': 'Target-aware modifier construction; not a target-blind benchmark.',
                 'source_hashes': {name: file_hash(Path(__file__).parent / name)
                                   for name in ['prompts.py', 'generation.py', 'loading_data.py',
@@ -88,68 +89,114 @@ def release_model(model):
         torch.cuda.empty_cache()
 
 
+def batches(items, size):
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
+
+def progress(cfg, stage, completed, total):
+    save_json(output_path(cfg, 'progress.json'),
+              {'split': cfg['split'], 'stage': stage, 'completed': completed, 'total': total})
+
+
+def audit_ids(records, cfg, section):
+    if not cfg[section]['quality_review']:
+        return set()
+    count = cfg[section].get('quality_review_samples')
+    ids = [r['query_id'] for r in records]
+    return set(ids if count is None else random.Random(cfg['seed']).sample(ids, min(count, len(ids))))
+
+
+def checkpoint_batch(cfg, records_by_id, manifest):
+    records = [records_by_id[q['query_id']] for q in manifest['queries'] if q['query_id'] in records_by_id]
+    save_json(output_path(cfg, 'modifiers.json'), records)
+    return records
+
+
+def fail_batch(errors, logger):
+    if errors:
+        logger.error('Batch checkpointed; %d invalid items remain. First error: %s', len(errors), errors[0])
+        raise ValueError(f'{len(errors)} LLM items failed validation: {errors[0]}')
+
+
 def generate(cfg, logger):
     manifest = load_manifest(cfg)
-    path = output_path(cfg, 'modifiers.json')
-    records = read_json(path) if path.exists() else []
-    expected = [q['query_id'] for q in manifest['queries']]
-    if [q['query_id'] for q in records] != expected[:len(records)]:
-        raise ValueError('Generation checkpoint does not match manifest query order')
-    if len(records) == len(expected):
+    modifier_path = output_path(cfg, 'modifiers.json')
+    records = read_json(modifier_path) if modifier_path.exists() else []
+    expected = {q['query_id'] for q in manifest['queries']}
+    records_by_id = {r['query_id']: r for r in records}
+    if set(records_by_id) - expected:
+        raise ValueError('Generation checkpoint contains queries outside the CSV manifest')
+    pending = [q for q in manifest['queries'] if q['query_id'] not in records_by_id]
+    review_ids = audit_ids(manifest['queries'], cfg, 'generation')
+    if not pending and all('quality_review' in records_by_id[i] for i in review_ids):
         logger.info('Clean generation already complete')
+        quality_report(cfg, records, logger)
         return
     generator = TextGenerator(cfg, logger)
     observations_path = output_path(cfg, 'observations.json')
     observations = read_json(observations_path) if observations_path.exists() else {}
-    for query in manifest['queries'][len(records):]:
-        images = [load_image(query['reference_path'])] + [load_image(p) for p in query['conditioning_target_paths']]
-        hint = query['original_modifier'] if cfg['generation']['use_original_hint'] else ''
-        request = prompts.refinement_prompt(hint, len(images) - 1)
-        descriptions = []
-        reference_description = None
-        synthesis = None
-        if cfg['generation']['describe_targets_first']:
-            observed = observations.setdefault(query['query_id'], {'reference': None, 'targets': {}})
-            if observed['reference'] is None:
-                observed['reference'] = generator.request_json(prompts.TARGET_DESCRIPTION_SYSTEM,
-                    'Describe this reference image in one sentence.', images[:1], image_labels=['Reference image'],
-                    attempts=cfg['generation']['max_attempts'], validator=string_fields(['description']))['description']
-                save_json(observations_path, observations)
-            reference_description = observed['reference']
-            for index, image in enumerate(images[1:], 1):
-                target_id = query['conditioning_target_ids'][index - 1]
-                if target_id not in observed['targets']:
-                    observed['targets'][target_id] = generator.request_json(prompts.TARGET_DESCRIPTION_SYSTEM,
-                        'Describe only this target image.', [image], image_labels=['ONE target alternative'],
-                        attempts=cfg['generation']['max_attempts'],
-                        validator=string_fields(['description']))['description']
-                    save_json(observations_path, observations)
-                description = observed['targets'][target_id]
-                descriptions.append(description)
-            request = 'BEFORE reference: ' + reference_description + '\nAFTER alternatives: ' + json.dumps(descriptions)
-            if hint:
-                request += '\nNoisy old instruction (may be wrong): ' + hint
-            def validate_synthesis(result):
-                if any(not isinstance(result.get(key), (str, list)) for key in ['shared_traits', 'limitations']):
-                    raise ValueError('Synthesis needs shared_traits and limitations')
-                result['modifier'] = validate_modifier(result, cfg)
-                return result
-            synthesis = generator.request_json(prompts.SYNTHESIS_SYSTEM, request,
-                attempts=cfg['generation']['max_attempts'], validator=validate_synthesis)
-            text = synthesis['modifier']
-        else:
-            text = generator.request_json(prompts.REFINE_SYSTEM, request, images,
-                attempts=cfg['generation']['max_attempts'], validator=lambda r: validate_modifier(r, cfg))
-        record = dict(query, modifier=text, reference_observation=reference_description,
-                      target_observations=descriptions, synthesis=synthesis, perturbations={}, perturbation_reviews={})
-        if cfg['generation']['quality_review']:
-            record['quality_review'] = generator.request_json(prompts.REVIEW_SYSTEM,
-                'Modifier: ' + text + '\nTarget observations: ' + json.dumps(descriptions),
-                images, attempts=cfg['generation']['max_attempts'],
-                validator=bool_review(['grounded', 'direction_correct', 'coherent', 'shared_across_targets']))
-        records.append(record)
-        save_json(path, records)
-        logger.info('Generated %d/%d %s: %s', len(records), len(expected), query['query_id'], text)
+    # Image captions are unconditional and reusable; only IDs explicitly present in CSV pairs are requested.
+    image_paths = {}
+    for query in manifest['queries']:
+        image_paths[query['reference_id']] = query['reference_path']
+        image_paths.update(zip(query['target_ids'], query['target_paths']))
+    missing = [(name, path) for name, path in sorted(image_paths.items()) if name not in observations]
+    for batch in batches(missing, cfg['generation']['image_batch_size']):
+        tasks = [{'system': prompts.TARGET_DESCRIPTION_SYSTEM, 'prompt': 'Describe this image in one sentence.',
+                  'images': [load_image(path)], 'image_labels': ['Image']} for _, path in batch]
+        outputs = generator.request_json_many(tasks, [string_fields(['description'])] * len(tasks),
+                                             attempts=cfg['generation']['max_attempts'])
+        errors = []
+        for (name, path), result in zip(batch, outputs):
+            if isinstance(result, Exception):
+                errors.append(f'{name}: {result}')
+            else:
+                observations[name] = {'path': path, 'description': result['description']}
+        save_json(observations_path, observations)
+        progress(cfg, 'image observations', len(observations), len(image_paths))
+        logger.info('CSV image observations %d/%d', len(observations), len(image_paths))
+        fail_batch(errors, logger)
+    def validate_synthesis(result):
+        if any(not isinstance(result.get(key), (str, list)) for key in ['shared_traits', 'limitations']):
+            raise ValueError('Synthesis needs shared_traits and limitations')
+        result['modifier'] = validate_modifier(result, cfg)
+        return result
+    for batch in batches(pending, cfg['generation']['batch_size']):
+        tasks = []
+        for query in batch:
+            request = 'BEFORE reference: ' + observations[query['reference_id']]['description']
+            request += '\nAFTER alternatives: ' + json.dumps([observations[name]['description'] for name in query['target_ids']])
+            if cfg['generation']['use_original_hint']:
+                request += '\nNoisy original CSV modifier: ' + query['original_modifier']
+            request += f"\nThe modifier must have {cfg['generation']['min_words']}-{cfg['generation']['max_words']} words."
+            tasks.append({'system': prompts.SYNTHESIS_SYSTEM, 'prompt': request})
+        outputs = generator.request_json_many(tasks, [validate_synthesis] * len(tasks),
+                                             attempts=cfg['generation']['max_attempts'])
+        errors = []
+        for query, result in zip(batch, outputs):
+            if isinstance(result, Exception):
+                errors.append(f"{query['query_id']}: {result}")
+                continue
+            records_by_id[query['query_id']] = dict(query, modifier=result['modifier'],
+                reference_observation=observations[query['reference_id']]['description'],
+                target_observations=[observations[name]['description'] for name in query['target_ids']],
+                synthesis=result, perturbations={}, perturbation_reviews={})
+        records = checkpoint_batch(cfg, records_by_id, manifest)
+        progress(cfg, 'clean modifiers', len(records), len(manifest['queries']))
+        logger.info('Clean modifiers %d/%d', len(records), len(manifest['queries']))
+        fail_batch(errors, logger)
+    for record in records:
+        if record['query_id'] not in review_ids or 'quality_review' in record:
+            continue
+        paths = record['target_paths'][:cfg['generation']['review_target_images']]
+        images = [load_image(record['reference_path'])] + [load_image(p) for p in paths]
+        record['quality_review'] = generator.request_json(prompts.REVIEW_SYSTEM,
+            'Modifier: ' + record['modifier'] + '\nTarget observations: ' + json.dumps(record['target_observations']),
+            images, attempts=cfg['generation']['max_attempts'],
+            validator=bool_review(['grounded', 'direction_correct', 'coherent', 'shared_across_targets']))
+        record['reviewed_target_ids'] = record['target_ids'][:len(paths)]
+        save_json(modifier_path, records)
     del generator
     release_model(None)
     quality_report(cfg, records, logger)
@@ -157,48 +204,80 @@ def generate(cfg, logger):
 
 def perturb(cfg, logger):
     manifest = load_manifest(cfg)
-    records = read_json(output_path(cfg, 'modifiers.json'))
+    path = output_path(cfg, 'modifiers.json')
+    records = read_json(path)
     if [r['query_id'] for r in records] != [q['query_id'] for q in manifest['queries']]:
-        raise ValueError('Complete generation before perturbation')
+        raise ValueError('Complete CSV-aligned generation before perturbation')
+    review_ids = audit_ids(records, cfg, 'perturbation')
     kinds = cfg['perturbation']['types']
-    if all(set(kinds) <= set(r['perturbations']) for r in records):
+    complete = all(set(kinds) <= set(r['perturbations']) for r in records)
+    audited = all(set(kinds) <= set(r['perturbation_reviews']) for r in records if r['query_id'] in review_ids)
+    if complete and audited:
         logger.info('Perturbation already complete')
         return
     generator = TextGenerator(cfg, logger)
-    for record in records:
-        for kind, instruction in kinds.items():
-            if kind in record['perturbations']:
-                continue
-            request = prompts.perturbation_prompt(record['modifier'], instruction)
-            style = instruction
-            for attempt in range(cfg['perturbation']['max_attempts']):
+    total = len(records) * len(kinds)
+    for kind, instruction in kinds.items():
+        pending = [r for r in records if kind not in r['perturbations']]
+        for batch in batches(pending, cfg['generation']['batch_size']):
+            tasks, validators, plans = [], [], []
+            for record in batch:
+                start = len(tasks)
                 if kind == 'typos':
-                    text = generate_typos(generator, cfg, record['modifier'], record['query_id'])
+                    jobs, checks, finish = typo_plan(cfg, record['modifier'], record['query_id'])
+                    tasks.extend(jobs)
+                    validators.extend(checks)
                 elif cfg['perturbation']['preserve_content_words']:
-                    text = generate_word_preserving(generator, cfg, record['modifier'], kind, style)
+                    task, validator = word_preserving_request(cfg, record['modifier'], kind, instruction)
+                    tasks.append(task)
+                    validators.append(validator)
+                    def finish(values):
+                        return values[0]
                 else:
-                    text = generator.request_json(prompts.PERTURB_SYSTEM, request,
-                        attempts=cfg['perturbation']['max_attempts'],
-                        decoding=cfg['perturbation']['decoding'],
-                        validator=lambda r: validate_perturbation(r, cfg, record['modifier'], kind))
-                review = None
-                if cfg['perturbation']['quality_review']:
-                    review = generator.request_json(prompts.PERTURB_REVIEW_SYSTEM,
-                        f'Original: {record["modifier"]}\nPerturbed: {text}',
-                        attempts=cfg['perturbation']['max_attempts'], validator=bool_review(['meaning_preserved']))
-                    if not review['meaning_preserved']:
-                        logger.warning('Rejected meaning-changing %s: %s', kind, review['reason'])
-                        request += '\nPrevious rejected version: ' + text + '\nPreserve the original constraints. Previous rejection: ' + review['reason']
-                        style += '\nPrevious rejected version: ' + text + '\nFix: ' + review['reason']
+                    tasks.append({'system': prompts.PERTURB_SYSTEM,
+                                  'prompt': prompts.perturbation_prompt(record['modifier'], instruction)})
+                    validators.append(lambda result, original=record['modifier']: validate_perturbation(result, cfg, original, kind))
+                    def finish(values):
+                        return values[0]
+                plans.append((record, start, len(tasks), finish))
+            outputs = generator.request_json_many(tasks, validators, attempts=cfg['perturbation']['max_attempts'],
+                                                 decoding=cfg['perturbation']['decoding'])
+            errors = []
+            for record, start, end, finish in plans:
+                values = outputs[start:end]
+                if any(isinstance(value, Exception) for value in values):
+                    if kind != 'typos' and cfg['perturbation']['preserve_content_words']:
+                        # Keep a complete complex instruction intact if finer rephrasing fails.
+                        try:
+                            text = generator.choose_valid_rewrite(record['modifier'], kind)
+                        except ValueError as error:
+                            errors.append(f"{record['query_id']} {kind}: {error}")
+                            continue
+                    else:
+                        errors.append(f"{record['query_id']} {kind}: {values}")
                         continue
-                break
-            else:
-                raise ValueError(f"No meaning-preserving {kind} after retries for {record['query_id']}")
-            record['perturbations'][kind] = text
-            if review is not None:
-                record['perturbation_reviews'][kind] = review
-            save_json(output_path(cfg, 'modifiers.json'), records)
-            logger.info('Perturbed %s %s: %s', record['query_id'], kind, text)
+                else:
+                    text = finish(values)
+                record['perturbations'][kind] = text
+            save_json(path, records)
+            completed = sum(len(r['perturbations']) for r in records)
+            progress(cfg, 'perturbations', completed, total)
+            logger.info('Perturbations %d/%d', completed, total)
+            fail_batch(errors, logger)
+    for record in records:
+        if record['query_id'] not in review_ids:
+            continue
+        for kind, text in record['perturbations'].items():
+            if kind in record['perturbation_reviews']:
+                continue
+            review = generator.request_json(prompts.PERTURB_REVIEW_SYSTEM,
+                f'Original: {record["modifier"]}\nPerturbed: {text}',
+                attempts=cfg['perturbation']['max_attempts'], validator=bool_review(['meaning_preserved']))
+            record['perturbation_reviews'][kind] = review
+            # Audits are diagnostics; retain checked text and flag any semantic concern transparently.
+            if not review['meaning_preserved']:
+                logger.warning('Semantic audit flagged %s %s: %s', record['query_id'], kind, review['reason'])
+            save_json(path, records)
     del generator
     release_model(None)
     quality_report(cfg, records, logger)
@@ -207,16 +286,19 @@ def perturb(cfg, logger):
 def quality_report(cfg, records, logger):
     reviewed = [r for r in records if 'quality_review' in r]
     checks = ['grounded', 'direction_correct', 'coherent', 'shared_across_targets']
-    report = {'kind': 'model-assisted checks; human review still needed', 'queries': len(records),
-              'reviewed': len(reviewed),
+    perturbation_flags = [{'query_id': r['query_id'], 'kind': kind, 'reason': review['reason']}
+                          for r in records for kind, review in r['perturbation_reviews'].items()
+                          if not review['meaning_preserved']]
+    report = {'kind': 'sampled model-assisted diagnostic audit', 'queries': len(records), 'reviewed': len(reviewed),
               'pass_counts': {k: sum(r['quality_review'][k] for r in reviewed) for k in checks},
               'flagged_query_ids': [r['query_id'] for r in reviewed if not all(r['quality_review'][k] for k in checks)],
+              'perturbation_flags': perturbation_flags,
               'unique_clean_modifiers': len({r['modifier'] for r in records}),
               'mean_clean_word_count': sum(len(r['modifier'].split()) for r in records) / len(records),
-              'review_scope': 'Only the sampled conditioning targets; no claim about unshown targets'}
+              'generation_scope': 'Every target from the same cir_db.csv row; no gallery-derived pairings',
+              'review_scope': 'Configured query audit sample and first review_target_images targets; no human accuracy claim'}
     save_json(output_path(cfg, 'quality_report.json'), report)
     logger.info('Generation quality: %s', report)
-
 
 class PathDataset(torch.utils.data.Dataset):
     def __init__(self, records, path_key):
@@ -298,6 +380,9 @@ def retrieve(cfg, logger, clean_only=False):
     save_json(output_path(cfg, 'retrieval_clean.json' if clean_only else 'retrieval.json'), retrieval)
     save_json(output_path(cfg, 'metrics_clean.json' if clean_only else 'metrics.json'),
               {'scope': manifest['scope'], 'queries': len(records), 'gallery_size': len(gallery_ids),
+               'declared_gallery_size': manifest['declared_gallery_size'],
+               'missing_gallery_count': len(manifest['missing_gallery_ids']),
+               'gallery_protocol': 'All available test-partition images; no sampling',
                'units': 'percent; deltas in percentage points', 'metrics': metrics,
                'delta_vs_clean': deltas, 'per_query': per_query,
                'protocol': 'Target-conditioned modifiers; fixed gallery and reference+text fusion.'})
@@ -305,7 +390,7 @@ def retrieve(cfg, logger, clean_only=False):
     if not clean_only:
         import csv
         with output_path(cfg, 'metrics.csv').open('w') as stream:
-            writer = csv.writer(stream)
+            writer = csv.writer(stream, lineterminator='\n')
             writer.writerow(['condition', 'metric', 'value_percent', 'delta_pp_vs_clean'])
             for condition, values in metrics.items():
                 for metric, value in values.items():
@@ -313,8 +398,12 @@ def retrieve(cfg, logger, clean_only=False):
 
 
 def main():
-    args = parse_args(['all', 'prepare', 'generate', 'retrieve-clean', 'perturb', 'evaluate', 'visualize'])
-    cfg = get_config(args.config)
+    args = parse_args(['both', 'all', 'prepare', 'generate', 'retrieve-clean', 'perturb', 'evaluate', 'visualize'])
+    if args.stage == 'both':
+        from results import run_both
+        run_both(args.config)
+        return
+    cfg = get_config(args.config, split=args.split)
     logger = setup_logging(output_path(cfg, 'run.log'))
     start = time.monotonic()
     seed_everything(cfg)
@@ -342,6 +431,10 @@ def main():
         if args.stage in ['all', 'visualize']:
             from figure import visualize
             visualize(cfg, logger)
+        progress(cfg, 'complete ' + args.stage, 1, 1)
+        if args.stage in ['all', 'evaluate']:
+            from results import print_result_table
+            print_result_table([read_json(output_path(cfg, 'metrics.json')) | {'split': cfg['split']}], logger)
         logger.info('Completed stage=%s elapsed=%.2fs', args.stage, time.monotonic() - start)
     except Exception:
         logger.exception('Experiment failed; completed artifacts are preserved for resume')

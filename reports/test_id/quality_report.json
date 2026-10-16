@@ -1,0 +1,19 @@
+{
+  "kind": "sampled model-assisted diagnostic audit",
+  "queries": 1429,
+  "reviewed": 6,
+  "pass_counts": {
+    "grounded": 6,
+    "direction_correct": 6,
+    "coherent": 6,
+    "shared_across_targets": 5
+  },
+  "flagged_query_ids": [
+    "test_id:1317"
+  ],
+  "perturbation_flags": [],
+  "unique_clean_modifiers": 1414,
+  "mean_clean_word_count": 17.635409377186843,
+  "generation_scope": "Every target from the same cir_db.csv row; no gallery-derived pairings",
+  "review_scope": "Configured query audit sample and first review_target_images targets; no human accuracy claim"
+}

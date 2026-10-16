@@ -1,0 +1,191 @@
+seed: 42
+split: test_id
+remove_duplicates: true
+missing_gallery_policy: available
+image_storage_folders:
+- test_id
+- test_ood
+- train
+- val
+paths:
+  glam_root: /data/data_fxu/GLAM/raw
+  cir_file: /home/fxu/PerturbedCIR4GLAM/cir_db.csv
+  db_processed_name: /home/fxu/PerturbedCIR4GLAM/db_processed.txt
+  output_dir: /home/fxu/PerturbedCIR4GLAM/outputs/full/test_id/perturbation_partitions/gpu_1
+  model_cache: /home/fxu/PerturbedCIR4GLAM/.model_cache
+runtime:
+  gpu_id: 2
+  gpu_ids:
+    test_ood: 2
+    test_id: 1
+  require_cuda: true
+  dtype: bfloat16
+  num_workers: 4
+  cpu_threads: 4
+  local_files_only: false
+  trust_remote_code: false
+subset:
+  query_limit: null
+generation:
+  model: qwen
+  use_original_hint: false
+  batch_size: 32
+  image_batch_size: 16
+  max_attempts: 8
+  min_words: 5
+  max_words: 65
+  quality_review: true
+  quality_review_samples: 6
+  review_target_images: 6
+  decoding:
+    do_sample: false
+    temperature: 0.2
+    top_p: 0.9
+    top_k: 50
+    max_new_tokens: 256
+  models:
+    qwen: Qwen/Qwen2.5-VL-7B-Instruct
+    llava: llava-hf/llava-v1.6-mistral-7b-hf
+    deepseek: deepseek-ai/deepseek-vl-7b-chat
+  vision:
+    min_pixels: 50176
+    max_pixels: 200704
+perturbation:
+  typo_words: 1
+  max_typo_words: 2
+  max_edits_per_word: 2
+  preserve_content_words: true
+  editable_words:
+  - a
+  - an
+  - the
+  - this
+  - that
+  - these
+  - those
+  - with
+  - to
+  - for
+  - of
+  - in
+  - 'on'
+  - at
+  - by
+  - from
+  - into
+  - as
+  - and
+  - then
+  - is
+  - are
+  - be
+  - it
+  - its
+  - them
+  - their
+  - replace
+  - replacing
+  - change
+  - changing
+  - adjust
+  - adjusting
+  - include
+  - including
+  - swap
+  - switch
+  - exchange
+  - substitute
+  - use
+  - make
+  - get
+  - out
+  - please
+  - pls
+  - can
+  - could
+  - you
+  - i
+  - want
+  - would
+  - like
+  - instead
+  - rather
+  - some
+  - now
+  - just
+  - match
+  - using
+  - up
+  - we
+  - should
+  - hey
+  - ya
+  - plz
+  - u
+  - wanna
+  - gonna
+  - perhaps
+  - maybe
+  - alter
+  - tweak
+  - modify
+  - convert
+  - transform
+  - update
+  - revise
+  - reflect
+  - ensure
+  - set
+  - turn
+  - become
+  - than
+  - so
+  - will
+  - keep
+  - same
+  decoding:
+    do_sample: true
+    temperature: 0.7
+    top_p: 0.9
+    top_k: 50
+    max_new_tokens: 256
+  types:
+    typos: You MUST deliberately misspell one or two words, e.g. the -> teh, with
+      -> wiht, replace -> repalce. Keep all intended visual attributes recoverable.
+      Copying the input unchanged is invalid.
+    informal: Rewrite as a casual search request with informal phrasing or common
+      abbreviations. Preserve every visual constraint.
+    paraphrase: Use natural synonyms and a different sentence structure. Preserve
+      every visual constraint.
+  max_attempts: 8
+  quality_review: false
+  quality_review_samples: 6
+retrieval:
+  model: openclip
+  batch_size: 64
+  image_weight: 0.5
+  models:
+    clip: openai/clip-vit-base-patch16
+    openclip: ViT-B-16-quickgelu
+    openclip_pretrained: openai
+    blip: Salesforce/blip-itm-base-coco
+    siglip: google/siglip-base-patch16-224
+    siglip2: google/siglip2-base-patch16-224
+    coca: coca_ViT-B-16
+    coca_pretrained: mscoco_finetuned_laion2b_s13b_b90k
+    openvision: hf-hub:UCSC-VLAA/openvision-vit-base-patch16-224
+evaluation:
+  splits:
+  - test_ood
+  - test_id
+  top_ks:
+  - 1
+  - 5
+  - 10
+  - 50
+  exclude_reference: true
+  query_batch_size: 32
+visualization:
+  num_examples: 3
+  top_k: 5
+  dpi: 130

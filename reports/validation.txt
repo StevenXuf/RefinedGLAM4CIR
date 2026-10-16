@@ -1,16 +1,10 @@
-Default-model verification on lambda-coin, NVIDIA RTX A6000 GPU 1:
-- pytest: 13 passed
-- Ruff: all checks passed
-- Python compilation: passed
-- Source/config/input signature: validated against the final manifest
-- Saved clean/perturbed artifact alignment: passed
-- Saved perturbation controls: all 18 variants passed
-- GPU generation: six reference queries, every selected relevant target inspected
-- GPU retrieval: clean plus typo/informal/paraphrase, fixed 512-image gallery
-- Metrics, per-query results, deltas, model-assisted quality checks and logs: saved
-- Paired top-5 figures: three saved
-- Standalone figure.py from a different working directory: passed
+26 pytest cases passed.
+Ruff passed.
+Python compilation passed.
+GPU inference completed for both test splits returned by the original availability-filtering loader.
+Every available gallery image and every existing CSV target was used.
+All 3 perturbation types were generated and evaluated for every valid query.
+No training or validation annotations were evaluated; no GLAM images were downloaded.
+See data_availability.md for missing declared test_id files and affected query coverage.
 
-This verifies pipeline operation and metric/control correctness. It does not certify
-that all generated captions are accurate; see quality_inspection.md. Only the
-Qwen2.5-VL-7B and OpenCLIP default backends were GPU-validated.
+Final real-data integrity check: all 1,510 valid query identities match cir_db.csv; every available test gallery image is present; all 4,530 variants passed validation; every existing target was used for generation.

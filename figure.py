@@ -58,4 +58,4 @@ def visualize(cfg, logger=None):
 
 if __name__ == '__main__':
     args = parse_args(['visualize'])
-    visualize(get_config(args.config))
+    visualize(get_config(args.config, split=args.split))
