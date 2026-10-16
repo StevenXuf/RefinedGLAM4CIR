@@ -1,0 +1,419 @@
+[
+  {
+    "query_id": "test_ood:384",
+    "csv_row": 384,
+    "reference_id": "art_079655",
+    "reference_path": "/data/data_fxu/GLAM/raw/test_ood/art_079655.png",
+    "target_ids": [
+      "art_080699"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/art_080699.png"
+    ],
+    "original_modifier": "change palace for royal palace.",
+    "conditioning_target_ids": [
+      "art_080699"
+    ],
+    "conditioning_target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/art_080699.png"
+    ],
+    "modifier": "Replace the ornate bronze faucets with a black metal knocker.",
+    "reference_observation": "A row of ornate bronze faucets shaped like birds mounted on a textured stone wall under a clear sky.",
+    "target_observations": [
+      "A black metal knocker shaped like a bird's head attached to a textured stone wall."
+    ],
+    "synthesis": {
+      "shared_traits": [
+        "bird-shaped",
+        "metallic",
+        "attached to a textured stone wall"
+      ],
+      "limitations": [],
+      "modifier": "Replace the ornate bronze faucets with a black metal knocker."
+    },
+    "perturbations": {
+      "typos": "Rplce the ornate bronze faucets with a black metal knocker.",
+      "informal": "Please replace the ornate bronze faucets with a black metal knocker.",
+      "paraphrase": "Please adjust the ornate bronze faucets to be a black metal knocker."
+    },
+    "perturbation_reviews": {
+      "typos": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version 'Rplce the ornate bronze faucets with a black metal knocker.' maintains the same intended action (replacing faucets) and the same objects (ornate bronze faucets and a black metal knocker). The only difference is the misspelling of 'Replace' as 'Rplce', which does not alter the meaning."
+      },
+      "informal": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version is identical to the original in terms of the objects (ornate bronze faucets) and the action (replacing them with a black metal knocker). The only difference is the addition of 'Please', which does not alter the core meaning."
+      },
+      "paraphrase": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the intent to replace the faucets with a knocker, preserving the visual attribute (black metal) and the action (replacement). The only difference is the phrasing, which does not alter the core meaning."
+      }
+    },
+    "quality_review": {
+      "grounded": true,
+      "direction_correct": true,
+      "coherent": true,
+      "shared_across_targets": true,
+      "reason": "The change from ornate bronze faucets to a black metal knocker is coherent and correctly described. The target observation accurately reflects this change."
+    }
+  },
+  {
+    "query_id": "test_ood:684",
+    "csv_row": 684,
+    "reference_id": "ceramic_064389",
+    "reference_path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064389.png",
+    "target_ids": [
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066667.png"
+    ],
+    "original_modifier": "change figurine for figurine.",
+    "conditioning_target_ids": [
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "conditioning_target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/test_ood/ceramic_066667.png"
+    ],
+    "modifier": "Replace the clay material with a stone or terracotta material, and adjust the color to include orange or greenish-brown.",
+    "reference_observation": "A clay figurine with a humanoid form, featuring a head, torso, and limbs, set against a plain white background.",
+    "target_observations": [
+      "A weathered stone figure with a humanoid form, standing upright, against a plain background.",
+      "A clay figurine with orange-painted hands and feet, standing upright against a white background.",
+      "A clay figurine with a human-like form, featuring a prominent head, torso, and limbs, set against a dark background.",
+      "A red-orange, elongated object with a curved top and flat bottom against a dark background.",
+      "A ceramic figure with a greenish-brown glaze, depicting a human-like form with a curved back and a head resembling an animal, set against a dark background.",
+      "A terracotta figurine with a humanoid form, standing on two legs, against a warm-toned background.",
+      "A clay figurine with a slender body, small head, and dotted markings on its surface, set against a plain background.",
+      "A reddish-brown, conical object with a smooth surface against a white background."
+    ],
+    "synthesis": {
+      "shared_traits": [
+        "humanoid form",
+        "standing upright"
+      ],
+      "limitations": [
+        "color",
+        "background"
+      ],
+      "modifier": "Replace the clay material with a stone or terracotta material, and adjust the color to include orange or greenish-brown."
+    },
+    "perturbations": {
+      "typos": "Replace the clay material with a stone or terracotta material, an adjust the color to include orange or greenish-brown.",
+      "informal": "Please swap the clay material for a stone or terracotta material, and adjust the color to include orange or greenish-brown.",
+      "paraphrase": "Swap the clay material for a stone or terracotta material, and adjust the color to include orange or greenish-brown."
+    },
+    "perturbation_reviews": {
+      "typos": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same intended objects (clay material, stone, terracotta) and visual attributes (orange, greenish-brown). The only difference is the addition of 'an' before 'adjust', which does not alter the meaning."
+      },
+      "informal": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version is a direct paraphrase of the original sentence, maintaining all the intended objects (clay material, stone, terracotta, color adjustment, orange, greenish-brown). There are no added or lost constraints."
+      },
+      "paraphrase": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same core meaning as the original. The only difference is the use of 'Swap' instead of 'Replace', which is a minor grammatical variation that does not alter the intended action."
+      }
+    },
+    "quality_review": {
+      "grounded": true,
+      "direction_correct": true,
+      "coherent": true,
+      "shared_across_targets": false,
+      "reason": "The changes are coherent as they involve altering the material and color of the figurines, which is a plausible transformation. However, the targets do not share the same material or color modifications, indicating that the changes are not shared across all targets."
+    }
+  },
+  {
+    "query_id": "test_ood:1556",
+    "csv_row": 1556,
+    "reference_id": "costume_039405",
+    "reference_path": "/data/data_fxu/GLAM/raw/test_ood/costume_039405.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/test_ood/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "conditioning_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "conditioning_target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/test_ood/costume_039628.png"
+    ],
+    "modifier": "Replace the painted wooden mask with a group of people in a medical setting.",
+    "reference_observation": "A painted wooden mask with a red top featuring a crescent moon, a blue face with exaggerated features, and a yellow hat.",
+    "target_observations": [
+      "A black-and-white engraving depicting a group of people in a medical setting, with one person receiving a vaccine from another, set against a plain background.",
+      "A historical illustration depicting a vaccination scene with people in period attire, set against a beige background with text reading \"LA VACCINE.\""
+    ],
+    "synthesis": {
+      "shared_traits": [
+        "medical setting",
+        "people"
+      ],
+      "limitations": [
+        "mask",
+        "crescent moon",
+        "blue face",
+        "yellow hat",
+        "red top"
+      ],
+      "modifier": "Replace the painted wooden mask with a group of people in a medical setting."
+    },
+    "perturbations": {
+      "typos": "Replace thee painted wooden mask with a group of people in a medical setting.",
+      "informal": "Please swap the painted wooden mask for a group of people in a medical setting.",
+      "paraphrase": "Adjust the painted wooden mask for a group of people in a medical setting."
+    },
+    "perturbation_reviews": {
+      "typos": {
+        "meaning_preserved": true,
+        "reason": "The perturbation 'thee' is a spelling error for 'the', which does not alter the intended meaning of the sentence."
+      },
+      "informal": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the core action of replacing the painted wooden mask with a group of people in a medical setting. The only difference is the use of 'swap' instead of 'replace', which is a synonymous term in this context."
+      },
+      "paraphrase": {
+        "meaning_preserved": true,
+        "reason": "The original and perturbed versions both describe changing the painted wooden mask to include a group of people in a medical setting. The only difference is the use of 'replace' versus 'adjust', which does not alter the core meaning."
+      }
+    },
+    "quality_review": {
+      "grounded": true,
+      "direction_correct": true,
+      "coherent": true,
+      "shared_across_targets": true,
+      "reason": "The change from a painted wooden mask to a group of people in a medical setting is coherent and correctly described. The targets show a black-and-white engraving and a historical illustration both depicting a vaccination scene, which aligns with the description."
+    }
+  },
+  {
+    "query_id": "test_ood:1893",
+    "csv_row": 1893,
+    "reference_id": "jewelry_018720",
+    "reference_path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_018720.png",
+    "target_ids": [
+      "jewelry_018721",
+      "jewelry_018726"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/jewelry_018721.png",
+      "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+    ],
+    "original_modifier": "change ring for bracelet.",
+    "conditioning_target_ids": [
+      "jewelry_018721",
+      "jewelry_018726"
+    ],
+    "conditioning_target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/jewelry_018721.png",
+      "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+    ],
+    "modifier": "Replace the rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.",
+    "reference_observation": "A collection of rings and a bracelet with intricate designs, featuring gold and silver tones on a plain background.",
+    "target_observations": [
+      "A gold-colored compact with intricate floral design and a red gemstone center, displayed alongside a matching gold-colored comb.",
+      "A silver bangle with coiled details on a red background."
+    ],
+    "synthesis": {
+      "shared_traits": [
+        "intricate design",
+        "metallic tone"
+      ],
+      "limitations": [
+        "plain background",
+        "ring or bracelet"
+      ],
+      "modifier": "Replace the rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details."
+    },
+    "perturbations": {
+      "typos": "Replace thee rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.",
+      "informal": "Change the rings and bracelet for a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.",
+      "paraphrase": "Adjust the rings and bracelet to a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details."
+    },
+    "perturbation_reviews": {
+      "typos": {
+        "meaning_preserved": true,
+        "reason": "The perturbation 'thee' is a misspelling of 'the', which does not alter the intended meaning of the sentence."
+      },
+      "informal": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same objects (rings, bracelet, compact, comb, bangle) and their attributes (gold-colored, silver with coiled details). The only difference is the use of 'for' instead of 'with', which does not alter the intended meaning."
+      },
+      "paraphrase": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same objects (rings, bracelet, compact, comb, bangle) and their attributes (gold-colored, silver, coiled details). The action of replacing is changed to adjusting, but this does not alter the core meaning as both imply a transformation of the items."
+      }
+    },
+    "quality_review": {
+      "grounded": true,
+      "direction_correct": true,
+      "coherent": true,
+      "shared_across_targets": false,
+      "reason": "The changes are coherent as they replace the rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details. However, the targets show different objects than what was described in the modifier."
+    }
+  },
+  {
+    "query_id": "test_ood:1895",
+    "csv_row": 1895,
+    "reference_id": "jewelry_018722",
+    "reference_path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_018722.png",
+    "target_ids": [
+      "jewelry_018726"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+    ],
+    "original_modifier": "change ring for bracelet.",
+    "conditioning_target_ids": [
+      "jewelry_018726"
+    ],
+    "conditioning_target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+    ],
+    "modifier": "Replace the gold ring with a silver bangle and adjust the background to red.",
+    "reference_observation": "A gold-colored ring with a cluster of green and clear gemstones set against a white background.",
+    "target_observations": [
+      "A silver bangle with coiled details on a red background."
+    ],
+    "synthesis": {
+      "shared_traits": [
+        "jewelry"
+      ],
+      "limitations": [
+        "color",
+        "background"
+      ],
+      "modifier": "Replace the gold ring with a silver bangle and adjust the background to red."
+    },
+    "perturbations": {
+      "typos": "Replace the gold ring with a silver bangle andd adjust the background to red.",
+      "informal": "Please swap the gold ring for a silver bangle and adjust the background to red.",
+      "paraphrase": "Please substitute the gold ring with a silver bangle and adjust the background to red."
+    },
+    "perturbation_reviews": {
+      "typos": {
+        "meaning_preserved": true,
+        "reason": "The perturbation 'andd' is likely a typo for 'and', which does not alter the intended meaning of the instruction."
+      },
+      "informal": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same actions (replacing the gold ring with a silver bangle) and the same visual attribute change (adjusting the background to red). The only difference is the use of 'Please' at the beginning, which does not alter the core meaning."
+      },
+      "paraphrase": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same intended objects (gold ring, silver bangle) and visual attribute (background color). The only difference is the addition of 'Please', which does not alter the core meaning."
+      }
+    },
+    "quality_review": {
+      "grounded": true,
+      "direction_correct": true,
+      "coherent": true,
+      "shared_across_targets": true,
+      "reason": "The change from a gold ring to a silver bangle and the adjustment of the background to red are clearly visible and coherent."
+    }
+  },
+  {
+    "query_id": "test_ood:1972",
+    "csv_row": 1972,
+    "reference_id": "numismatics_027419",
+    "reference_path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027419.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/test_ood/numismatics_025162.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "conditioning_target_ids": [
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "conditioning_target_paths": [
+      "/data/data_fxu/GLAM/raw/test_ood/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/test_ood/numismatics_025162.png"
+    ],
+    "modifier": "Replace the intricate designs and inscriptions with inscriptions and symbols, and adjust the background to be either white or dark.",
+    "reference_observation": "Two gold coins with intricate designs and inscriptions, one featuring a figure and the other text.",
+    "target_observations": [
+      "Two coins with inscriptions and symbols, one featuring a shield and the other a crown, displayed against a white background.",
+      "Two coin-like objects with a crown and shield design on top, and text and symbols on the bottom, against a dark background."
+    ],
+    "synthesis": {
+      "shared_traits": [
+        "coins",
+        "inscriptions",
+        "symbols"
+      ],
+      "limitations": [
+        "intricate designs",
+        "figure"
+      ],
+      "modifier": "Replace the intricate designs and inscriptions with inscriptions and symbols, and adjust the background to be either white or dark."
+    },
+    "perturbations": {
+      "typos": "Replace the intricate designs and inscriptions wihth inscriptions and symbols, and adjust the background to be either white or dark.",
+      "informal": "Please replace intricate designs and inscriptions with inscriptions and symbols, and adjust the background to be either white or dark.",
+      "paraphrase": "Adjust the intricate designs and inscriptions to be a inscriptions and symbols, and adjust the background to be either white or dark"
+    },
+    "perturbation_reviews": {
+      "typos": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same intended objects (intricate designs, inscriptions, symbols, and background) and their relationships (replacement and adjustment). The only difference is a spelling error in 'with' instead of 'with', which does not alter the intended meaning."
+      },
+      "informal": {
+        "meaning_preserved": true,
+        "reason": "The perturbed version maintains the same intended meaning as the original. The only difference is the addition of 'Please' at the beginning, which does not alter the core instructions."
+      },
+      "paraphrase": {
+        "meaning_preserved": true,
+        "reason": "The intended meaning is preserved as both versions suggest replacing intricate designs and inscriptions with inscriptions and symbols, and adjusting the background to be either white or dark."
+      }
+    },
+    "quality_review": {
+      "grounded": true,
+      "direction_correct": true,
+      "coherent": true,
+      "shared_across_targets": true,
+      "reason": "The changes are clearly visible and consistent across both targets. The designs have been simplified to inscriptions and symbols, and the background has been adjusted to either white or dark as specified."
+    }
+  }
+]

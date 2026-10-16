@@ -1,185 +1,243 @@
-import torch
-import fire
+"""Lazy, GPU-backed adapters for the original three vision-language models."""
+import json
 import logging
-from transformers import Qwen2_5_VLForConditionalGeneration, LlavaNextProcessor, LlavaNextForConditionalGeneration, AutoModelForCausalLM,  AutoProcessor, GenerationConfig, set_seed
-from qwen_vl_utils import process_vision_info
-from deepseek_vl.models import VLChatProcessor
+import re
+import random
+from collections import Counter
 
-from prompts import get_sys_prompt, get_translation_prompt
-from utils import get_config, setup_logging
+import torch
 
-def load_text_gen_model(cfg, logger, **kwargs):
-    gen_model = kwargs.get('gen_model', cfg.gen_model)
-    temperature = kwargs.get('temperature', cfg.qwen.temperature)
-    top_p = kwargs.get('top_p', cfg.qwen.top_p)
-    llm_top_k = kwargs.get('top_k', cfg.qwen.top_k)
-    max_new_tokens = kwargs.get('max_new_tokens', cfg.qwen.max_new_tokens)
-    device = torch.device(f"cuda:{kwargs.get('gpu_id', cfg.gpu_id)}" if torch.cuda.is_available() else "cpu")
-
-    logger.info(f"Loading {gen_model.upper()} model on device: {device}")
-    logger.info(f"Generation parameters: temperature={temperature}, top_p={top_p}, top_k={llm_top_k}, max_new_tokens={max_new_tokens}")
-
-    gen_config = GenerationConfig(do_sample=True,
-                                    temperature=temperature,
-                                    top_p=top_p,
-                                    top_k=llm_top_k,
-                                    max_new_tokens=max_new_tokens,
-                                )
-    
-    if gen_model == "llava":
-        model_id = cfg.llava.model_id
-        text_generation_model = LlavaNextForConditionalGeneration.from_pretrained(model_id, 
-                                                                            dtype=torch.bfloat16, 
-                                                                            device_map={"": device}
-                                                                            ).to(device)
-    elif gen_model == "deepseek":
-        model_id = cfg.deepseek.model_id
-        text_generation_model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True)
-        text_generation_model = text_generation_model.to(torch.bfloat16).to(device)
-    elif gen_model == "qwen":
-        model_id = cfg.qwen.model_id
-        text_generation_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_id, 
-                                                                                dtype=torch.bfloat16, 
-                                                                                device_map={"": device}
-                                                                                ).to(device)
-    else:
-        logger.error(f"Unsupported MLLM: {gen_model.upper()}. Should be one of ['QWEN', 'LLAVA', 'DEEPSEEK']")
-        raise ValueError(f"Unsupported MLLM: {gen_model.upper()}. Should be one of ['QWEN', 'LLAVA', 'DEEPSEEK']")
-    
-    text_generation_model.eval()
-    
-    if gen_model == "deepseek":
-        processor = VLChatProcessor.from_pretrained(model_id)
-    elif gen_model == "llava":
-        processor = LlavaNextProcessor.from_pretrained(model_id, 
-                                                padding_side='left', 
-                                                use_fast=True
-                                                )
-    else:
-        processor = AutoProcessor.from_pretrained(model_id, 
-                                                padding_side='left', 
-                                                use_fast=True
-                                                )
-    return text_generation_model, processor, gen_config
-
-@torch.inference_mode()
-def translate(texts, model, processor, gen_config) -> list[str]:
-    prompts = [get_translation_prompt(text, 'qwen') for text in texts]
-
-    texts = [
-                processor.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True) for prompt in prompts
-            ]
-    image_inputs, video_inputs = process_vision_info(prompts)
-    inputs = processor(
-        text=texts,
-        images=image_inputs,
-        videos=video_inputs,
-        padding=True,
-        return_tensors="pt",
-        padding_side='left'
-    )
-    inputs = inputs.to(model.device)
-
-    generated_ids = model.generate(**inputs, generation_config=gen_config)
-    generated_ids_trimmed = [
-        out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-    ]
-    output_texts = processor.batch_decode(
-        generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
-    )
-    return output_texts
+from utils import get_device
+from prompts import TYPO_SYSTEM, WORDING_SYSTEM
 
 
-@torch.inference_mode()
-def generate_text(cfg, logger, pil_images, modifiers, model, processor, gen_config, **kwargs) -> list[str]:
-    gen_model = cfg.gen_model
-    if cfg.use_metadata and ('materials' in kwargs and 'objects' in kwargs):
-        logger.info("Using metadata for text generation.")
-        if cfg.use_translation:
-            mat_size = len(kwargs['materials'])
-            translated = translate(kwargs['materials'] + kwargs['objects'], model, processor, gen_config)
-            kwargs['materials'] = translated[:mat_size]
-            kwargs['objects'] = translated[mat_size:]
-            logger.info(f"Translated materials: {kwargs['materials']}")
-            logger.info(f"Translated objects: {kwargs['objects']}")
-        prompts = [get_sys_prompt(pil_image, modifier, gen_model, material, obj) for pil_image, modifier, material, obj in zip(pil_images, modifiers, kwargs['materials'], kwargs['objects'])]
-    else:
-        logger.info("Not using metadata for text generation.")
-        prompts = [get_sys_prompt(pil_image, modifier, gen_model) for pil_image, modifier in zip(pil_images, modifiers)]
-    
-    if gen_model == "qwen":
-        texts = [
-            processor.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True) for prompt in prompts
-        ]
-        image_inputs, video_inputs = process_vision_info(prompts)
-        inputs = processor(
-            text=texts,
-            images=image_inputs,
-            videos=video_inputs,
-            padding=True,
-            return_tensors="pt",
-            padding_side='left'
-        )
-        inputs = inputs.to(model.device)
-
-        generated_ids = model.generate(**inputs, generation_config=gen_config)
-        generated_ids_trimmed = [
-            out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-        ]
-        output_texts = processor.batch_decode(
-            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
-        )
-    elif gen_model == "llava":
-        texts = [
-            processor.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True) for prompt in prompts
-        ]
-        inputs = processor(
-            text=texts,
-            images=pil_images,
-            padding=True,
-            return_tensors="pt",
-        ).to(model.device)
-
-        generated_ids = model.generate(**inputs, generation_config=gen_config)
-        output_texts = processor.batch_decode(generated_ids[:,inputs["input_ids"].size(-1):], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-        
-    elif gen_model == "deepseek":
-        tokenizer = processor.tokenizer
-        info = [processor.process_one(
-            conversations=prompt,
-            images=[pil_image],
-        ) for prompt, pil_image in zip(prompts, pil_images)]
-
-        inputs = processor.batchify(info).to(model.device)
-        inputs_embeds = model.prepare_inputs_embeds(**inputs)
-
-        outputs = model.language_model.generate(
-            inputs_embeds=inputs_embeds,
-            attention_mask=inputs.attention_mask,
-            pad_token_id=tokenizer.eos_token_id,
-            bos_token_id=tokenizer.bos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-            use_cache=True,
-            temperature=gen_config.temperature,
-            top_p=gen_config.top_p,
-            top_k=gen_config.top_k,
-            max_new_tokens=gen_config.max_new_tokens,
-        )
-
-        output_texts = [tokenizer.decode(outputs[i].cpu().tolist(), skip_special_tokens=True) for i in range(len(outputs))]
-    else:
-        raise ValueError(f"Unsupported MLLM: {gen_model.upper()}. Should be one of ['QWEN', 'LLAVA', 'DEEPSEEK']")
-
-    logger.info(f"Generated texts: {output_texts}")
-    return output_texts
-
-def main(**kwargs):
-    cfg = get_config(**kwargs)
-    set_seed(cfg.seed)
-    setup_logging(cfg.paths.log_path)
-    logger = logging.getLogger(__name__)
-    load_text_gen_model(cfg, logger, **kwargs)
+def parse_json(text):
+    text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
+    start, end = text.find('{'), text.rfind('}')
+    if start < 0 or end < start:
+        raise ValueError(f'Model did not return JSON: {text[:200]}')
+    result = json.loads(text[start:end + 1])
+    if not isinstance(result, dict):
+        raise ValueError('Expected a JSON object')
+    return result
 
 
-if __name__ == "__main__":
-    fire.Fire(main)
+def validate_modifier(result, cfg, original=None):
+    text = result.get('modifier')
+    if not isinstance(text, str):
+        raise ValueError('Missing string modifier')
+    text = ' '.join(text.split()).strip('"')
+    count = len(text.split())
+    if not cfg['generation']['min_words'] <= count <= cfg['generation']['max_words']:
+        raise ValueError(f'Modifier length {count} outside configured word bounds')
+    if original and text.casefold() == original.casefold():
+        raise ValueError('Perturbation is unchanged')
+    if re.search(r'\b(?:art|tool|ceramic|jewelry)_\d+\b', text):
+        raise ValueError('Modifier leaks an image identifier')
+    return text
+
+
+def word_tokens(text):
+    return re.findall(r"[a-z0-9]+(?:[-'][a-z0-9]+)*", text.lower())
+
+
+def edit_distance(left, right):
+    previous = list(range(len(right) + 1))
+    for i, a in enumerate(left, 1):
+        current = [i]
+        for j, b in enumerate(right, 1):
+            current.append(min(current[-1] + 1, previous[j] + 1, previous[j - 1] + (a != b)))
+        previous = current
+    return previous[-1]
+
+
+def validate_perturbation(result, cfg, original, kind):
+    text = validate_modifier(result, cfg, original)
+    before, after = word_tokens(original), word_tokens(text)
+    options = cfg['perturbation']
+    if kind == 'typos':
+        if len(before) != len(after):
+            raise ValueError('Typos must preserve word count and word order')
+        changed = [(a, b) for a, b in zip(before, after) if a != b]
+        if not 1 <= len(changed) <= options['max_typo_words']:
+            raise ValueError(f"Change only 1-{options['max_typo_words']} words; changed {len(changed)}")
+        if any(edit_distance(a, b) > options['max_edits_per_word'] for a, b in changed):
+            raise ValueError('Use small keyboard edits, not word replacements')
+    elif options['preserve_content_words']:
+        editable = set(options['editable_words'])
+        content_before = Counter(word for word in before if word not in editable)
+        content_after = Counter(word for word in after if word not in editable)
+        if content_before != content_after:
+            missing = list((content_before - content_after).elements())
+            added = list((content_after - content_before).elements())
+            raise ValueError(f'Preserve all visual words exactly. Missing: {missing}; added: {added}')
+    return text
+
+
+def generate_typos(generator, cfg, original, query_id):
+    """Ask the LLM for word-level typos, then apply only those approved spans."""
+    matches = list(re.finditer(r"[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)*", original))
+    editable = set(cfg['perturbation']['editable_words'])
+    positions = [i for i, match in enumerate(matches) if match.group().lower() in editable and len(match.group()) >= 3]
+    if not positions:
+        positions = [i for i, match in enumerate(matches) if len(match.group()) >= 3]
+    count = min(cfg['perturbation']['typo_words'], len(positions))
+    if not 1 <= count <= cfg['perturbation']['max_typo_words']:
+        raise ValueError('typo_words must fit the available words and max_typo_words')
+    chosen = random.Random(f"{cfg['seed']}:{query_id}:typos").sample(positions, count)
+    edits = []
+    for index in chosen:
+        word = matches[index].group()
+        def validate(result):
+            typo = result.get('typo')
+            if not isinstance(typo, str) or len(word_tokens(typo)) != 1 or re.search(r'\s', typo):
+                raise ValueError('Return one misspelled word in the typo field')
+            distance = edit_distance(word.lower(), typo.lower())
+            if not 1 <= distance <= cfg['perturbation']['max_edits_per_word']:
+                raise ValueError('Return a small spelling error, not the unchanged word')
+            return typo
+        typo = generator.request_json(
+            TYPO_SYSTEM,
+            f'Misspell ONLY this word: {word}\nReturn a small keyboard typo of that exact word, with no other words.',
+            attempts=cfg['perturbation']['max_attempts'], decoding=cfg['perturbation']['decoding'], validator=validate)
+        edits.append((matches[index].start(), matches[index].end(), typo))
+    text = original
+    for start, end, typo in sorted(edits, reverse=True):
+        text = text[:start] + typo + text[end:]
+    return validate_perturbation({'modifier': text}, cfg, original, 'typos')
+
+
+def generate_word_preserving(generator, cfg, original, kind, instruction):
+    """Let the LLM rephrase syntax while protected visual spans remain exact."""
+    editable = set(cfg['perturbation']['editable_words'])
+    # Keep adjacent visual words together so adjectives cannot become separate list items.
+    spans = []
+    for match in re.finditer(r"[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)*", original):
+        if match.group().lower() in editable or match.group().lower() in {'or', 'either', 'not', 'no', 'without'}:
+            continue
+        if spans and original[spans[-1][1]:match.start()].isspace():
+            spans[-1] = (spans[-1][0], match.end())
+        else:
+            spans.append((match.start(), match.end()))
+    protected = {f'CONTENT{i}': original[start:end] for i, (start, end) in enumerate(spans)}
+    skeleton = original
+    for i in range(len(spans) - 1, -1, -1):
+        start, end = spans[i]
+        skeleton = skeleton[:start] + f'CONTENT{i}' + skeleton[end:]
+    # Preserve complete before/after arguments, including internal conjunctions.
+    # Otherwise a model may pair individual source nouns with individual target nouns.
+    primary = re.match(r'(?is)^(replace|change|swap|exchange|substitute|turn|transform)\s+(.+?)\s+(with|to|for|into)\s+(.+?)([.!?]?)$', original)
+    if primary:
+        verb, reference, connector, target, punctuation = primary.groups()
+        protected = {}
+        arguments = []
+        for index, phrase in enumerate([reference, target]):
+            article = re.match(r'(?is)^(the|a|an)\s+(.+)$', phrase)
+            prefix, content = (article[1] + ' ', article[2]) if article else ('', phrase)
+            protected[f'CONTENT{index}'] = content
+            arguments.append(prefix + f'CONTENT{index}')
+        skeleton = f'{verb} {arguments[0]} {connector} {arguments[1]}{punctuation}'
+    def validate(result):
+        text = result.get('modifier')
+        if not isinstance(text, str):
+            raise ValueError('Missing string modifier')
+        tokens = re.findall(r'CONTENT\d+', text, flags=re.I)
+        if [t.upper() for t in tokens] != list(protected):
+            raise ValueError(f'Expected tokens in order: {list(protected)}; received {tokens}. Keep all exactly once.')
+        text = re.sub(r'CONTENT\d+', lambda m: protected[m.group().upper()], text, flags=re.I)
+        return validate_perturbation({'modifier': text}, cfg, original, kind)
+    return generator.request_json(WORDING_SYSTEM,
+        f'Style: {instruction}\nRequest: {skeleton}\nAllowed function words: '
+        + ', '.join(sorted(editable)) + '\nRequired protected tokens, in order: ' + ', '.join(protected)
+        + '\nKeep literal or/either/not/no/without wherever present; they are logical constraints.',
+        attempts=cfg['perturbation']['max_attempts'],
+        decoding=cfg['perturbation']['decoding'], validator=validate)
+
+
+class TextGenerator:
+    def __init__(self, cfg, logger=None):
+        from transformers import AutoProcessor, AutoModelForCausalLM
+        self.cfg = cfg
+        self.logger = logger or logging.getLogger(__name__)
+        self.device = get_device(cfg)
+        self.name = cfg['generation']['model']
+        model_id = cfg['generation']['models'][self.name]
+        common = dict(cache_dir=cfg['paths']['model_cache'],
+                      local_files_only=cfg['runtime']['local_files_only'])
+        dtype = getattr(torch, cfg['runtime']['dtype']) if self.device.type == 'cuda' else torch.float32
+        self.logger.info('Loading generation model=%s device=%s dtype=%s', model_id, self.device, dtype)
+        if self.name == 'qwen':
+            from transformers import Qwen2_5_VLForConditionalGeneration
+            cls = Qwen2_5_VLForConditionalGeneration
+            self.processor = AutoProcessor.from_pretrained(model_id, **common, **cfg['generation']['vision'])
+        elif self.name == 'llava':
+            from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
+            cls = LlavaNextForConditionalGeneration
+            self.processor = LlavaNextProcessor.from_pretrained(model_id, **common)
+        elif self.name == 'deepseek':
+            if not cfg['runtime']['trust_remote_code']:
+                raise ValueError('DeepSeek requires runtime.trust_remote_code: true and deepseek_vl installed')
+            from deepseek_vl.models import VLChatProcessor
+            cls = AutoModelForCausalLM
+            self.processor = VLChatProcessor.from_pretrained(model_id, **common)
+            common['trust_remote_code'] = True
+        else:
+            raise ValueError(f'Unknown generation model: {self.name}')
+        self.model = cls.from_pretrained(model_id, torch_dtype=dtype, **common).to(self.device).eval()
+        if hasattr(self.processor, 'tokenizer'):
+            self.processor.tokenizer.padding_side = 'left'
+
+    @torch.inference_mode()
+    def generate(self, system, prompt, images=(), decoding=None, image_labels=None):
+        # PIL inputs and explicit placeholders avoid networking and preserve multi-image order.
+        content = []
+        for index in range(len(images)):
+            label = image_labels[index] if image_labels else ('BEFORE: reference image' if index == 0 else f'AFTER: relevant target {index}')
+            content.extend([{'type': 'text', 'text': label}, {'type': 'image'}])
+        if self.name == 'qwen':
+            content.append({'type': 'text', 'text': prompt})
+            messages = [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}]
+        elif self.name == 'llava':
+            content.append({'type': 'text', 'text': system + '\n' + prompt})
+            messages = [{'role': 'user', 'content': content}]
+        else:
+            messages = [
+                {'role': 'User', 'content': system + '\n' + '<image_placeholder>\n' * len(images) + prompt,
+                 'images': []}, {'role': 'Assistant', 'content': ''}]
+        decode = decoding or self.cfg['generation']['decoding']
+        options = {'max_new_tokens': decode['max_new_tokens'], 'do_sample': decode['do_sample']}
+        if decode['do_sample']:
+            options.update({k: decode[k] for k in ['temperature', 'top_p', 'top_k']})
+        if self.name == 'deepseek':
+            inputs = self.processor(conversations=messages, images=list(images), force_batchify=True).to(self.device)
+            embeds = self.model.prepare_inputs_embeds(**inputs)
+            tokenizer = self.processor.tokenizer
+            ids = self.model.language_model.generate(inputs_embeds=embeds, attention_mask=inputs.attention_mask,
+                    pad_token_id=tokenizer.eos_token_id, bos_token_id=tokenizer.bos_token_id,
+                    eos_token_id=tokenizer.eos_token_id, **options)
+            return tokenizer.decode(ids[0], skip_special_tokens=True)
+        text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.processor(text=[text], images=list(images) or None, return_tensors='pt', padding=True).to(self.device)
+        if 'pixel_values' in inputs:
+            inputs['pixel_values'] = inputs['pixel_values'].to(self.model.dtype)
+        ids = self.model.generate(**inputs, **options)
+        return self.processor.batch_decode(ids[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0].strip()
+
+    def request_json(self, system, prompt, images=(), attempts=1, validator=None, decoding=None, image_labels=None):
+        for attempt in range(attempts):
+            raw = self.generate(system, prompt, images, decoding=decoding, image_labels=image_labels)
+            self.logger.info('LLM response attempt=%d: %s', attempt + 1, raw)
+            try:
+                result = parse_json(raw)
+                if validator:
+                    result = validator(result)
+                return result
+            except (ValueError, TypeError, json.JSONDecodeError) as error:
+                self.logger.warning('Rejected response: %s', error)
+                if attempt + 1 == attempts:
+                    raise
+                prompt += '\nPrevious rejected response: ' + raw + '\nWrite a DIFFERENT valid response. Fix: ' + str(error)
+
+
+def load_text_gen_model(cfg, logger):
+    return TextGenerator(cfg, logger)

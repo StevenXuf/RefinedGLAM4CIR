@@ -1,0 +1,355 @@
+2026-10-16 18:21:51,219 | INFO | Stage=all device=cuda:1 config=/home/fxu/PerturbedCIR4GLAM/config.yaml
+2026-10-16 18:21:51,245 | INFO | Queries: split=test_ood initial=88 missing-image rows=0 duplicate rows=7 valid=81
+2026-10-16 18:21:51,245 | INFO | Missing image IDs: 0
+2026-10-16 18:21:51,245 | INFO | Target-count smoke budget <=8: retained 70/81 queries
+2026-10-16 18:21:51,819 | INFO | Gallery: full available=22373 selected=512 relevant=15 scope=subset (smoke metrics only)
+2026-10-16 18:21:51,836 | INFO | Prepared manifest at /home/fxu/PerturbedCIR4GLAM/outputs/smoke/manifest.json
+2026-10-16 18:21:53,525 | INFO | Loading generation model=Qwen/Qwen2.5-VL-7B-Instruct device=cuda:1 dtype=torch.bfloat16
+2026-10-16 18:22:00,035 | INFO | LLM response attempt=1: {"description": "A row of ornate bronze faucets shaped like birds mounted on a textured stone wall under a clear sky."}
+2026-10-16 18:22:00,783 | INFO | LLM response attempt=1: ```json
+{"description": "A black metal knocker shaped like a bird's head attached to a textured stone wall."}
+```
+2026-10-16 18:22:02,056 | INFO | LLM response attempt=1: ```json
+{
+  "shared_traits": ["bird-shaped", "metallic", "attached to a textured stone wall"],
+  "limitations": [],
+  "modifier": "Replace the ornate bronze faucets with a black metal knocker."
+}
+```
+2026-10-16 18:22:03,913 | INFO | LLM response attempt=1: ```json
+{
+  "grounded": true,
+  "direction_correct": true,
+  "coherent": true,
+  "shared_across_targets": true,
+  "reason": "The change from ornate bronze faucets to a black metal knocker is coherent and correctly described. The target observation accurately reflects this change."
+}
+```
+2026-10-16 18:22:03,914 | INFO | Generated 1/6 test_ood:384: Replace the ornate bronze faucets with a black metal knocker.
+2026-10-16 18:22:04,735 | INFO | LLM response attempt=1: {"description": "A clay figurine with a humanoid form, featuring a head, torso, and limbs, set against a plain white background."}
+2026-10-16 18:22:05,493 | INFO | LLM response attempt=1: ```json
+{"description": "A weathered stone figure with a humanoid form, standing upright, against a plain background."}
+```
+2026-10-16 18:22:06,268 | INFO | LLM response attempt=1: ```json
+{"description": "A clay figurine with orange-painted hands and feet, standing upright against a white background."}
+```
+2026-10-16 18:22:07,120 | INFO | LLM response attempt=1: {"description": "A clay figurine with a human-like form, featuring a prominent head, torso, and limbs, set against a dark background."}
+2026-10-16 18:22:07,867 | INFO | LLM response attempt=1: ```json
+{"description": "A red-orange, elongated object with a curved top and flat bottom against a dark background."}
+```
+2026-10-16 18:22:09,015 | INFO | LLM response attempt=1: ```json
+{"description": "A ceramic figure with a greenish-brown glaze, depicting a human-like form with a curved back and a head resembling an animal, set against a dark background."}
+```
+2026-10-16 18:22:09,895 | INFO | LLM response attempt=1: ```json
+{"description": "A terracotta figurine with a humanoid form, standing on two legs, against a warm-toned background."}
+```
+2026-10-16 18:22:10,809 | INFO | LLM response attempt=1: ```json
+{"description": "A clay figurine with a slender body, small head, and dotted markings on its surface, set against a plain background."}
+```
+2026-10-16 18:22:11,552 | INFO | LLM response attempt=1: ```json
+{"description": "A reddish-brown, conical object with a smooth surface against a white background."}
+```
+2026-10-16 18:22:13,108 | INFO | LLM response attempt=1: ```json
+{
+  "shared_traits": ["humanoid form", "standing upright"],
+  "limitations": ["color", "background"],
+  "modifier": "Replace the clay material with a stone or terracotta material, and adjust the color to include orange or greenish-brown."
+}
+```
+2026-10-16 18:22:15,885 | INFO | LLM response attempt=1: ```json
+{
+  "grounded": true,
+  "direction_correct": true,
+  "coherent": true,
+  "shared_across_targets": false,
+  "reason": "The changes are coherent as they involve altering the material and color of the figurines, which is a plausible transformation. However, the targets do not share the same material or color modifications, indicating that the changes are not shared across all targets."
+}
+```
+2026-10-16 18:22:15,886 | INFO | Generated 2/6 test_ood:684: Replace the clay material with a stone or terracotta material, and adjust the color to include orange or greenish-brown.
+2026-10-16 18:22:16,740 | INFO | LLM response attempt=1: {"description": "A painted wooden mask with a red top featuring a crescent moon, a blue face with exaggerated features, and a yellow hat."}
+2026-10-16 18:22:17,781 | INFO | LLM response attempt=1: ```json
+{"description": "A black-and-white engraving depicting a group of people in a medical setting, with one person receiving a vaccine from another, set against a plain background."}
+```
+2026-10-16 18:22:18,740 | INFO | LLM response attempt=1: ```json
+{"description": "A historical illustration depicting a vaccination scene with people in period attire, set against a beige background with text reading \"LA VACCINE.\""}
+```
+2026-10-16 18:22:20,316 | INFO | LLM response attempt=1: ```json
+{
+  "shared_traits": ["medical setting", "people"],
+  "limitations": ["mask", "crescent moon", "blue face", "yellow hat", "red top"],
+  "modifier": "Replace the painted wooden mask with a group of people in a medical setting."
+}
+```
+2026-10-16 18:22:22,701 | INFO | LLM response attempt=1: ```json
+{
+  "grounded": true,
+  "direction_correct": true,
+  "coherent": true,
+  "shared_across_targets": true,
+  "reason": "The change from a painted wooden mask to a group of people in a medical setting is coherent and correctly described. The targets show a black-and-white engraving and a historical illustration both depicting a vaccination scene, which aligns with the description."
+}
+```
+2026-10-16 18:22:22,702 | INFO | Generated 3/6 test_ood:1556: Replace the painted wooden mask with a group of people in a medical setting.
+2026-10-16 18:22:23,441 | INFO | LLM response attempt=1: {"description": "A collection of rings and a bracelet with intricate designs, featuring gold and silver tones on a plain background."}
+2026-10-16 18:22:24,323 | INFO | LLM response attempt=1: ```json
+{"description": "A gold-colored compact with intricate floral design and a red gemstone center, displayed alongside a matching gold-colored comb."}
+```
+2026-10-16 18:22:24,946 | INFO | LLM response attempt=1: ```json
+{"description": "A silver bangle with coiled details on a red background."}
+```
+2026-10-16 18:22:26,593 | INFO | LLM response attempt=1: ```json
+{
+  "shared_traits": ["intricate design", "metallic tone"],
+  "limitations": ["plain background", "ring or bracelet"],
+  "modifier": "Replace the rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details."
+}
+```
+2026-10-16 18:22:29,015 | INFO | LLM response attempt=1: ```json
+{
+  "grounded": true,
+  "direction_correct": true,
+  "coherent": true,
+  "shared_across_targets": false,
+  "reason": "The changes are coherent as they replace the rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details. However, the targets show different objects than what was described in the modifier."
+}
+```
+2026-10-16 18:22:29,016 | INFO | Generated 4/6 test_ood:1893: Replace the rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.
+2026-10-16 18:22:29,706 | INFO | LLM response attempt=1: {"description": "A gold-colored ring with a cluster of green and clear gemstones set against a white background."}
+2026-10-16 18:22:30,329 | INFO | LLM response attempt=1: ```json
+{"description": "A silver bangle with coiled details on a red background."}
+```
+2026-10-16 18:22:31,504 | INFO | LLM response attempt=1: ```json
+{
+  "shared_traits": ["jewelry"],
+  "limitations": ["color", "background"],
+  "modifier": "Replace the gold ring with a silver bangle and adjust the background to red."
+}
+```
+2026-10-16 18:22:33,278 | INFO | LLM response attempt=1: ```json
+{
+  "grounded": true,
+  "direction_correct": true,
+  "coherent": true,
+  "shared_across_targets": true,
+  "reason": "The change from a gold ring to a silver bangle and the adjustment of the background to red are clearly visible and coherent."
+}
+```
+2026-10-16 18:22:33,278 | INFO | Generated 5/6 test_ood:1895: Replace the gold ring with a silver bangle and adjust the background to red.
+2026-10-16 18:22:33,930 | INFO | LLM response attempt=1: {"description": "Two gold coins with intricate designs and inscriptions, one featuring a figure and the other text."}
+2026-10-16 18:22:34,822 | INFO | LLM response attempt=1: ```json
+{"description": "Two coins with inscriptions and symbols, one featuring a shield and the other a crown, displayed against a white background."}
+```
+2026-10-16 18:22:35,762 | INFO | LLM response attempt=1: ```json
+{"description": "Two coin-like objects with a crown and shield design on top, and text and symbols on the bottom, against a dark background."}
+```
+2026-10-16 18:22:37,315 | INFO | LLM response attempt=1: ```json
+{
+  "shared_traits": ["coins", "inscriptions", "symbols"],
+  "limitations": ["intricate designs", "figure"],
+  "modifier": "Replace the intricate designs and inscriptions with inscriptions and symbols, and adjust the background to be either white or dark."
+}
+```
+2026-10-16 18:22:39,374 | INFO | LLM response attempt=1: ```json
+{
+  "grounded": true,
+  "direction_correct": true,
+  "coherent": true,
+  "shared_across_targets": true,
+  "reason": "The changes are clearly visible and consistent across both targets. The designs have been simplified to inscriptions and symbols, and the background has been adjusted to either white or dark as specified."
+}
+```
+2026-10-16 18:22:39,375 | INFO | Generated 6/6 test_ood:1972: Replace the intricate designs and inscriptions with inscriptions and symbols, and adjust the background to be either white or dark.
+2026-10-16 18:22:39,758 | INFO | Generation quality: {'kind': 'model-assisted checks; human review still needed', 'queries': 6, 'reviewed': 6, 'pass_counts': {'grounded': 6, 'direction_correct': 6, 'coherent': 6, 'shared_across_targets': 4}, 'flagged_query_ids': ['test_ood:684', 'test_ood:1893'], 'unique_clean_modifiers': 6, 'mean_clean_word_count': 16.333333333333332, 'review_scope': 'Only the sampled conditioning targets; no claim about unshown targets'}
+2026-10-16 18:22:39,764 | INFO | Loading retrieval model=ViT-B-16-quickgelu device=cuda:1
+2026-10-16 18:22:39,930 | INFO | Parsing model identifier. Schema: None, Identifier: ViT-B-16-quickgelu
+2026-10-16 18:22:39,930 | INFO | Loaded built-in ViT-B-16-quickgelu model config.
+2026-10-16 18:22:40,046 | INFO | Instantiating model architecture: CLIP
+2026-10-16 18:22:40,775 | INFO | Loading full pretrained weights from: /home/fxu/PerturbedCIR4GLAM/.model_cache/models--timm--vit_base_patch16_clip_224.openai/snapshots/977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d/open_clip_model.safetensors
+2026-10-16 18:22:40,834 | INFO | Final image preprocessing configuration set: {'size': (224, 224), 'mode': 'RGB', 'mean': (0.48145466, 0.4578275, 0.40821073), 'std': (0.26862954, 0.26130258, 0.27577711), 'interpolation': 'bicubic', 'resize_mode': 'shortest', 'fill_color': 0}
+2026-10-16 18:22:40,834 | INFO | Model ViT-B-16-quickgelu creation process complete.
+2026-10-16 18:22:40,834 | INFO | Parsing tokenizer identifier. Schema: None, Identifier: ViT-B-16-quickgelu
+2026-10-16 18:22:40,834 | INFO | Attempting to load config from built-in: ViT-B-16-quickgelu
+2026-10-16 18:22:40,834 | INFO | Using default SimpleTokenizer.
+2026-10-16 18:22:41,498 | INFO | Image features: 1/16 batches
+2026-10-16 18:22:43,046 | INFO | Image features: 11/16 batches
+2026-10-16 18:22:44,136 | INFO | Image features: 1/1 batches
+2026-10-16 18:22:44,217 | INFO | METRICS condition=clean scope=subset queries=6 gallery=512 {'MRR': 67.25497638326586, 'mAP': 62.04352538524365, 'Recall@1': 43.75, 'HitRate@1': 66.66666666666667, 'Recall@5': 56.25, 'HitRate@5': 66.66666666666667, 'Recall@10': 62.5, 'HitRate@10': 66.66666666666667, 'Recall@50': 75.0, 'HitRate@50': 83.33333333333333, 'AVG': 59.375}
+2026-10-16 18:22:44,397 | INFO | Loading generation model=Qwen/Qwen2.5-VL-7B-Instruct device=cuda:1 dtype=torch.bfloat16
+2026-10-16 18:22:49,754 | INFO | LLM response attempt=1: {"typo": "Rplce"}
+2026-10-16 18:22:51,936 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version 'Rplce the ornate bronze faucets with a black metal knocker.' maintains the same intended action (replacing faucets) and the same objects (ornate bronze faucets and a black metal knocker). The only difference is the misspelling of 'Replace' as 'Rplce', which does not alter the meaning."
+}
+2026-10-16 18:22:51,936 | INFO | Perturbed test_ood:384 typos: Rplce the ornate bronze faucets with a black metal knocker.
+2026-10-16 18:22:52,364 | INFO | LLM response attempt=1: {"modifier": "Please replace the CONTENT0 with a CONTENT1."}
+2026-10-16 18:22:54,041 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version is identical to the original in terms of the objects (ornate bronze faucets) and the action (replacing them with a black metal knocker). The only difference is the addition of 'Please', which does not alter the core meaning."
+}
+2026-10-16 18:22:54,041 | INFO | Perturbed test_ood:384 informal: Please replace the ornate bronze faucets with a black metal knocker.
+2026-10-16 18:22:54,493 | INFO | LLM response attempt=1: {"modifier": "Please adjust the CONTENT0 to be a CONTENT1."}
+2026-10-16 18:22:56,024 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the intent to replace the faucets with a knocker, preserving the visual attribute (black metal) and the action (replacement). The only difference is the phrasing, which does not alter the core meaning."
+}
+2026-10-16 18:22:56,025 | INFO | Perturbed test_ood:384 paraphrase: Please adjust the ornate bronze faucets to be a black metal knocker.
+2026-10-16 18:22:56,223 | INFO | LLM response attempt=1: {"typo": "an"}
+2026-10-16 18:22:57,879 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same intended objects (clay material, stone, terracotta) and visual attributes (orange, greenish-brown). The only difference is the addition of 'an' before 'adjust', which does not alter the meaning."
+}
+2026-10-16 18:22:57,879 | INFO | Perturbed test_ood:684 typos: Replace the clay material with a stone or terracotta material, an adjust the color to include orange or greenish-brown.
+2026-10-16 18:22:58,308 | INFO | LLM response attempt=1: {"modifier": "Please swap the CONTENT0 for a CONTENT1."}
+2026-10-16 18:22:59,867 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version is a direct paraphrase of the original sentence, maintaining all the intended objects (clay material, stone, terracotta, color adjustment, orange, greenish-brown). There are no added or lost constraints."
+}
+2026-10-16 18:22:59,868 | INFO | Perturbed test_ood:684 informal: Please swap the clay material for a stone or terracotta material, and adjust the color to include orange or greenish-brown.
+2026-10-16 18:23:00,272 | INFO | LLM response attempt=1: {"modifier": "Swap the CONTENT0 for a CONTENT1."}
+2026-10-16 18:23:01,710 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same core meaning as the original. The only difference is the use of 'Swap' instead of 'Replace', which is a minor grammatical variation that does not alter the intended action."
+}
+2026-10-16 18:23:01,711 | INFO | Perturbed test_ood:684 paraphrase: Swap the clay material for a stone or terracotta material, and adjust the color to include orange or greenish-brown.
+2026-10-16 18:23:01,933 | INFO | LLM response attempt=1: {"typo": "thee"}
+2026-10-16 18:23:02,959 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbation 'thee' is a spelling error for 'the', which does not alter the intended meaning of the sentence."
+}
+2026-10-16 18:23:02,960 | INFO | Perturbed test_ood:1556 typos: Replace thee painted wooden mask with a group of people in a medical setting.
+2026-10-16 18:23:03,387 | INFO | LLM response attempt=1: {"modifier": "Please swap the CONTENT0 for a CONTENT1."}
+2026-10-16 18:23:04,945 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the core action of replacing the painted wooden mask with a group of people in a medical setting. The only difference is the use of 'swap' instead of 'replace', which is a synonymous term in this context."
+}
+2026-10-16 18:23:04,946 | INFO | Perturbed test_ood:1556 informal: Please swap the painted wooden mask for a group of people in a medical setting.
+2026-10-16 18:23:05,350 | INFO | LLM response attempt=1: {"modifier": "Adjust the CONTENT0 for a CONTENT1."}
+2026-10-16 18:23:06,858 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The original and perturbed versions both describe changing the painted wooden mask to include a group of people in a medical setting. The only difference is the use of 'replace' versus 'adjust', which does not alter the core meaning."
+}
+2026-10-16 18:23:06,859 | INFO | Perturbed test_ood:1556 paraphrase: Adjust the painted wooden mask for a group of people in a medical setting.
+2026-10-16 18:23:07,081 | INFO | LLM response attempt=1: {"typo": "thee"}
+2026-10-16 18:23:08,136 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbation 'thee' is a misspelling of 'the', which does not alter the intended meaning of the sentence."
+}
+2026-10-16 18:23:08,136 | INFO | Perturbed test_ood:1893 typos: Replace thee rings and bracelet with a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.
+2026-10-16 18:23:08,538 | INFO | LLM response attempt=1: {"modifier": "Change the CONTENT0 for a CONTENT1."}
+2026-10-16 18:23:10,318 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same objects (rings, bracelet, compact, comb, bangle) and their attributes (gold-colored, silver with coiled details). The only difference is the use of 'for' instead of 'with', which does not alter the intended meaning."
+}
+2026-10-16 18:23:10,318 | INFO | Perturbed test_ood:1893 informal: Change the rings and bracelet for a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.
+2026-10-16 18:23:10,720 | INFO | LLM response attempt=1: {"modifier": "Adjust the CONTENT0 to a CONTENT1."}
+2026-10-16 18:23:12,572 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same objects (rings, bracelet, compact, comb, bangle) and their attributes (gold-colored, silver, coiled details). The action of replacing is changed to adjusting, but this does not alter the core meaning as both imply a transformation of the items."
+}
+2026-10-16 18:23:12,572 | INFO | Perturbed test_ood:1893 paraphrase: Adjust the rings and bracelet to a gold-colored compact and a matching gold-colored comb, or a silver bangle with coiled details.
+2026-10-16 18:23:12,795 | INFO | LLM response attempt=1: {"typo": "andd"}
+2026-10-16 18:23:13,824 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbation 'andd' is likely a typo for 'and', which does not alter the intended meaning of the instruction."
+}
+2026-10-16 18:23:13,824 | INFO | Perturbed test_ood:1895 typos: Replace the gold ring with a silver bangle andd adjust the background to red.
+2026-10-16 18:23:14,251 | INFO | LLM response attempt=1: {"modifier": "Please swap the CONTENT0 for a CONTENT1."}
+2026-10-16 18:23:16,005 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same actions (replacing the gold ring with a silver bangle) and the same visual attribute change (adjusting the background to red). The only difference is the use of 'Please' at the beginning, which does not alter the core meaning."
+}
+2026-10-16 18:23:16,006 | INFO | Perturbed test_ood:1895 informal: Please swap the gold ring for a silver bangle and adjust the background to red.
+2026-10-16 18:23:16,433 | INFO | LLM response attempt=1: {"modifier": "Please substitute the CONTENT0 with a CONTENT1."}
+2026-10-16 18:23:17,849 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same intended objects (gold ring, silver bangle) and visual attribute (background color). The only difference is the addition of 'Please', which does not alter the core meaning."
+}
+2026-10-16 18:23:17,850 | INFO | Perturbed test_ood:1895 paraphrase: Please substitute the gold ring with a silver bangle and adjust the background to red.
+2026-10-16 18:23:18,098 | INFO | LLM response attempt=1: {"typo": "wihth"}
+2026-10-16 18:23:19,809 | INFO | LLM response attempt=1: {
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same intended objects (intricate designs, inscriptions, symbols, and background) and their relationships (replacement and adjustment). The only difference is a spelling error in 'with' instead of 'with', which does not alter the intended meaning."
+}
+2026-10-16 18:23:19,809 | INFO | Perturbed test_ood:1972 typos: Replace the intricate designs and inscriptions wihth inscriptions and symbols, and adjust the background to be either white or dark.
+2026-10-16 18:23:20,187 | INFO | LLM response attempt=1: {"modifier": "Please replace CONTENT0 with CONTENT1."}
+2026-10-16 18:23:21,538 | INFO | LLM response attempt=1: ```json
+{
+  "meaning_preserved": true,
+  "reason": "The perturbed version maintains the same intended meaning as the original. The only difference is the addition of 'Please' at the beginning, which does not alter the core instructions."
+}
+```
+2026-10-16 18:23:21,539 | INFO | Perturbed test_ood:1972 informal: Please replace intricate designs and inscriptions with inscriptions and symbols, and adjust the background to be either white or dark.
+2026-10-16 18:23:22,064 | INFO | LLM response attempt=1: {"modifier": "Use a synonym for the CONTENT0 and ensure it occurs exactly once."}
+2026-10-16 18:23:22,064 | WARNING | Rejected response: Expected tokens in order: ['CONTENT0', 'CONTENT1']; received ['CONTENT0']. Keep all exactly once.
+2026-10-16 18:23:22,593 | INFO | LLM response attempt=2: {"modifier": "Use a synonym for the CONTENT0 and ensure it occurs exactly once."}
+2026-10-16 18:23:22,593 | WARNING | Rejected response: Expected tokens in order: ['CONTENT0', 'CONTENT1']; received ['CONTENT0']. Keep all exactly once.
+2026-10-16 18:23:23,022 | INFO | LLM response attempt=3: {"modifier": "Adjust the CONTENT0 to match CONTENT1."}
+2026-10-16 18:23:23,022 | WARNING | Rejected response: Preserve all visual words exactly. Missing: []; added: ['match']
+2026-10-16 18:23:23,578 | INFO | LLM response attempt=4: {"modifier": "Use a synonym for the CONTENT0 and ensure it occurs exactly once."}
+2026-10-16 18:23:23,578 | WARNING | Rejected response: Expected tokens in order: ['CONTENT0', 'CONTENT1']; received ['CONTENT0']. Keep all exactly once.
+2026-10-16 18:23:24,013 | INFO | LLM response attempt=5: {"modifier": "Switch the CONTENT0 to match CONTENT1."}
+2026-10-16 18:23:24,013 | WARNING | Rejected response: Preserve all visual words exactly. Missing: []; added: ['match']
+2026-10-16 18:23:24,013 | ERROR | Experiment failed; completed artifacts are preserved for resume
+Traceback (most recent call last):
+  File "/home/fxu/PerturbedCIR4GLAM/run.py", line 339, in main
+    perturb(cfg, logger)
+  File "/home/fxu/PerturbedCIR4GLAM/run.py", line 178, in perturb
+    text = generate_word_preserving(generator, cfg, record['modifier'], kind, style)
+  File "/home/fxu/PerturbedCIR4GLAM/generation.py", line 149, in generate_word_preserving
+    return generator.request_json(WORDING_SYSTEM,
+  File "/home/fxu/PerturbedCIR4GLAM/generation.py", line 233, in request_json
+    result = validator(result)
+  File "/home/fxu/PerturbedCIR4GLAM/generation.py", line 148, in validate
+    return validate_perturbation({'modifier': text}, cfg, original, kind)
+  File "/home/fxu/PerturbedCIR4GLAM/generation.py", line 73, in validate_perturbation
+    raise ValueError(f'Preserve all visual words exactly. Missing: {missing}; added: {added}')
+ValueError: Preserve all visual words exactly. Missing: []; added: ['match']
+2026-10-16 18:24:39,539 | INFO | Stage=all device=cuda:1 config=/home/fxu/PerturbedCIR4GLAM/config.yaml
+2026-10-16 18:24:39,548 | INFO | Reusing manifest: 6 queries, 512 gallery images
+2026-10-16 18:24:39,555 | INFO | Clean generation already complete
+2026-10-16 18:24:39,560 | INFO | Loading retrieval model=ViT-B-16-quickgelu device=cuda:1
+2026-10-16 18:24:41,465 | INFO | Parsing model identifier. Schema: None, Identifier: ViT-B-16-quickgelu
+2026-10-16 18:24:41,465 | INFO | Loaded built-in ViT-B-16-quickgelu model config.
+2026-10-16 18:24:41,634 | INFO | Instantiating model architecture: CLIP
+2026-10-16 18:24:42,412 | INFO | Loading full pretrained weights from: /home/fxu/PerturbedCIR4GLAM/.model_cache/models--timm--vit_base_patch16_clip_224.openai/snapshots/977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d/open_clip_model.safetensors
+2026-10-16 18:24:42,463 | INFO | Final image preprocessing configuration set: {'size': (224, 224), 'mode': 'RGB', 'mean': (0.48145466, 0.4578275, 0.40821073), 'std': (0.26862954, 0.26130258, 0.27577711), 'interpolation': 'bicubic', 'resize_mode': 'shortest', 'fill_color': 0}
+2026-10-16 18:24:42,463 | INFO | Model ViT-B-16-quickgelu creation process complete.
+2026-10-16 18:24:42,463 | INFO | Parsing tokenizer identifier. Schema: None, Identifier: ViT-B-16-quickgelu
+2026-10-16 18:24:42,463 | INFO | Attempting to load config from built-in: ViT-B-16-quickgelu
+2026-10-16 18:24:42,463 | INFO | Using default SimpleTokenizer.
+2026-10-16 18:24:43,246 | INFO | Image features: 1/16 batches
+2026-10-16 18:24:44,738 | INFO | Image features: 11/16 batches
+2026-10-16 18:24:45,672 | INFO | Image features: 1/1 batches
+2026-10-16 18:24:45,783 | INFO | METRICS condition=clean scope=subset queries=6 gallery=512 {'MRR': 67.25497638326586, 'mAP': 62.04352538524365, 'Recall@1': 43.75, 'HitRate@1': 66.66666666666667, 'Recall@5': 56.25, 'HitRate@5': 66.66666666666667, 'Recall@10': 62.5, 'HitRate@10': 66.66666666666667, 'Recall@50': 75.0, 'HitRate@50': 83.33333333333333, 'AVG': 59.375}
+2026-10-16 18:24:45,995 | INFO | Loading generation model=Qwen/Qwen2.5-VL-7B-Instruct device=cuda:1 dtype=torch.bfloat16
+2026-10-16 18:24:51,854 | INFO | LLM response attempt=1: {"modifier": "Adjust the CONTENT0 to be a CONTENT1"}
+2026-10-16 18:24:53,135 | INFO | LLM response attempt=1: ```json
+{
+  "meaning_preserved": true,
+  "reason": "The intended meaning is preserved as both versions suggest replacing intricate designs and inscriptions with inscriptions and symbols, and adjusting the background to be either white or dark."
+}
+```
+2026-10-16 18:24:53,136 | INFO | Perturbed test_ood:1972 paraphrase: Adjust the intricate designs and inscriptions to be a inscriptions and symbols, and adjust the background to be either white or dark
+2026-10-16 18:24:53,492 | INFO | Generation quality: {'kind': 'model-assisted checks; human review still needed', 'queries': 6, 'reviewed': 6, 'pass_counts': {'grounded': 6, 'direction_correct': 6, 'coherent': 6, 'shared_across_targets': 4}, 'flagged_query_ids': ['test_ood:684', 'test_ood:1893'], 'unique_clean_modifiers': 6, 'mean_clean_word_count': 16.333333333333332, 'review_scope': 'Only the sampled conditioning targets; no claim about unshown targets'}
+2026-10-16 18:24:53,498 | INFO | Loading retrieval model=ViT-B-16-quickgelu device=cuda:1
+2026-10-16 18:24:53,498 | INFO | Parsing model identifier. Schema: None, Identifier: ViT-B-16-quickgelu
+2026-10-16 18:24:53,498 | INFO | Loaded built-in ViT-B-16-quickgelu model config.
+2026-10-16 18:24:53,617 | INFO | Instantiating model architecture: CLIP
+2026-10-16 18:24:54,371 | INFO | Loading full pretrained weights from: /home/fxu/PerturbedCIR4GLAM/.model_cache/models--timm--vit_base_patch16_clip_224.openai/snapshots/977e3dd0ec55ab8da155f2fbeb6b5f54948b6e3d/open_clip_model.safetensors
+2026-10-16 18:24:54,424 | INFO | Final image preprocessing configuration set: {'size': (224, 224), 'mode': 'RGB', 'mean': (0.48145466, 0.4578275, 0.40821073), 'std': (0.26862954, 0.26130258, 0.27577711), 'interpolation': 'bicubic', 'resize_mode': 'shortest', 'fill_color': 0}
+2026-10-16 18:24:54,424 | INFO | Model ViT-B-16-quickgelu creation process complete.
+2026-10-16 18:24:54,424 | INFO | Parsing tokenizer identifier. Schema: None, Identifier: ViT-B-16-quickgelu
+2026-10-16 18:24:54,424 | INFO | Attempting to load config from built-in: ViT-B-16-quickgelu
+2026-10-16 18:24:54,424 | INFO | Using default SimpleTokenizer.
+2026-10-16 18:24:54,535 | INFO | Reusing cached gallery/reference image features
+2026-10-16 18:24:54,545 | INFO | METRICS condition=clean scope=subset queries=6 gallery=512 {'MRR': 67.25497638326586, 'mAP': 62.04352538524365, 'Recall@1': 43.75, 'HitRate@1': 66.66666666666667, 'Recall@5': 56.25, 'HitRate@5': 66.66666666666667, 'Recall@10': 62.5, 'HitRate@10': 66.66666666666667, 'Recall@50': 75.0, 'HitRate@50': 83.33333333333333, 'AVG': 59.375}
+2026-10-16 18:24:54,554 | INFO | METRICS condition=typos scope=subset queries=6 gallery=512 {'MRR': 67.18146718146718, 'mAP': 62.674839330597564, 'Recall@1': 43.75, 'HitRate@1': 66.66666666666667, 'Recall@5': 56.25, 'HitRate@5': 66.66666666666667, 'Recall@10': 62.5, 'HitRate@10': 66.66666666666667, 'Recall@50': 75.0, 'HitRate@50': 83.33333333333333, 'AVG': 59.375}
+2026-10-16 18:24:54,562 | INFO | METRICS condition=informal scope=subset queries=6 gallery=512 {'MRR': 67.24810606060606, 'mAP': 61.85378735234726, 'Recall@1': 43.75, 'HitRate@1': 66.66666666666667, 'Recall@5': 56.25, 'HitRate@5': 66.66666666666667, 'Recall@10': 62.5, 'HitRate@10': 66.66666666666667, 'Recall@50': 83.33333333333333, 'HitRate@50': 83.33333333333333, 'AVG': 61.458333333333336}
+2026-10-16 18:24:54,570 | INFO | METRICS condition=paraphrase scope=subset queries=6 gallery=512 {'MRR': 67.1859876405331, 'mAP': 62.18792421666752, 'Recall@1': 43.75, 'HitRate@1': 66.66666666666667, 'Recall@5': 56.25, 'HitRate@5': 66.66666666666667, 'Recall@10': 60.416666666666664, 'HitRate@10': 66.66666666666667, 'Recall@50': 75.0, 'HitRate@50': 83.33333333333333, 'AVG': 58.854166666666664}
+2026-10-16 18:24:54,703 | INFO | DELTA perturbed-minus-clean percentage points typos: {'MRR': -0.0735092017986716, 'mAP': 0.6313139453539165, 'Recall@1': 0.0, 'HitRate@1': 0.0, 'Recall@5': 0.0, 'HitRate@5': 0.0, 'Recall@10': 0.0, 'HitRate@10': 0.0, 'Recall@50': 0.0, 'HitRate@50': 0.0, 'AVG': 0.0}
+2026-10-16 18:24:54,704 | INFO | DELTA perturbed-minus-clean percentage points informal: {'MRR': -0.00687032265979326, 'mAP': -0.18973803289638624, 'Recall@1': 0.0, 'HitRate@1': 0.0, 'Recall@5': 0.0, 'HitRate@5': 0.0, 'Recall@10': 0.0, 'HitRate@10': 0.0, 'Recall@50': 8.333333333333329, 'HitRate@50': 0.0, 'AVG': 2.0833333333333357}
+2026-10-16 18:24:54,704 | INFO | DELTA perturbed-minus-clean percentage points paraphrase: {'MRR': -0.06898874273275624, 'mAP': 0.1443988314238709, 'Recall@1': 0.0, 'HitRate@1': 0.0, 'Recall@5': 0.0, 'HitRate@5': 0.0, 'Recall@10': -2.0833333333333357, 'HitRate@10': 0.0, 'Recall@50': 0.0, 'HitRate@50': 0.0, 'AVG': -0.5208333333333357}
+2026-10-16 18:24:56,089 | INFO | Saved paired visualization /home/fxu/PerturbedCIR4GLAM/outputs/smoke/figures/query_1972.png
+2026-10-16 18:24:57,814 | INFO | Saved paired visualization /home/fxu/PerturbedCIR4GLAM/outputs/smoke/figures/query_384.png
+2026-10-16 18:24:59,303 | INFO | Saved paired visualization /home/fxu/PerturbedCIR4GLAM/outputs/smoke/figures/query_1895.png
+2026-10-16 18:24:59,303 | INFO | Completed stage=all elapsed=20.21s

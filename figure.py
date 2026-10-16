@@ -1,137 +1,61 @@
-import fire
-import logging
-import nltk
-import numpy as np
-import matplotlib.pyplot as plt
-from textwrap import wrap
-from wordcloud import WordCloud, STOPWORDS
-from nltk.corpus import stopwords as nltk_stopwords
+"""Render paired clean/perturbed top-5 retrieval panels from saved artifacts."""
+import random
+from textwrap import fill
 
-from pathlib import Path
-from transformers import set_seed
-
-from utils import get_config, setup_logging
-from loading_data import GLAMQueryDataset
-
-nltk.download("stopwords")
-
-'''
-python figure.py --split test_id --seed 42
-'''
-def plot_samples(**kwargs):
-    cfg = get_config(**kwargs)
-    set_seed(cfg.seed)
-
-    path = Path(cfg.paths.log_path) / f"{cfg.split}_sample_{cfg.seed}.log"
-    setup_logging(str(path))
-    logger = logging.getLogger(__name__)
-
-    logger.info("Loading the query dataset.")
-    query_dataset = GLAMQueryDataset(cfg, logger).load_dataset()
-
-    sample_size = 5
-    cols = 3  # Reference Image, Modifier, Target Image
-    fig, axes = plt.subplots(sample_size, cols, figsize=(5 * cols, 5 * sample_size))
-
-    indices = np.random.choice(len(query_dataset), sample_size, replace=False)
-    for j in range(sample_size):
-        idx = indices[j]
-        logger.info(f"Selected sample at index {idx}.")
-        sample = query_dataset[idx]
-        ref_pil = sample['pil_image']
-        ref_path = sample['ref_path']
-        target_pil = sample['target_pil']
-        target_paths = sample['target_paths']
-        modifier = sample['modifier']
-
-        logger.info(f"Reference image path of sample {idx}: {ref_path}")
-        logger.info(f"Target image paths of sample {idx}: {target_paths}")
-
-        # Display the images and their corresponding information
-        for i in range(cols):
-            axes[j, i].axis('off')
-            if i == 0:
-                axes[j, i].imshow(ref_pil)
-                if j == 0:
-                    axes[j, i].set_title("Reference Image", fontsize=20, fontweight='bold')
-            elif i == 1:
-                text = "\n".join(wrap(modifier, width=25))
-                axes[j, i].text(0.5, 0.52, text, 
-                            fontsize=18, fontweight='bold', ha='center', va='center')
-                axes[j, i].annotate("",
-                                    xy=(0.95, 0.42),
-                                    xytext=(0.05, 0.42),
-                                    xycoords="axes fraction",
-                                    arrowprops=dict(
-                                        arrowstyle="-|>",
-                                        color="#b5adaf",
-                                        lw=4,
-                                        mutation_scale=22,
-                                        shrinkA=0,
-                                        shrinkB=0,
-                                    )
-                )
-                if j == 0:
-                    axes[j, i].set_title("Modifier", fontsize=20, fontweight='bold')
-            elif i == 2:
-                axes[j, i].imshow(target_pil[0])
-                if j == 0:
-                    axes[j, i].set_title("Target Image", fontsize=20, fontweight='bold')
-
-    plt.tight_layout()
-
-    save_path = Path(cfg.paths.figure_path) / f"{cfg.split}_sample_{cfg.seed}.pdf"
-    plt.savefig(save_path, bbox_inches='tight')
-    logger.info(f"Sample plot saved to {save_path}")
+from loading_data import load_image
+from utils import get_config, output_path, parse_args, read_json
 
 
-def plot_wordcloud(
-    sentences,
-    file_name,
-    custom_stopwords=None,
-    language='en',
-    width=1200,
-    height=600,
-    figsize=(5,4),
-):
-    """
-    Plot a word cloud from a list of English sentences.
+def visualize(cfg, logger=None):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    manifest = read_json(output_path(cfg, 'manifest.json'))
+    generated = read_json(output_path(cfg, 'modifiers.json'))
+    results = read_json(output_path(cfg, 'retrieval.json'))
+    by_id = {g['image_id']: g['path'] for g in manifest['gallery']}
+    count = min(cfg['visualization']['num_examples'], len(generated))
+    indices = random.Random(cfg['seed']).sample(range(len(generated)), count)
+    directory = output_path(cfg, 'figures')
+    directory.mkdir(parents=True, exist_ok=True)
+    top_k = cfg['visualization']['top_k']
+    for index in indices:
+        item = generated[index]
+        conditions = [('clean', item['modifier'])] + list(item['perturbations'].items())
+        fig, axes = plt.subplots(len(conditions), top_k + 3,
+                                 figsize=(3.2 * (top_k + 3), 3.8 * len(conditions)), squeeze=False)
+        for row, (condition, modifier) in enumerate(conditions):
+            for ax in axes[row]:
+                ax.set_xticks([])
+                ax.set_yticks([])
+                for spine in ax.spines.values():
+                    spine.set_visible(False)
+            axes[row, 0].imshow(load_image(item['reference_path']))
+            axes[row, 0].set_title('Reference')
+            shown = item['conditioning_target_ids']
+            target_id = shown[0]
+            axes[row, 1].imshow(load_image(by_id[target_id]))
+            axes[row, 1].set_title(f'Target example ({len(item["target_ids"])} relevant)\n{target_id}', fontsize=9)
+            axes[row, 2].text(0, 1, fill(f'{condition}: {modifier}', 33), va='top', fontsize=10)
+            axes[row, 2].text(0, 0.08, fill('CSV: ' + item['original_modifier'], 33), fontsize=8)
+            for rank, hit in enumerate(results[condition][index]['top_results'][:top_k]):
+                ax = axes[row, rank + 3]
+                ax.imshow(load_image(by_id[hit['image_id']]))
+                ax.set_title(f'#{rank + 1} {hit["image_id"]}\ncosine={hit["score"]:.3f}', fontsize=9)
+                if hit['image_id'] in item['target_ids']:
+                    for spine in ax.spines.values():
+                        spine.set_visible(True)
+                        spine.set_color('green')
+                        spine.set_linewidth(3)
+        fig.suptitle(f'{item["query_id"]} | {manifest["scope"]} gallery | green = relevant', fontsize=13)
+        fig.tight_layout(rect=(0, 0, 1, 0.97))
+        path = directory / f'query_{item["csv_row"]}.png'
+        fig.savefig(path, dpi=cfg['visualization']['dpi'], bbox_inches='tight')
+        plt.close(fig)
+        if logger:
+            logger.info('Saved paired visualization %s', path)
 
-    Args:
-        sentences (list[str]): List of input sentences.
-        custom_stopwords (list[str] | set[str] | None):
-            Additional words to remove.
-        width (int): Word cloud width.
-        height (int): Word cloud height.
-        figsize (tuple): Matplotlib figure size.
-    """
-    # Combine sentences
-    text = " ".join(sentences)
 
-    # English stopwords + custom stopwords
-    if language == 'en':
-        stopwords = set(STOPWORDS)
-    else:
-        stopwords = set(nltk_stopwords.words('catalan'))
-
-    if custom_stopwords:
-        stopwords.update(word.lower() for word in custom_stopwords)
-
-    # Generate word cloud
-    wordcloud = WordCloud(
-        width=width,
-        height=height,
-        background_color="white",
-        stopwords=stopwords,
-        collocations=False,
-    ).generate(text)
-
-    # Plot
-    plt.figure(figsize=figsize)
-    plt.imshow(wordcloud, interpolation="bilinear")
-    plt.axis("off")
-    plt.tight_layout()
-    plt.savefig(f"./figures/{file_name}.pdf", bbox_inches='tight')
-
-if __name__ == "__main__":
-    fire.Fire(plot_samples)
+if __name__ == '__main__':
+    args = parse_args(['visualize'])
+    visualize(get_config(args.config))

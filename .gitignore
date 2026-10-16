@@ -1,3 +1,9 @@
-logs/
 __pycache__/
+.pytest_cache/
+*.pyc
+.model_cache/
+.venv/
+outputs/
+logs/
 figures/
+*.egg-info/

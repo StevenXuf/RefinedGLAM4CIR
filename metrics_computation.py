@@ -1,147 +1,68 @@
+"""Multi-positive macro recall, hit rate, mAP, and MRR with reference masking.
+
+Recall follows the original torchmetrics RetrievalRecall definition: recovered
+relevant images / all relevant images, averaged over queries, reported in percent.
+"""
 import torch
-import fire
-import logging
-import matplotlib.pyplot as plt
-
-import numpy as np
-from pathlib import Path
-from transformers import set_seed
-from torchmetrics.functional.pairwise import pairwise_cosine_similarity
-from torchmetrics.retrieval import RetrievalRecall
-from torch.utils.data import DataLoader
-from textwrap import wrap
-
-from loading_data import GLAMQueryDataset, GLAMGalleryDataset
-from feature_extractor import FeatureExtractor
-from utils import get_config, setup_logging
+import torch.nn.functional as F
 
 
-def get_metrics(txt_embed, img_embed, cfg=None, logger=None, target_index=None):
-    device = txt_embed.device
-    preds = pairwise_cosine_similarity(txt_embed,img_embed).to(device)
-    if target_index is not None:
-        tars = torch.tensor(target_index).to(device)
-    else:
-        tars = torch.ones(txt_embed.size(0), dtype=torch.long).diag().to(device)
-    index = torch.arange(txt_embed.size(0)).unsqueeze(1).expand(txt_embed.size(0), img_embed.size(0)).to(device)
-    results = {}
-    for k in cfg.top_ks:
-        compute_recall = RetrievalRecall(top_k=k).to(device)
-        recall = compute_recall(preds, tars, indexes=index)
-        if logger:
-            logger.info(f'|Recall@{k}:\t{recall.item()*100:.2f}%|')
-        results[f'Recall@{k}'] = recall.item() * 100
-    logger.info(f'|AVG:\t{sum(results.values())/len(results.values()):.2f}%|')
+def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude_reference=True):
+    if len(set(gallery_ids)) != len(gallery_ids):
+        raise ValueError('Duplicate gallery IDs')
+    if len(queries) != len(query_features) or len(gallery_ids) != len(gallery_features):
+        raise ValueError('Feature/metadata length mismatch')
+    scores = F.normalize(query_features.float(), dim=-1) @ F.normalize(gallery_features.float(), dim=-1).T
+    if not torch.isfinite(scores).all():
+        raise ValueError('Non-finite retrieval scores')
+    index = {name: i for i, name in enumerate(gallery_ids)}
+    for row, query in enumerate(queries):
+        if not query['target_ids'] or set(query['target_ids']) - index.keys():
+            raise ValueError(f"Missing ground truth in gallery for {query['query_id']}")
+        if exclude_reference and query['reference_id'] in query['target_ids']:
+            raise ValueError('Reference image is also a relevant target')
+        if exclude_reference and query['reference_id'] in index:
+            scores[row, index[query['reference_id']]] = -torch.inf
+    # Stable order gives deterministic handling of ties.
+    order = torch.argsort(scores, dim=1, descending=True, stable=True)
+    rankings = []
+    for row, query in enumerate(queries):
+        rankings.append([gallery_ids[i] for i in order[row].tolist()
+                         if not (exclude_reference and gallery_ids[i] == query['reference_id'])])
+    return rankings, scores
 
-def main(**kwargs):
-    cfg = get_config(**kwargs)
-    set_seed(cfg.seed)
 
-    cfg.paths.log_path = Path(cfg.paths.log_path) / f"{cfg.split}_{cfg.gen_model}_{cfg.extractor_name}_{'with_metadata' if cfg.use_metadata else 'without_metadata'}_{ 'first_hierarchy' if cfg.use_first_hierarchy else 'all_hierarchy' }_{cfg.baseline}_{cfg.seed}.log"
-    setup_logging(str(cfg.paths.log_path))
-    logger = logging.getLogger(__name__)
-    logger.info(f'Config: {cfg}')
+def compute_metrics(rankings, queries, top_ks):
+    if not rankings or len(rankings) != len(queries):
+        raise ValueError('Need aligned, nonempty rankings and queries')
+    if not top_ks or any(k < 1 for k in top_ks):
+        raise ValueError('top_ks must contain positive integers')
+    per_query = []
+    for ranking, query in zip(rankings, queries):
+        relevant = set(query['target_ids'])
+        if not relevant or relevant - set(ranking):
+            raise ValueError(f"Incomplete ground truth for {query['query_id']}")
+        if len(set(ranking)) != len(ranking):
+            raise ValueError('Rankings must contain unique image IDs')
+        hits = [name in relevant for name in ranking]
+        cumulative, ap, first = 0, 0.0, None
+        for rank, hit in enumerate(hits, 1):
+            if hit:
+                cumulative += 1
+                ap += cumulative / rank
+                if first is None:
+                    first = rank
+        row = {'query_id': query['query_id'], 'MRR': 100 / first, 'mAP': 100 * ap / len(relevant)}
+        for k in top_ks:
+            found = sum(hits[:k])
+            row[f'Recall@{k}'] = 100 * found / len(relevant)
+            row[f'HitRate@{k}'] = 100 * bool(found)
+        row['AVG'] = sum(row[f'Recall@{k}'] for k in top_ks) / len(top_ks)
+        per_query.append(row)
+    means = {key: sum(row[key] for row in per_query) / len(per_query)
+             for key in per_query[0] if key != 'query_id'}
+    return means, per_query
 
-    query_loader = GLAMQueryDataset(cfg, logger).load_dataloader()
-    gallery_dataset = GLAMGalleryDataset(cfg, logger)
-    gallery_dataloader = DataLoader(gallery_dataset, 
-                                    batch_size=cfg.batch_size, 
-                                    shuffle=True, 
-                                    num_workers=cfg.num_workers,
-                                    collate_fn=lambda batch: {
-                                        'pil_image': [item['pil_image'] for item in batch],
-                                        'target_names': [item['target_names'] for item in batch],
-                                    }
-                                    )
-    
-    feature_extractor=FeatureExtractor(cfg, logger)
-    extraction_info = feature_extractor.get_features(query_loader, gallery_dataloader)
 
-    query_embed = extraction_info['query_embed']
-    target_embed = extraction_info['target_embed']
-    get_metrics(query_embed, target_embed, cfg, logger, target_index=extraction_info['target_index'])
-
-    if cfg.baseline == 'gen':
-        pil_images = extraction_info['all_ref_pil']
-        modifiers = extraction_info['all_modifiers']
-        materials = extraction_info['all_materials']
-        objects = extraction_info['all_objects']
-        ground_truth_names = extraction_info['ground_truth_names']
-        generated_descriptions = extraction_info['generated_descriptions']
-
-        logger.info("Plotting retrieval results...")
-        similarity = pairwise_cosine_similarity(query_embed, target_embed)
-        vals, ids = similarity.topk(5, dim=1)
-
-        sample_size = 3
-        idx = np.random.choice(ids.size(0), sample_size, replace=False)
-
-        title_font_dict = {'fontsize': 20, 'fontweight': 'bold'}
-        text_font_dict = {'fontsize': 18, 'fontweight': 'bold', 'ha': 'center', 'va': 'center'}
-
-        ncols = 5  # Query Image, Top 5 Retrieved Images
-        fig, axes = plt.subplots(sample_size*2, ncols, figsize=(5*ncols, 5 * sample_size * 2))
-        for j in range(sample_size):
-            query_id = idx[j]
-            top_results = ids[query_id]
-
-            query_image = pil_images[query_id]
-            modifier = "\n".join(wrap(modifiers[query_id], width=25))
-            material = "\n".join(wrap(materials[query_id], width=25))
-            obj = "\n".join(wrap(objects[query_id], width=25))
-            generated_description = "\n".join(wrap(generated_descriptions[query_id], width=25))
-
-            axes[j*2, 0].imshow(query_image)
-            axes[j*2, 0].set_title("Query Image", fontdict=title_font_dict)
-            axes[j*2, 0].set_ylabel(f"Query {j+1}", fontdict=title_font_dict)
-
-            axes[j*2, 1].text(0.5, 0.5, modifier, fontdict=text_font_dict)
-            axes[j*2, 1].set_title("Modifier", fontdict=title_font_dict)
-
-            axes[j*2, 2].text(0.5, 0.5, material, fontdict=text_font_dict)
-            axes[j*2, 2].set_title("Materials", fontdict=title_font_dict)
-
-            axes[j*2, 3].text(0.5, 0.5, obj, fontdict=text_font_dict)
-            axes[j*2, 3].set_title("Object Types", fontdict=title_font_dict)
-
-            axes[j*2, 4].text(0.5, 0.5, generated_description, fontdict=text_font_dict)
-            axes[j*2, 4].set_title("Generated Description", fontdict=title_font_dict)
-
-            for i in range(ncols):
-                retrieved_image_name = extraction_info['target_names'][top_results[i]]
-                for batch in gallery_dataloader:
-                    if retrieved_image_name in batch['target_names']:
-                        img_idx = batch['target_names'].index(retrieved_image_name)
-                        retrieved_image = batch['pil_image'][img_idx]
-                        break
-                axes[j*2+1, i].imshow(retrieved_image)
-                axes[j*2+1, i].set_title(f"Top-{i+1}", fontdict=title_font_dict)
-
-                axes[j*2+1, i].set_xticks([])
-                axes[j*2+1, i].set_yticks([])
-                axes[j*2, i].set_xticks([])
-                axes[j*2, i].set_yticks([])
-
-                for spine in list(axes[j*2+1, i].spines.values())+ list(axes[j*2, i].spines.values()):
-                    spine.set_visible(False)
-
-                if retrieved_image_name in ground_truth_names[query_id]:
-                    for spine in axes[j*2+1, i].spines.values():
-                        spine.set_visible(True)
-                        spine.set_edgecolor("green")
-                        spine.set_linewidth(4)
-
-                if i == 0:
-                    axes[j*2+1, i].set_ylabel("Retrieved", fontdict=title_font_dict)
-
-        save_path = Path(cfg.paths.figure_path) / f"retrieval_{cfg.split}_{cfg.gen_model}_{cfg.extractor_name}_{'with_metadata' if cfg.use_metadata else 'without_metadata'}_{'first_hierarchy' if cfg.use_first_hierarchy else 'all_hierarchy'}_{cfg.use_translation}_{cfg.baseline}_{cfg.seed}.pdf"
-        plt.tight_layout()
-        plt.savefig(save_path, bbox_inches='tight')
-        logger.info(f"Retrieval results plot saved to {save_path}")
-
-"""
-python metrics_computation.py --gpu_id 1 --split test_ood --use_metadata True --use_first_hierarchy True --use_translation True --gen_model qwen --batch_size 64 --baseline gen
-"""
-
-if __name__ == '__main__':
-    fire.Fire(main)
+def metric_deltas(clean, perturbed):
+    return {key: value - clean[key] for key, value in perturbed.items()}

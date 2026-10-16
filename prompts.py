@@ -1,180 +1,75 @@
-from utils import convert_pil_to_base64
+"""Prompts shared by the Qwen, LLaVA, and DeepSeek adapters."""
 
-def get_sys_prompt(pil_image, modifier, gen_model='qwen', material=None, obj=None):
-    """
-    You should first translate the Catalan information into English in your mind, and then take into account the translated information when generating the final description of target images.
-    """
-    meta_info = f"""
-                Additionally, extra information of objects and materials is provided in Catalan language.
-                The given object: "{obj}" (in Catalan) is made of material: "{material}" (in Catalan).
-                Take into account the information when generating the final description of target images.
-                """
+REFINE_SYSTEM = '''You are a visual expert writing English composed-image retrieval modifiers.
+The first image is a reference. The remaining images are relevant targets for the SAME query.
+Each target is a SEPARATE ALTERNATIVE acceptable result, never a collection to be combined.
+Inspect the images; the old instruction is noisy and may be wrong. Write one concise natural
+modification request that transforms the reference's salient visual content toward the target
+images. Describe concrete visible changes (object, shape, colour, material if visible, composition).
+Use appearance terms such as gold-coloured instead of asserting a precious metal.
+For multiple targets use shared visible traits, not details unique to one target. Do not assume
+that backgrounds or other attributes remain unchanged if targets differ. Do not invent provenance,
+artist, location, date, function, or invisible material. Avoid image IDs and retrieval terminology.
+Include at least two useful visible target attributes where supported, rather than only naming
+an object replacement. For a group of people do not assume they all have the same gender.
+Return ONLY a JSON object with one key "modifier" containing 1-2 short English sentences.
+Do not return analysis, markdown, a target caption, or a list of alternatives.'''
 
-    template = """
-                You are an expert in visual understanding and reasoning for composed image retrieval.
+TARGET_DESCRIPTION_SYSTEM = '''Describe this SINGLE image in one concise sentence of at most
+35 words. Identify the main object(s), visible colour, shape and background. Do not guess
+provenance, date, location, function or hidden materials. Use gold-coloured/silver-coloured
+instead of assuming metals. Return ONLY JSON: {"description": "one short sentence"}.'''
 
-                Given a reference image and a modification instruction, imagine the scene that would result after applying the instruction to the reference image.
+SYNTHESIS_SYSTEM = '''Write a composed-image retrieval modifier from image observations.
+You receive a BEFORE reference description and a list of ALTERNATIVE acceptable AFTER targets.
+The modifier must fit ALL targets, not just the first. First identify their shared visual traits.
+If targets differ in subtype, use their broader common category. Omit colours, shapes and
+backgrounds that are not shared. If targets have incompatible subjects, explicitly allow
+alternatives with "or"; never combine separate target images into a single collection.
+For example, a cat and a dog share "animal", not cat; red and blue vases share "vase", not red.
+Describe how the reference should change toward that common target content, in 1-2 short
+English sentences. Avoid invented details, image IDs, and claims about hidden materials.
+Return ONLY JSON with "shared_traits" (list), "limitations" (list), and "modifier" (string).'''
 
-                Follow the steps below:
+PERTURB_SYSTEM = '''You simulate realistic variation in a person's image-search language.
+You MUST change the wording of the supplied modifier according to the requested perturbation.
+Preserve the visual intent, object identity, attributes, relations, and direction of each change.
+Do not add or remove visual constraints. Returning the unchanged input is invalid.
+Return ONLY JSON: {"modifier": "..."}.'''
 
-                1. Identify the visually important objects, and their attributes in the reference image.
-                2. Apply the requested modification exactly to the targeting object. Replace any original detail that conflicts with the modification.
-                3. Preserve all relevant details from the reference image that are not changed by the instruction.
-                4. Make the modified content explicit, especially changes involving objects and materials.
-                5. Do not mention the reference image, the modification instruction, or the editing process.
-                6. Do not describe both the original and modified states.
-                7. Do not add details that are not visible or reasonably implied.
-                8. Output two to three simple, concise, coherent, and visually descriptive English sentences for the resulting scene. 
-                9. Append the object and material at the end of the description in json format using {"object": "material"}, e.g., {"chair": "wood"}.
+TYPO_SYSTEM = '''You deliberately simulate keyboard spelling mistakes.
+Return ONLY JSON: {"typo": "misspelled word"}.'''
 
-                For example, if the reference image shows: "a ceramic on a wooden table in a kitchen" and the instruction is "change ceramic to brick", then return only: "a brick on a wooden table. The table is in a kitchen full of furniture. {"table": "wooden", "brick": "concrete"}".
-            """
-    if gen_model == 'qwen':
-        sys_prompt = [
-            {
-                "role": "system", 
-                "content": f"{template}"
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image", 
-                        "image": "data:image;base64," + convert_pil_to_base64(pil_image)},
-                    {   
-                        "type": "text",
-                        "text": f"""
-                                Modification: {modifier}
-                                {meta_info}
-                                Now give the final caption in two to three short sentences.
-                            """ if material is not None or obj is not None else f"""
-                                Modification: {modifier}
-                                Now give the final caption in two to three short sentences.
-                            """
-                    }
-                ],
-            }
-        ]
-    elif gen_model == 'llava':
-        sys_prompt = [
-            {
-                "role": "system", 
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"{template}"
-                    }
-                ]
-            },
-            {
-                "role": "user",
-                "content": [
-                    {   
-                        "type": "text",
-                        "text": f"""
-                                Modification: {modifier}
-                                {meta_info}
-                                Now give the final caption in two to three short sentences.
-                            """ if material is not None or obj is not None else f"""
-                                Modification: {modifier}
-                                Now give the final caption in two to three short sentences.
-                            """
-                    },
-                    {"type": "image"}
-                ],
-            }
-        ]
-    elif gen_model == 'deepseek':
-        sys_prompt = [
-            {
-                "role": "User",
-                "content": f"""{template}
-                                Modification: {modifier}
-                                {meta_info}
-                                Now give the final caption in two to three short sentences.
-                            """ if material is not None or obj is not None else f"""{template}
-                                Modification: {modifier}
-                                Now give the final caption in two to three short sentences.""",
-                "images": [],
-            },
-            {"role": "Assistant", "content": ""},
-        ]
-    else:
-        raise ValueError(f"Unsupported gen_model: {gen_model}")
+WORDING_SYSTEM = '''Rewrite a search request while preserving protected CONTENT tokens.
+Every CONTENT token must occur exactly once, unchanged, in its original order.
+They represent intact visual phrases; never turn adjectives into a list of separate objects.
+Change only surrounding function words, never add visual words. Keep the direction of replacement.
+For example, "Replace the CONTENT0 with a CONTENT1" can become
+"Please swap the CONTENT0 for a CONTENT1". Return ONLY JSON: {"modifier": "..."}.'''
 
-    return sys_prompt
+REVIEW_SYSTEM = '''Review the supplied composed-image retrieval modifier against the images.
+The first image is BEFORE (reference), and every later image is AFTER (a relevant target).
+An instruction describes a CHANGE: the target object need not exist in the BEFORE image.
+For example, "replace a red bowl with a blue vase" is correct when BEFORE shows a red bowl
+and AFTER shows a blue vase. Do not reject it because BEFORE has no vase or AFTER has no bowl.
+Check whether its changes
+are visible, directionally correct, coherent, and shared across the targets shown. Flag invented
+or overly specific claims. Return ONLY JSON with boolean keys "grounded", "direction_correct",
+"coherent", "shared_across_targets", and string key "reason". Be critical.'''
 
-def get_translation_prompt(text, gen_model='qwen'):
-    template = """
-                You are an expert in language understanding and translation.
+PERTURB_REVIEW_SYSTEM = '''Compare an original modifier and its perturbed version.
+Allow spelling errors, abbreviations, and paraphrases, but require the same intended objects,
+visual attributes, relationships, and direction of change. Return ONLY JSON with boolean key
+"meaning_preserved" and string key "reason". Be critical about added or lost constraints.
+Spelling errors are INTENTIONAL: infer the intended word before comparing meanings. For example,
+"blue vase" -> "bule vase" and "bishop" -> "bisho" preserve intended meaning and must pass.
+Reject changes like "blue vase" -> "red vase", which change an actual visual constraint.'''
 
-                Given a Catalan text, you should translate it into English while preserving the original meaning.
 
-                The data structure is delineated by '$' (dollar symbol), while the hierarchical structure is delineated by '|' (pipe symbol, or vertical bar).
+def refinement_prompt(original, target_count):
+    hint = f'Noisy old instruction (only a hint): {original}\n' if original else ''
+    return f'{hint}Relevant target images shown: {target_count}. Compare BEFORE to AFTER and write the modifier.'
 
-                Follow the same data structure and hierarchical structure, while preserving the original meaning.
 
-                If the information is not available, you should only return '\n'.
-
-                Avoid adding any non-existent information.
-
-                Output only the translated text in English.
-            """
-    if gen_model == 'qwen':
-        sys_prompt = [
-            {
-                "role": "system", 
-                "content": f"{template}"
-            },
-            {
-                "role": "user",
-                "content": [
-                    {   
-                        "type": "text",
-                        "text": f"""
-                                Here is the Catalan text: {text}
-                                Now give only the translation in English.
-                            """
-                    }
-                ],
-            }
-        ]
-    elif gen_model == 'llava':
-        sys_prompt = [
-            {
-                "role": "system", 
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"{template}"
-                    }
-                ]
-            },
-            {
-                "role": "user",
-                "content": [
-                    {   
-                        "type": "text",
-                        "text": f"""
-                                Here is the Catalan text: {text}
-                                Now give only the translation in English.
-                                """
-                    },
-                ],
-            }
-        ]
-    elif gen_model == 'deepseek':
-        sys_prompt = [
-            {
-                "role": "User",
-                "content": f"""
-                            Here is the Catalan text: {text}
-                            Now give only the translation in English.
-                            """,
-            },
-            {"role": "Assistant", "content": ""},
-        ]
-    else:
-        raise ValueError(f"Unsupported gen_model: {gen_model}")
-
-    return sys_prompt
+def perturbation_prompt(modifier, instruction):
+    return f'Original modifier: {modifier}\nPerturbation: {instruction}'

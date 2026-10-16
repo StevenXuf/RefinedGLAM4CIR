@@ -1,0 +1,2485 @@
+{
+  "signature": "9b8cb928001caecf25f1529b9b723af18b1ac146e45239ca574cac665f050d32",
+  "config": {
+    "seed": 42,
+    "split": "test_ood",
+    "remove_duplicates": true,
+    "image_gallery": [
+      "test_id",
+      "test_ood",
+      "train",
+      "val"
+    ],
+    "paths": {
+      "glam_root": "/data/data_fxu/GLAM/raw",
+      "cir_file": "/home/fxu/PerturbedCIR4GLAM/cir_db.csv",
+      "db_processed_name": "/home/fxu/PerturbedCIR4GLAM/db_processed.txt",
+      "output_dir": "/home/fxu/PerturbedCIR4GLAM/outputs/smoke",
+      "model_cache": "/home/fxu/PerturbedCIR4GLAM/.model_cache"
+    },
+    "runtime": {
+      "gpu_id": 1,
+      "require_cuda": true,
+      "dtype": "bfloat16",
+      "num_workers": 4,
+      "cpu_threads": 8,
+      "local_files_only": false,
+      "trust_remote_code": false
+    },
+    "subset": {
+      "balance_categories": true,
+      "query_limit": 6,
+      "max_targets_per_query": 8,
+      "gallery_limit": 512
+    },
+    "generation": {
+      "model": "qwen",
+      "use_original_hint": false,
+      "describe_targets_first": true,
+      "batch_size": 1,
+      "max_target_images": 8,
+      "max_attempts": 3,
+      "min_words": 5,
+      "max_words": 65,
+      "quality_review": true,
+      "decoding": {
+        "do_sample": false,
+        "temperature": 0.2,
+        "top_p": 0.9,
+        "top_k": 50,
+        "max_new_tokens": 256
+      },
+      "models": {
+        "qwen": "Qwen/Qwen2.5-VL-7B-Instruct",
+        "llava": "llava-hf/llava-v1.6-mistral-7b-hf",
+        "deepseek": "deepseek-ai/deepseek-vl-7b-chat"
+      },
+      "vision": {
+        "min_pixels": 50176,
+        "max_pixels": 200704
+      }
+    },
+    "perturbation": {
+      "typo_words": 1,
+      "max_typo_words": 2,
+      "max_edits_per_word": 2,
+      "preserve_content_words": true,
+      "editable_words": [
+        "a",
+        "an",
+        "the",
+        "this",
+        "that",
+        "these",
+        "those",
+        "with",
+        "to",
+        "for",
+        "of",
+        "in",
+        "on",
+        "at",
+        "by",
+        "from",
+        "into",
+        "as",
+        "and",
+        "then",
+        "is",
+        "are",
+        "be",
+        "it",
+        "its",
+        "them",
+        "their",
+        "replace",
+        "replacing",
+        "change",
+        "changing",
+        "adjust",
+        "adjusting",
+        "include",
+        "including",
+        "swap",
+        "switch",
+        "exchange",
+        "substitute",
+        "use",
+        "make",
+        "get",
+        "out",
+        "please",
+        "pls",
+        "can",
+        "could",
+        "you",
+        "i",
+        "want",
+        "would",
+        "like",
+        "instead",
+        "rather",
+        "some",
+        "now",
+        "just",
+        "match",
+        "using",
+        "up",
+        "we",
+        "should",
+        "hey",
+        "ya",
+        "plz",
+        "u",
+        "wanna",
+        "gonna",
+        "perhaps",
+        "maybe",
+        "alter",
+        "tweak",
+        "modify",
+        "convert",
+        "transform",
+        "update",
+        "revise",
+        "reflect",
+        "ensure",
+        "set",
+        "turn",
+        "become",
+        "than",
+        "so",
+        "will",
+        "keep",
+        "same"
+      ],
+      "decoding": {
+        "do_sample": true,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "top_k": 50,
+        "max_new_tokens": 256
+      },
+      "types": {
+        "typos": "You MUST deliberately misspell one or two words, e.g. the -> teh, with -> wiht, replace -> repalce. Keep all intended visual attributes recoverable. Copying the input unchanged is invalid.",
+        "informal": "Rewrite as a casual search request with informal phrasing or common abbreviations. Preserve every visual constraint.",
+        "paraphrase": "Use natural synonyms and a different sentence structure. Preserve every visual constraint."
+      },
+      "max_attempts": 5,
+      "quality_review": true
+    },
+    "retrieval": {
+      "model": "openclip",
+      "batch_size": 32,
+      "image_weight": 0.5,
+      "models": {
+        "clip": "openai/clip-vit-base-patch16",
+        "openclip": "ViT-B-16-quickgelu",
+        "openclip_pretrained": "openai",
+        "blip": "Salesforce/blip-itm-base-coco",
+        "siglip": "google/siglip-base-patch16-224",
+        "siglip2": "google/siglip2-base-patch16-224",
+        "coca": "coca_ViT-B-16",
+        "coca_pretrained": "mscoco_finetuned_laion2b_s13b_b90k",
+        "openvision": "hf-hub:UCSC-VLAA/openvision-vit-base-patch16-224"
+      }
+    },
+    "evaluation": {
+      "top_ks": [
+        1,
+        5,
+        10,
+        50
+      ],
+      "exclude_reference": true,
+      "query_batch_size": 32
+    },
+    "visualization": {
+      "num_examples": 3,
+      "top_k": 5,
+      "dpi": 130
+    }
+  },
+  "queries": [
+    {
+      "query_id": "test_ood:384",
+      "csv_row": 384,
+      "reference_id": "art_079655",
+      "reference_path": "/data/data_fxu/GLAM/raw/test_ood/art_079655.png",
+      "target_ids": [
+        "art_080699"
+      ],
+      "target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/art_080699.png"
+      ],
+      "original_modifier": "change palace for royal palace.",
+      "conditioning_target_ids": [
+        "art_080699"
+      ],
+      "conditioning_target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/art_080699.png"
+      ]
+    },
+    {
+      "query_id": "test_ood:684",
+      "csv_row": 684,
+      "reference_id": "ceramic_064389",
+      "reference_path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064389.png",
+      "target_ids": [
+        "ceramic_064551",
+        "ceramic_064770",
+        "ceramic_065776",
+        "ceramic_066079",
+        "ceramic_066328",
+        "ceramic_066486",
+        "ceramic_066627",
+        "ceramic_066667"
+      ],
+      "target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_064551.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_064770.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_065776.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066079.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066328.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066486.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066627.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066667.png"
+      ],
+      "original_modifier": "change figurine for figurine.",
+      "conditioning_target_ids": [
+        "ceramic_064551",
+        "ceramic_064770",
+        "ceramic_065776",
+        "ceramic_066079",
+        "ceramic_066328",
+        "ceramic_066486",
+        "ceramic_066627",
+        "ceramic_066667"
+      ],
+      "conditioning_target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_064551.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_064770.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_065776.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066079.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066328.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066486.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066627.png",
+        "/data/data_fxu/GLAM/raw/test_ood/ceramic_066667.png"
+      ]
+    },
+    {
+      "query_id": "test_ood:1556",
+      "csv_row": 1556,
+      "reference_id": "costume_039405",
+      "reference_path": "/data/data_fxu/GLAM/raw/test_ood/costume_039405.png",
+      "target_ids": [
+        "costume_039548",
+        "costume_039628"
+      ],
+      "target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/costume_039548.png",
+        "/data/data_fxu/GLAM/raw/test_ood/costume_039628.png"
+      ],
+      "original_modifier": "change mask for men's clothing.",
+      "conditioning_target_ids": [
+        "costume_039548",
+        "costume_039628"
+      ],
+      "conditioning_target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/costume_039548.png",
+        "/data/data_fxu/GLAM/raw/test_ood/costume_039628.png"
+      ]
+    },
+    {
+      "query_id": "test_ood:1893",
+      "csv_row": 1893,
+      "reference_id": "jewelry_018720",
+      "reference_path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_018720.png",
+      "target_ids": [
+        "jewelry_018721",
+        "jewelry_018726"
+      ],
+      "target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/jewelry_018721.png",
+        "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+      ],
+      "original_modifier": "change ring for bracelet.",
+      "conditioning_target_ids": [
+        "jewelry_018721",
+        "jewelry_018726"
+      ],
+      "conditioning_target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/jewelry_018721.png",
+        "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+      ]
+    },
+    {
+      "query_id": "test_ood:1895",
+      "csv_row": 1895,
+      "reference_id": "jewelry_018722",
+      "reference_path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_018722.png",
+      "target_ids": [
+        "jewelry_018726"
+      ],
+      "target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+      ],
+      "original_modifier": "change ring for bracelet.",
+      "conditioning_target_ids": [
+        "jewelry_018726"
+      ],
+      "conditioning_target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+      ]
+    },
+    {
+      "query_id": "test_ood:1972",
+      "csv_row": 1972,
+      "reference_id": "numismatics_027419",
+      "reference_path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027419.png",
+      "target_ids": [
+        "numismatics_024570",
+        "numismatics_025162"
+      ],
+      "target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/numismatics_024570.png",
+        "/data/data_fxu/GLAM/raw/test_ood/numismatics_025162.png"
+      ],
+      "original_modifier": "change gold for copper.",
+      "conditioning_target_ids": [
+        "numismatics_024570",
+        "numismatics_025162"
+      ],
+      "conditioning_target_paths": [
+        "/data/data_fxu/GLAM/raw/test_ood/numismatics_024570.png",
+        "/data/data_fxu/GLAM/raw/test_ood/numismatics_025162.png"
+      ]
+    }
+  ],
+  "gallery": [
+    {
+      "image_id": "art_077849",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_077849.png"
+    },
+    {
+      "image_id": "art_077888",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_077888.png"
+    },
+    {
+      "image_id": "art_077907",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_077907.png"
+    },
+    {
+      "image_id": "art_077945",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_077945.png"
+    },
+    {
+      "image_id": "art_077958",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_077958.png"
+    },
+    {
+      "image_id": "art_078063",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078063.png"
+    },
+    {
+      "image_id": "art_078087",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078087.png"
+    },
+    {
+      "image_id": "art_078109",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078109.png"
+    },
+    {
+      "image_id": "art_078166",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078166.png"
+    },
+    {
+      "image_id": "art_078179",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078179.png"
+    },
+    {
+      "image_id": "art_078246",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078246.png"
+    },
+    {
+      "image_id": "art_078367",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078367.png"
+    },
+    {
+      "image_id": "art_078536",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078536.png"
+    },
+    {
+      "image_id": "art_078591",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078591.png"
+    },
+    {
+      "image_id": "art_078684",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078684.png"
+    },
+    {
+      "image_id": "art_078722",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078722.png"
+    },
+    {
+      "image_id": "art_078730",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078730.png"
+    },
+    {
+      "image_id": "art_078785",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078785.png"
+    },
+    {
+      "image_id": "art_078823",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078823.png"
+    },
+    {
+      "image_id": "art_078905",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078905.png"
+    },
+    {
+      "image_id": "art_078969",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078969.png"
+    },
+    {
+      "image_id": "art_078983",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078983.png"
+    },
+    {
+      "image_id": "art_078994",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_078994.png"
+    },
+    {
+      "image_id": "art_079131",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079131.png"
+    },
+    {
+      "image_id": "art_079210",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079210.png"
+    },
+    {
+      "image_id": "art_079225",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079225.png"
+    },
+    {
+      "image_id": "art_079267",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079267.png"
+    },
+    {
+      "image_id": "art_079272",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079272.png"
+    },
+    {
+      "image_id": "art_079348",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079348.png"
+    },
+    {
+      "image_id": "art_079407",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079407.png"
+    },
+    {
+      "image_id": "art_079429",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079429.png"
+    },
+    {
+      "image_id": "art_079439",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079439.png"
+    },
+    {
+      "image_id": "art_079490",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079490.png"
+    },
+    {
+      "image_id": "art_079538",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079538.png"
+    },
+    {
+      "image_id": "art_079650",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079650.png"
+    },
+    {
+      "image_id": "art_079665",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079665.png"
+    },
+    {
+      "image_id": "art_079672",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079672.png"
+    },
+    {
+      "image_id": "art_079793",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079793.png"
+    },
+    {
+      "image_id": "art_079854",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079854.png"
+    },
+    {
+      "image_id": "art_079891",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079891.png"
+    },
+    {
+      "image_id": "art_079902",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079902.png"
+    },
+    {
+      "image_id": "art_079933",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079933.png"
+    },
+    {
+      "image_id": "art_079954",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079954.png"
+    },
+    {
+      "image_id": "art_079959",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079959.png"
+    },
+    {
+      "image_id": "art_079967",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_079967.png"
+    },
+    {
+      "image_id": "art_080031",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080031.png"
+    },
+    {
+      "image_id": "art_080046",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080046.png"
+    },
+    {
+      "image_id": "art_080138",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080138.png"
+    },
+    {
+      "image_id": "art_080157",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080157.png"
+    },
+    {
+      "image_id": "art_080243",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080243.png"
+    },
+    {
+      "image_id": "art_080289",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080289.png"
+    },
+    {
+      "image_id": "art_080309",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080309.png"
+    },
+    {
+      "image_id": "art_080331",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080331.png"
+    },
+    {
+      "image_id": "art_080341",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080341.png"
+    },
+    {
+      "image_id": "art_080357",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080357.png"
+    },
+    {
+      "image_id": "art_080364",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080364.png"
+    },
+    {
+      "image_id": "art_080372",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080372.png"
+    },
+    {
+      "image_id": "art_080418",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080418.png"
+    },
+    {
+      "image_id": "art_080425",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080425.png"
+    },
+    {
+      "image_id": "art_080440",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080440.png"
+    },
+    {
+      "image_id": "art_080485",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080485.png"
+    },
+    {
+      "image_id": "art_080510",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080510.png"
+    },
+    {
+      "image_id": "art_080581",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080581.png"
+    },
+    {
+      "image_id": "art_080586",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080586.png"
+    },
+    {
+      "image_id": "art_080699",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080699.png"
+    },
+    {
+      "image_id": "art_080710",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080710.png"
+    },
+    {
+      "image_id": "art_080713",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080713.png"
+    },
+    {
+      "image_id": "art_080749",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080749.png"
+    },
+    {
+      "image_id": "art_080761",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080761.png"
+    },
+    {
+      "image_id": "art_080828",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080828.png"
+    },
+    {
+      "image_id": "art_080969",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_080969.png"
+    },
+    {
+      "image_id": "art_081016",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081016.png"
+    },
+    {
+      "image_id": "art_081175",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081175.png"
+    },
+    {
+      "image_id": "art_081229",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081229.png"
+    },
+    {
+      "image_id": "art_081244",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081244.png"
+    },
+    {
+      "image_id": "art_081265",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081265.png"
+    },
+    {
+      "image_id": "art_081279",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081279.png"
+    },
+    {
+      "image_id": "art_081302",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081302.png"
+    },
+    {
+      "image_id": "art_081397",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081397.png"
+    },
+    {
+      "image_id": "art_081408",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081408.png"
+    },
+    {
+      "image_id": "art_081445",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081445.png"
+    },
+    {
+      "image_id": "art_081465",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081465.png"
+    },
+    {
+      "image_id": "art_081528",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081528.png"
+    },
+    {
+      "image_id": "art_081565",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081565.png"
+    },
+    {
+      "image_id": "art_081615",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081615.png"
+    },
+    {
+      "image_id": "art_081625",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081625.png"
+    },
+    {
+      "image_id": "art_081635",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081635.png"
+    },
+    {
+      "image_id": "art_081662",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081662.png"
+    },
+    {
+      "image_id": "art_081772",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081772.png"
+    },
+    {
+      "image_id": "art_081795",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081795.png"
+    },
+    {
+      "image_id": "art_081834",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081834.png"
+    },
+    {
+      "image_id": "art_081845",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081845.png"
+    },
+    {
+      "image_id": "art_081883",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081883.png"
+    },
+    {
+      "image_id": "art_081903",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081903.png"
+    },
+    {
+      "image_id": "art_081964",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081964.png"
+    },
+    {
+      "image_id": "art_081972",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081972.png"
+    },
+    {
+      "image_id": "art_081985",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_081985.png"
+    },
+    {
+      "image_id": "art_082091",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_082091.png"
+    },
+    {
+      "image_id": "art_082123",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_082123.png"
+    },
+    {
+      "image_id": "art_082127",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_082127.png"
+    },
+    {
+      "image_id": "art_082135",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_082135.png"
+    },
+    {
+      "image_id": "art_082305",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_082305.png"
+    },
+    {
+      "image_id": "art_082347",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_082347.png"
+    },
+    {
+      "image_id": "art_105486",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_105486.png"
+    },
+    {
+      "image_id": "art_105594",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_105594.png"
+    },
+    {
+      "image_id": "art_105839",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_105839.png"
+    },
+    {
+      "image_id": "art_168810",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_168810.png"
+    },
+    {
+      "image_id": "art_of_sculpture_023310",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_of_sculpture_023310.png"
+    },
+    {
+      "image_id": "art_of_sculpture_023319",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_of_sculpture_023319.png"
+    },
+    {
+      "image_id": "art_of_sculpture_023589",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_of_sculpture_023589.png"
+    },
+    {
+      "image_id": "art_of_sculpture_023604",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/art_of_sculpture_023604.png"
+    },
+    {
+      "image_id": "ceramic_058624",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_058624.png"
+    },
+    {
+      "image_id": "ceramic_063638",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063638.png"
+    },
+    {
+      "image_id": "ceramic_063678",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063678.png"
+    },
+    {
+      "image_id": "ceramic_063681",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063681.png"
+    },
+    {
+      "image_id": "ceramic_063699",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063699.png"
+    },
+    {
+      "image_id": "ceramic_063788",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063788.png"
+    },
+    {
+      "image_id": "ceramic_063959",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063959.png"
+    },
+    {
+      "image_id": "ceramic_063991",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_063991.png"
+    },
+    {
+      "image_id": "ceramic_064115",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064115.png"
+    },
+    {
+      "image_id": "ceramic_064171",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064171.png"
+    },
+    {
+      "image_id": "ceramic_064179",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064179.png"
+    },
+    {
+      "image_id": "ceramic_064201",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064201.png"
+    },
+    {
+      "image_id": "ceramic_064202",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064202.png"
+    },
+    {
+      "image_id": "ceramic_064266",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064266.png"
+    },
+    {
+      "image_id": "ceramic_064277",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064277.png"
+    },
+    {
+      "image_id": "ceramic_064290",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064290.png"
+    },
+    {
+      "image_id": "ceramic_064325",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064325.png"
+    },
+    {
+      "image_id": "ceramic_064340",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064340.png"
+    },
+    {
+      "image_id": "ceramic_064351",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064351.png"
+    },
+    {
+      "image_id": "ceramic_064402",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064402.png"
+    },
+    {
+      "image_id": "ceramic_064403",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064403.png"
+    },
+    {
+      "image_id": "ceramic_064435",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064435.png"
+    },
+    {
+      "image_id": "ceramic_064440",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064440.png"
+    },
+    {
+      "image_id": "ceramic_064465",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064465.png"
+    },
+    {
+      "image_id": "ceramic_064505",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064505.png"
+    },
+    {
+      "image_id": "ceramic_064522",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064522.png"
+    },
+    {
+      "image_id": "ceramic_064551",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064551.png"
+    },
+    {
+      "image_id": "ceramic_064562",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064562.png"
+    },
+    {
+      "image_id": "ceramic_064722",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064722.png"
+    },
+    {
+      "image_id": "ceramic_064770",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064770.png"
+    },
+    {
+      "image_id": "ceramic_064923",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064923.png"
+    },
+    {
+      "image_id": "ceramic_064973",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064973.png"
+    },
+    {
+      "image_id": "ceramic_064976",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064976.png"
+    },
+    {
+      "image_id": "ceramic_064999",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_064999.png"
+    },
+    {
+      "image_id": "ceramic_065137",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065137.png"
+    },
+    {
+      "image_id": "ceramic_065214",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065214.png"
+    },
+    {
+      "image_id": "ceramic_065347",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065347.png"
+    },
+    {
+      "image_id": "ceramic_065353",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065353.png"
+    },
+    {
+      "image_id": "ceramic_065357",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065357.png"
+    },
+    {
+      "image_id": "ceramic_065364",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065364.png"
+    },
+    {
+      "image_id": "ceramic_065403",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065403.png"
+    },
+    {
+      "image_id": "ceramic_065425",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065425.png"
+    },
+    {
+      "image_id": "ceramic_065453",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065453.png"
+    },
+    {
+      "image_id": "ceramic_065641",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065641.png"
+    },
+    {
+      "image_id": "ceramic_065643",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065643.png"
+    },
+    {
+      "image_id": "ceramic_065665",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065665.png"
+    },
+    {
+      "image_id": "ceramic_065717",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065717.png"
+    },
+    {
+      "image_id": "ceramic_065776",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065776.png"
+    },
+    {
+      "image_id": "ceramic_065798",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065798.png"
+    },
+    {
+      "image_id": "ceramic_065820",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_065820.png"
+    },
+    {
+      "image_id": "ceramic_066001",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066001.png"
+    },
+    {
+      "image_id": "ceramic_066019",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066019.png"
+    },
+    {
+      "image_id": "ceramic_066037",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066037.png"
+    },
+    {
+      "image_id": "ceramic_066049",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066049.png"
+    },
+    {
+      "image_id": "ceramic_066076",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066076.png"
+    },
+    {
+      "image_id": "ceramic_066079",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066079.png"
+    },
+    {
+      "image_id": "ceramic_066104",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066104.png"
+    },
+    {
+      "image_id": "ceramic_066121",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066121.png"
+    },
+    {
+      "image_id": "ceramic_066142",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066142.png"
+    },
+    {
+      "image_id": "ceramic_066158",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066158.png"
+    },
+    {
+      "image_id": "ceramic_066193",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066193.png"
+    },
+    {
+      "image_id": "ceramic_066271",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066271.png"
+    },
+    {
+      "image_id": "ceramic_066303",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066303.png"
+    },
+    {
+      "image_id": "ceramic_066325",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066325.png"
+    },
+    {
+      "image_id": "ceramic_066328",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066328.png"
+    },
+    {
+      "image_id": "ceramic_066336",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066336.png"
+    },
+    {
+      "image_id": "ceramic_066357",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066357.png"
+    },
+    {
+      "image_id": "ceramic_066364",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066364.png"
+    },
+    {
+      "image_id": "ceramic_066430",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066430.png"
+    },
+    {
+      "image_id": "ceramic_066446",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066446.png"
+    },
+    {
+      "image_id": "ceramic_066456",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066456.png"
+    },
+    {
+      "image_id": "ceramic_066486",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066486.png"
+    },
+    {
+      "image_id": "ceramic_066505",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066505.png"
+    },
+    {
+      "image_id": "ceramic_066603",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066603.png"
+    },
+    {
+      "image_id": "ceramic_066614",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066614.png"
+    },
+    {
+      "image_id": "ceramic_066627",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066627.png"
+    },
+    {
+      "image_id": "ceramic_066649",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066649.png"
+    },
+    {
+      "image_id": "ceramic_066653",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066653.png"
+    },
+    {
+      "image_id": "ceramic_066667",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066667.png"
+    },
+    {
+      "image_id": "ceramic_066690",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066690.png"
+    },
+    {
+      "image_id": "ceramic_066776",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066776.png"
+    },
+    {
+      "image_id": "ceramic_066781",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066781.png"
+    },
+    {
+      "image_id": "ceramic_066861",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066861.png"
+    },
+    {
+      "image_id": "ceramic_066899",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066899.png"
+    },
+    {
+      "image_id": "ceramic_066911",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066911.png"
+    },
+    {
+      "image_id": "ceramic_066952",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066952.png"
+    },
+    {
+      "image_id": "ceramic_066976",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_066976.png"
+    },
+    {
+      "image_id": "ceramic_067001",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067001.png"
+    },
+    {
+      "image_id": "ceramic_067049",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067049.png"
+    },
+    {
+      "image_id": "ceramic_067119",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067119.png"
+    },
+    {
+      "image_id": "ceramic_067162",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067162.png"
+    },
+    {
+      "image_id": "ceramic_067180",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067180.png"
+    },
+    {
+      "image_id": "ceramic_067183",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067183.png"
+    },
+    {
+      "image_id": "ceramic_067226",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067226.png"
+    },
+    {
+      "image_id": "ceramic_067240",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067240.png"
+    },
+    {
+      "image_id": "ceramic_067282",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067282.png"
+    },
+    {
+      "image_id": "ceramic_067290",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067290.png"
+    },
+    {
+      "image_id": "ceramic_067307",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067307.png"
+    },
+    {
+      "image_id": "ceramic_067336",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067336.png"
+    },
+    {
+      "image_id": "ceramic_067345",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067345.png"
+    },
+    {
+      "image_id": "ceramic_067389",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067389.png"
+    },
+    {
+      "image_id": "ceramic_067399",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067399.png"
+    },
+    {
+      "image_id": "ceramic_067510",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/ceramic_067510.png"
+    },
+    {
+      "image_id": "costume_039523",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039523.png"
+    },
+    {
+      "image_id": "costume_039542",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039542.png"
+    },
+    {
+      "image_id": "costume_039548",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039548.png"
+    },
+    {
+      "image_id": "costume_039569",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039569.png"
+    },
+    {
+      "image_id": "costume_039600",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039600.png"
+    },
+    {
+      "image_id": "costume_039623",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039623.png"
+    },
+    {
+      "image_id": "costume_039628",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/costume_039628.png"
+    },
+    {
+      "image_id": "furniture_009743",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009743.png"
+    },
+    {
+      "image_id": "furniture_009759",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009759.png"
+    },
+    {
+      "image_id": "furniture_009760",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009760.png"
+    },
+    {
+      "image_id": "furniture_009773",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009773.png"
+    },
+    {
+      "image_id": "furniture_009779",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009779.png"
+    },
+    {
+      "image_id": "furniture_009784",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009784.png"
+    },
+    {
+      "image_id": "furniture_009792",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009792.png"
+    },
+    {
+      "image_id": "furniture_009797",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009797.png"
+    },
+    {
+      "image_id": "furniture_009837",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009837.png"
+    },
+    {
+      "image_id": "furniture_009838",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009838.png"
+    },
+    {
+      "image_id": "furniture_009843",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009843.png"
+    },
+    {
+      "image_id": "furniture_009868",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009868.png"
+    },
+    {
+      "image_id": "furniture_009941",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_009941.png"
+    },
+    {
+      "image_id": "furniture_010022",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010022.png"
+    },
+    {
+      "image_id": "furniture_010111",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010111.png"
+    },
+    {
+      "image_id": "furniture_010165",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010165.png"
+    },
+    {
+      "image_id": "furniture_010204",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010204.png"
+    },
+    {
+      "image_id": "furniture_010207",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010207.png"
+    },
+    {
+      "image_id": "furniture_010214",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010214.png"
+    },
+    {
+      "image_id": "furniture_010224",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010224.png"
+    },
+    {
+      "image_id": "furniture_010226",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010226.png"
+    },
+    {
+      "image_id": "furniture_010228",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010228.png"
+    },
+    {
+      "image_id": "furniture_010247",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010247.png"
+    },
+    {
+      "image_id": "furniture_010333",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010333.png"
+    },
+    {
+      "image_id": "furniture_010442",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010442.png"
+    },
+    {
+      "image_id": "furniture_010451",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010451.png"
+    },
+    {
+      "image_id": "furniture_010588",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010588.png"
+    },
+    {
+      "image_id": "furniture_010715",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010715.png"
+    },
+    {
+      "image_id": "furniture_010727",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010727.png"
+    },
+    {
+      "image_id": "furniture_010838",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010838.png"
+    },
+    {
+      "image_id": "furniture_010898",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010898.png"
+    },
+    {
+      "image_id": "furniture_010930",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010930.png"
+    },
+    {
+      "image_id": "furniture_010950",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_010950.png"
+    },
+    {
+      "image_id": "furniture_011032",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_011032.png"
+    },
+    {
+      "image_id": "furniture_016863",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_016863.png"
+    },
+    {
+      "image_id": "furniture_016957",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_016957.png"
+    },
+    {
+      "image_id": "furniture_016987",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_016987.png"
+    },
+    {
+      "image_id": "furniture_017108",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017108.png"
+    },
+    {
+      "image_id": "furniture_017172",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017172.png"
+    },
+    {
+      "image_id": "furniture_017174",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017174.png"
+    },
+    {
+      "image_id": "furniture_017192",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017192.png"
+    },
+    {
+      "image_id": "furniture_017209",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017209.png"
+    },
+    {
+      "image_id": "furniture_017235",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017235.png"
+    },
+    {
+      "image_id": "furniture_017260",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017260.png"
+    },
+    {
+      "image_id": "furniture_017269",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017269.png"
+    },
+    {
+      "image_id": "furniture_017558",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017558.png"
+    },
+    {
+      "image_id": "furniture_017563",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017563.png"
+    },
+    {
+      "image_id": "furniture_017713",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/furniture_017713.png"
+    },
+    {
+      "image_id": "jewelry_013895",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_013895.png"
+    },
+    {
+      "image_id": "jewelry_013922",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_013922.png"
+    },
+    {
+      "image_id": "jewelry_013958",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_013958.png"
+    },
+    {
+      "image_id": "jewelry_014003",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_014003.png"
+    },
+    {
+      "image_id": "jewelry_018721",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_018721.png"
+    },
+    {
+      "image_id": "jewelry_018726",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/jewelry_018726.png"
+    },
+    {
+      "image_id": "musical_instruments_008981",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/musical_instruments_008981.png"
+    },
+    {
+      "image_id": "numismatics_021615",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021615.png"
+    },
+    {
+      "image_id": "numismatics_021655",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021655.png"
+    },
+    {
+      "image_id": "numismatics_021683",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021683.png"
+    },
+    {
+      "image_id": "numismatics_021686",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021686.png"
+    },
+    {
+      "image_id": "numismatics_021775",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021775.png"
+    },
+    {
+      "image_id": "numismatics_021812",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021812.png"
+    },
+    {
+      "image_id": "numismatics_021871",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021871.png"
+    },
+    {
+      "image_id": "numismatics_021981",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_021981.png"
+    },
+    {
+      "image_id": "numismatics_022002",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022002.png"
+    },
+    {
+      "image_id": "numismatics_022052",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022052.png"
+    },
+    {
+      "image_id": "numismatics_022135",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022135.png"
+    },
+    {
+      "image_id": "numismatics_022157",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022157.png"
+    },
+    {
+      "image_id": "numismatics_022189",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022189.png"
+    },
+    {
+      "image_id": "numismatics_022273",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022273.png"
+    },
+    {
+      "image_id": "numismatics_022312",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022312.png"
+    },
+    {
+      "image_id": "numismatics_022399",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022399.png"
+    },
+    {
+      "image_id": "numismatics_022410",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022410.png"
+    },
+    {
+      "image_id": "numismatics_022444",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022444.png"
+    },
+    {
+      "image_id": "numismatics_022500",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022500.png"
+    },
+    {
+      "image_id": "numismatics_022507",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022507.png"
+    },
+    {
+      "image_id": "numismatics_022661",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022661.png"
+    },
+    {
+      "image_id": "numismatics_022671",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022671.png"
+    },
+    {
+      "image_id": "numismatics_022694",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022694.png"
+    },
+    {
+      "image_id": "numismatics_022801",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022801.png"
+    },
+    {
+      "image_id": "numismatics_022817",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022817.png"
+    },
+    {
+      "image_id": "numismatics_022970",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022970.png"
+    },
+    {
+      "image_id": "numismatics_022985",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_022985.png"
+    },
+    {
+      "image_id": "numismatics_023000",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023000.png"
+    },
+    {
+      "image_id": "numismatics_023016",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023016.png"
+    },
+    {
+      "image_id": "numismatics_023023",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023023.png"
+    },
+    {
+      "image_id": "numismatics_023073",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023073.png"
+    },
+    {
+      "image_id": "numismatics_023105",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023105.png"
+    },
+    {
+      "image_id": "numismatics_023180",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023180.png"
+    },
+    {
+      "image_id": "numismatics_023194",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023194.png"
+    },
+    {
+      "image_id": "numismatics_023367",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023367.png"
+    },
+    {
+      "image_id": "numismatics_023542",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023542.png"
+    },
+    {
+      "image_id": "numismatics_023547",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023547.png"
+    },
+    {
+      "image_id": "numismatics_023637",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023637.png"
+    },
+    {
+      "image_id": "numismatics_023655",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023655.png"
+    },
+    {
+      "image_id": "numismatics_023668",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023668.png"
+    },
+    {
+      "image_id": "numismatics_023677",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023677.png"
+    },
+    {
+      "image_id": "numismatics_023722",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023722.png"
+    },
+    {
+      "image_id": "numismatics_023726",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023726.png"
+    },
+    {
+      "image_id": "numismatics_023776",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023776.png"
+    },
+    {
+      "image_id": "numismatics_023814",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023814.png"
+    },
+    {
+      "image_id": "numismatics_023902",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023902.png"
+    },
+    {
+      "image_id": "numismatics_023903",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023903.png"
+    },
+    {
+      "image_id": "numismatics_023924",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_023924.png"
+    },
+    {
+      "image_id": "numismatics_024059",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024059.png"
+    },
+    {
+      "image_id": "numismatics_024081",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024081.png"
+    },
+    {
+      "image_id": "numismatics_024100",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024100.png"
+    },
+    {
+      "image_id": "numismatics_024332",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024332.png"
+    },
+    {
+      "image_id": "numismatics_024341",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024341.png"
+    },
+    {
+      "image_id": "numismatics_024422",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024422.png"
+    },
+    {
+      "image_id": "numismatics_024424",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024424.png"
+    },
+    {
+      "image_id": "numismatics_024432",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024432.png"
+    },
+    {
+      "image_id": "numismatics_024447",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024447.png"
+    },
+    {
+      "image_id": "numismatics_024461",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024461.png"
+    },
+    {
+      "image_id": "numismatics_024465",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024465.png"
+    },
+    {
+      "image_id": "numismatics_024480",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024480.png"
+    },
+    {
+      "image_id": "numismatics_024570",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024570.png"
+    },
+    {
+      "image_id": "numismatics_024622",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024622.png"
+    },
+    {
+      "image_id": "numismatics_024646",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024646.png"
+    },
+    {
+      "image_id": "numismatics_024693",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024693.png"
+    },
+    {
+      "image_id": "numismatics_024735",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024735.png"
+    },
+    {
+      "image_id": "numismatics_024851",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024851.png"
+    },
+    {
+      "image_id": "numismatics_024858",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024858.png"
+    },
+    {
+      "image_id": "numismatics_024900",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024900.png"
+    },
+    {
+      "image_id": "numismatics_024911",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024911.png"
+    },
+    {
+      "image_id": "numismatics_024969",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024969.png"
+    },
+    {
+      "image_id": "numismatics_024972",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_024972.png"
+    },
+    {
+      "image_id": "numismatics_025094",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025094.png"
+    },
+    {
+      "image_id": "numismatics_025136",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025136.png"
+    },
+    {
+      "image_id": "numismatics_025162",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025162.png"
+    },
+    {
+      "image_id": "numismatics_025321",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025321.png"
+    },
+    {
+      "image_id": "numismatics_025340",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025340.png"
+    },
+    {
+      "image_id": "numismatics_025416",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025416.png"
+    },
+    {
+      "image_id": "numismatics_025479",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025479.png"
+    },
+    {
+      "image_id": "numismatics_025490",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025490.png"
+    },
+    {
+      "image_id": "numismatics_025533",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025533.png"
+    },
+    {
+      "image_id": "numismatics_025608",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025608.png"
+    },
+    {
+      "image_id": "numismatics_025645",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025645.png"
+    },
+    {
+      "image_id": "numismatics_025663",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025663.png"
+    },
+    {
+      "image_id": "numismatics_025682",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025682.png"
+    },
+    {
+      "image_id": "numismatics_025711",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025711.png"
+    },
+    {
+      "image_id": "numismatics_025775",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025775.png"
+    },
+    {
+      "image_id": "numismatics_025787",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025787.png"
+    },
+    {
+      "image_id": "numismatics_025931",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025931.png"
+    },
+    {
+      "image_id": "numismatics_025965",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_025965.png"
+    },
+    {
+      "image_id": "numismatics_026052",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026052.png"
+    },
+    {
+      "image_id": "numismatics_026118",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026118.png"
+    },
+    {
+      "image_id": "numismatics_026128",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026128.png"
+    },
+    {
+      "image_id": "numismatics_026207",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026207.png"
+    },
+    {
+      "image_id": "numismatics_026256",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026256.png"
+    },
+    {
+      "image_id": "numismatics_026407",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026407.png"
+    },
+    {
+      "image_id": "numismatics_026545",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026545.png"
+    },
+    {
+      "image_id": "numismatics_026552",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026552.png"
+    },
+    {
+      "image_id": "numismatics_026563",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026563.png"
+    },
+    {
+      "image_id": "numismatics_026586",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026586.png"
+    },
+    {
+      "image_id": "numismatics_026648",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026648.png"
+    },
+    {
+      "image_id": "numismatics_026650",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026650.png"
+    },
+    {
+      "image_id": "numismatics_026813",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_026813.png"
+    },
+    {
+      "image_id": "numismatics_027003",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027003.png"
+    },
+    {
+      "image_id": "numismatics_027048",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027048.png"
+    },
+    {
+      "image_id": "numismatics_027127",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027127.png"
+    },
+    {
+      "image_id": "numismatics_027210",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027210.png"
+    },
+    {
+      "image_id": "numismatics_027212",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027212.png"
+    },
+    {
+      "image_id": "numismatics_027227",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027227.png"
+    },
+    {
+      "image_id": "numismatics_027288",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027288.png"
+    },
+    {
+      "image_id": "numismatics_027293",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027293.png"
+    },
+    {
+      "image_id": "numismatics_027345",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027345.png"
+    },
+    {
+      "image_id": "numismatics_027350",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027350.png"
+    },
+    {
+      "image_id": "numismatics_027412",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027412.png"
+    },
+    {
+      "image_id": "numismatics_027503",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027503.png"
+    },
+    {
+      "image_id": "numismatics_027617",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027617.png"
+    },
+    {
+      "image_id": "numismatics_027792",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027792.png"
+    },
+    {
+      "image_id": "numismatics_027957",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027957.png"
+    },
+    {
+      "image_id": "numismatics_027999",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_027999.png"
+    },
+    {
+      "image_id": "numismatics_028006",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028006.png"
+    },
+    {
+      "image_id": "numismatics_028046",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028046.png"
+    },
+    {
+      "image_id": "numismatics_028071",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028071.png"
+    },
+    {
+      "image_id": "numismatics_028124",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028124.png"
+    },
+    {
+      "image_id": "numismatics_028171",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028171.png"
+    },
+    {
+      "image_id": "numismatics_028240",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028240.png"
+    },
+    {
+      "image_id": "numismatics_028241",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028241.png"
+    },
+    {
+      "image_id": "numismatics_028243",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028243.png"
+    },
+    {
+      "image_id": "numismatics_028265",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028265.png"
+    },
+    {
+      "image_id": "numismatics_028288",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028288.png"
+    },
+    {
+      "image_id": "numismatics_028333",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028333.png"
+    },
+    {
+      "image_id": "numismatics_028341",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028341.png"
+    },
+    {
+      "image_id": "numismatics_028344",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028344.png"
+    },
+    {
+      "image_id": "numismatics_028347",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028347.png"
+    },
+    {
+      "image_id": "numismatics_028386",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028386.png"
+    },
+    {
+      "image_id": "numismatics_028441",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028441.png"
+    },
+    {
+      "image_id": "numismatics_028475",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028475.png"
+    },
+    {
+      "image_id": "numismatics_028531",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028531.png"
+    },
+    {
+      "image_id": "numismatics_028545",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028545.png"
+    },
+    {
+      "image_id": "numismatics_028552",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028552.png"
+    },
+    {
+      "image_id": "numismatics_028690",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028690.png"
+    },
+    {
+      "image_id": "numismatics_028708",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028708.png"
+    },
+    {
+      "image_id": "numismatics_028752",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028752.png"
+    },
+    {
+      "image_id": "numismatics_028764",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028764.png"
+    },
+    {
+      "image_id": "numismatics_028780",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028780.png"
+    },
+    {
+      "image_id": "numismatics_028804",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028804.png"
+    },
+    {
+      "image_id": "numismatics_028826",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028826.png"
+    },
+    {
+      "image_id": "numismatics_028849",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028849.png"
+    },
+    {
+      "image_id": "numismatics_028888",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028888.png"
+    },
+    {
+      "image_id": "numismatics_028927",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_028927.png"
+    },
+    {
+      "image_id": "numismatics_029026",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029026.png"
+    },
+    {
+      "image_id": "numismatics_029060",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029060.png"
+    },
+    {
+      "image_id": "numismatics_029071",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029071.png"
+    },
+    {
+      "image_id": "numismatics_029075",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029075.png"
+    },
+    {
+      "image_id": "numismatics_029130",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029130.png"
+    },
+    {
+      "image_id": "numismatics_029204",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029204.png"
+    },
+    {
+      "image_id": "numismatics_029269",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029269.png"
+    },
+    {
+      "image_id": "numismatics_029276",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029276.png"
+    },
+    {
+      "image_id": "numismatics_029353",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029353.png"
+    },
+    {
+      "image_id": "numismatics_029397",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/numismatics_029397.png"
+    },
+    {
+      "image_id": "stained_glass_001906",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_001906.png"
+    },
+    {
+      "image_id": "stained_glass_001918",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_001918.png"
+    },
+    {
+      "image_id": "stained_glass_001945",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_001945.png"
+    },
+    {
+      "image_id": "stained_glass_001998",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_001998.png"
+    },
+    {
+      "image_id": "stained_glass_002006",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002006.png"
+    },
+    {
+      "image_id": "stained_glass_002054",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002054.png"
+    },
+    {
+      "image_id": "stained_glass_002117",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002117.png"
+    },
+    {
+      "image_id": "stained_glass_002152",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002152.png"
+    },
+    {
+      "image_id": "stained_glass_002156",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002156.png"
+    },
+    {
+      "image_id": "stained_glass_002173",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002173.png"
+    },
+    {
+      "image_id": "stained_glass_002187",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/stained_glass_002187.png"
+    },
+    {
+      "image_id": "tapestry_001714",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001714.png"
+    },
+    {
+      "image_id": "tapestry_001719",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001719.png"
+    },
+    {
+      "image_id": "tapestry_001746",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001746.png"
+    },
+    {
+      "image_id": "tapestry_001786",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001786.png"
+    },
+    {
+      "image_id": "tapestry_001918",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001918.png"
+    },
+    {
+      "image_id": "tapestry_001935",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001935.png"
+    },
+    {
+      "image_id": "tapestry_001965",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001965.png"
+    },
+    {
+      "image_id": "tapestry_001982",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001982.png"
+    },
+    {
+      "image_id": "tapestry_001987",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_001987.png"
+    },
+    {
+      "image_id": "tapestry_002066",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002066.png"
+    },
+    {
+      "image_id": "tapestry_002167",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002167.png"
+    },
+    {
+      "image_id": "tapestry_002223",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002223.png"
+    },
+    {
+      "image_id": "tapestry_002260",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002260.png"
+    },
+    {
+      "image_id": "tapestry_002306",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002306.png"
+    },
+    {
+      "image_id": "tapestry_002318",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002318.png"
+    },
+    {
+      "image_id": "tapestry_002396",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002396.png"
+    },
+    {
+      "image_id": "tapestry_002402",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002402.png"
+    },
+    {
+      "image_id": "tapestry_002486",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002486.png"
+    },
+    {
+      "image_id": "tapestry_002713",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002713.png"
+    },
+    {
+      "image_id": "tapestry_002742",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002742.png"
+    },
+    {
+      "image_id": "tapestry_002785",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002785.png"
+    },
+    {
+      "image_id": "tapestry_002802",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002802.png"
+    },
+    {
+      "image_id": "tapestry_002940",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_002940.png"
+    },
+    {
+      "image_id": "tapestry_003011",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003011.png"
+    },
+    {
+      "image_id": "tapestry_003051",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003051.png"
+    },
+    {
+      "image_id": "tapestry_003133",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003133.png"
+    },
+    {
+      "image_id": "tapestry_003237",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003237.png"
+    },
+    {
+      "image_id": "tapestry_003239",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003239.png"
+    },
+    {
+      "image_id": "tapestry_003263",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003263.png"
+    },
+    {
+      "image_id": "tapestry_003288",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003288.png"
+    },
+    {
+      "image_id": "tapestry_003334",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003334.png"
+    },
+    {
+      "image_id": "tapestry_003397",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003397.png"
+    },
+    {
+      "image_id": "tapestry_003412",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003412.png"
+    },
+    {
+      "image_id": "tapestry_003431",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003431.png"
+    },
+    {
+      "image_id": "tapestry_003463",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003463.png"
+    },
+    {
+      "image_id": "tapestry_003480",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003480.png"
+    },
+    {
+      "image_id": "tapestry_003524",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003524.png"
+    },
+    {
+      "image_id": "tapestry_003612",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003612.png"
+    },
+    {
+      "image_id": "tapestry_003635",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003635.png"
+    },
+    {
+      "image_id": "tapestry_003695",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003695.png"
+    },
+    {
+      "image_id": "tapestry_003756",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003756.png"
+    },
+    {
+      "image_id": "tapestry_003830",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003830.png"
+    },
+    {
+      "image_id": "tapestry_003874",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003874.png"
+    },
+    {
+      "image_id": "tapestry_003891",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003891.png"
+    },
+    {
+      "image_id": "tapestry_003940",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_003940.png"
+    },
+    {
+      "image_id": "tapestry_004003",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004003.png"
+    },
+    {
+      "image_id": "tapestry_004056",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004056.png"
+    },
+    {
+      "image_id": "tapestry_004081",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004081.png"
+    },
+    {
+      "image_id": "tapestry_004090",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004090.png"
+    },
+    {
+      "image_id": "tapestry_004132",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004132.png"
+    },
+    {
+      "image_id": "tapestry_004152",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004152.png"
+    },
+    {
+      "image_id": "tapestry_004201",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004201.png"
+    },
+    {
+      "image_id": "tapestry_004318",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004318.png"
+    },
+    {
+      "image_id": "tapestry_004348",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004348.png"
+    },
+    {
+      "image_id": "tapestry_004385",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004385.png"
+    },
+    {
+      "image_id": "tapestry_004409",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004409.png"
+    },
+    {
+      "image_id": "tapestry_004415",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004415.png"
+    },
+    {
+      "image_id": "tapestry_004424",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004424.png"
+    },
+    {
+      "image_id": "tapestry_004473",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004473.png"
+    },
+    {
+      "image_id": "tapestry_004528",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004528.png"
+    },
+    {
+      "image_id": "tapestry_004590",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004590.png"
+    },
+    {
+      "image_id": "tapestry_004639",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tapestry_004639.png"
+    },
+    {
+      "image_id": "textile_046751",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/textile_046751.png"
+    },
+    {
+      "image_id": "textile_046779",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/textile_046779.png"
+    },
+    {
+      "image_id": "textile_046786",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/textile_046786.png"
+    },
+    {
+      "image_id": "tool_018514",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/tool_018514.png"
+    },
+    {
+      "image_id": "toy_005702",
+      "path": "/data/data_fxu/GLAM/raw/test_ood/toy_005702.png"
+    }
+  ],
+  "full_gallery_size": 22373,
+  "scope": "subset",
+  "conditioning_note": "Target-aware modifier construction; not a target-blind benchmark.",
+  "source_hashes": {
+    "prompts.py": "38045663f52e87148fd6fabc955581a1269b47a72055d6ca34487caf1a0aa3a9",
+    "generation.py": "a216edca559ea90020084a14888e664c01ea7414015b76e383d6dd7e1fdd12cd",
+    "loading_data.py": "59cc3864e61883ffd8c51306d580e59ec9473191334044ad227ae8837dd2e959",
+    "feature_extractor.py": "52fa7e919af9529aac1d67e330c5459c896563ba39b98b29512db466ef52a1b9",
+    "metrics_computation.py": "fb5a3525997cd1fa3de15d372e0a2d59916d9f88ce2dd37de38cdf4b7fd41aa0",
+    "run.py": "2c65da9e95805b91ef41250a60561530c1ca62cb750d517e5633336c46a8fac8"
+  },
+  "parameter_revisions": [
+    {
+      "reason": "Expanded the allowable function-word vocabulary after the LLM proposed harmless phrasing such as match/using. Existing accepted perturbations still satisfy the expanded validator; source, model, clean texts and gallery are unchanged.",
+      "previous_signature": "6e37564e6039c61757d647f3a0dea1af115f039b10600c0aa6ba5c0a4a444b3a",
+      "previous_editable_words": [
+        "a",
+        "an",
+        "the",
+        "this",
+        "that",
+        "these",
+        "those",
+        "with",
+        "to",
+        "for",
+        "of",
+        "in",
+        "on",
+        "at",
+        "by",
+        "from",
+        "into",
+        "as",
+        "and",
+        "then",
+        "is",
+        "are",
+        "be",
+        "it",
+        "its",
+        "them",
+        "their",
+        "replace",
+        "replacing",
+        "change",
+        "changing",
+        "adjust",
+        "adjusting",
+        "include",
+        "including",
+        "swap",
+        "switch",
+        "exchange",
+        "substitute",
+        "use",
+        "make",
+        "get",
+        "out",
+        "please",
+        "pls",
+        "can",
+        "could",
+        "you",
+        "i",
+        "want",
+        "would",
+        "like",
+        "instead",
+        "rather",
+        "some",
+        "now",
+        "just"
+      ]
+    }
+  ]
+}
