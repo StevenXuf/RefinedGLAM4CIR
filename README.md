@@ -99,7 +99,7 @@ Only these experiment outputs are saved per split under `outputs/current/<split>
 - `metrics.json`: final aggregate scores, deltas, model settings, query count, and gallery availability.
 - `figures/query_*.png`: three seeded examples with unperturbed and every perturbed modifier, reference/target images, and top-5 retrievals.
 
-Figures use equal 224×224 letterboxed images, wrapped centered text, a consistent layout, and green borders for relevant results. Sampling selects existing retained CSV triplets and uses the same triplets for every condition. `python figure.py --split test_ood` regenerates figures from saved modifiers; it recomputes retrieval against the entire gallery rather than storing intermediate rankings.
+Figures use equal 224×224 letterboxed images, equal square subplot axes (including text panels), wrapped centered text, tight layout, and green borders for relevant results. Sampling selects existing retained CSV triplets and uses the same triplets for every condition. `python figure.py --split test_ood` regenerates figures from saved modifiers; it recomputes retrieval against the entire gallery rather than storing intermediate rankings.
 
 Observations, feature tensors, full rankings, manifests, environment dumps, and diagnostic reports are not exported. GPU/model weights remain in the ignored `.model_cache/`. Intermediate computation stays in memory. A failed generation retains completed modifiers; restarting resumes them, but unfinished image observations are recomputed. Configuration/source/image-availability signatures reject incompatible modifier checkpoints; use a new `paths.output_dir` when changing an experiment.
 

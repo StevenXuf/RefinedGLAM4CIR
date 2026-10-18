@@ -1,4 +1,4 @@
-"""Three seeded CSV-triplet comparisons, with equal image sizes and centered wrapped text."""
+"""Three seeded CSV-triplet comparisons with equal square axes and centered wrapped text."""
 import argparse
 from textwrap import fill
 
@@ -28,10 +28,11 @@ def visualize(cfg, records, gallery, retrieval):
             continue
         conditions = [('unperturbed', item['modifier'])] + [(k, item['perturbations'][k]) for k in cfg['perturbation']['types']]
         fig, axes = plt.subplots(len(conditions), top_k+3, squeeze=False,
-            figsize=(2.35*(top_k+3), 2.95*len(conditions)), gridspec_kw={'width_ratios': [1, 1, 1.4] + [1]*top_k})
+            figsize=(2.35*(top_k+3), 2.85*len(conditions)))
         fig.set_facecolor('#edf1f6')
         for row, (condition, modifier) in enumerate(conditions):
             for ax in axes[row]:
+                ax.set_box_aspect(1)
                 ax.set_facecolor('white')
                 ax.set_xticks([])
                 ax.set_yticks([])
@@ -45,8 +46,9 @@ def visualize(cfg, records, gallery, retrieval):
             text_ax = axes[row, 2]
             text_ax.text(.5, .78, fill(condition.replace('_', ' ').title(), 24), ha='center', va='center',
                          transform=text_ax.transAxes, fontsize=10, fontweight='bold', color='#174675')
-            text_ax.text(.5, .45, fill(modifier, cfg['visualization']['wrap_width']), ha='center', va='center',
+            modifier_text = text_ax.text(.5, .45, fill(modifier, cfg['visualization']['wrap_width']), ha='center', va='center',
                          transform=text_ax.transAxes, multialignment='center', fontsize=9, linespacing=1.4)
+            modifier_text.set_in_layout(False)
             for rank, hit in enumerate(retrieval[condition][item['query_id']][:top_k], 1):
                 ax = axes[row, rank+2]
                 ax.imshow(display_image(by_id[hit['image_id']], size))
@@ -61,7 +63,16 @@ def visualize(cfg, records, gallery, retrieval):
                         spine.set_linewidth(2.5)
         title = f'{item["query_id"]} · CSV reference/target pair · green border = relevant retrieval'
         fig.suptitle(fill(title, 95), x=.5, ha='center', fontsize=12, fontweight='bold', color='#17324d', y=.99)
-        fig.tight_layout(rect=(.01, .01, .99, .965), h_pad=2.0, w_pad=1.0)
+        fig.tight_layout(rect=(.005, .005, .995, .965), pad=.6, h_pad=2.0, w_pad=.6)
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        for ax, (_, modifier) in zip(axes[:, 2], conditions):
+            text = ax.texts[1]
+            width = cfg['visualization']['wrap_width']
+            # Uppercase corruptions need narrower wrapping at the same font size.
+            while width > 1 and text.get_window_extent(renderer).width > .94 * ax.get_window_extent(renderer).width:
+                width -= 1
+                text.set_text(fill(modifier, width))
         path = directory / f'query_{item["csv_row"]}.png'
         fig.savefig(path, dpi=cfg['visualization']['dpi'], facecolor=fig.get_facecolor())
         plt.close(fig)
