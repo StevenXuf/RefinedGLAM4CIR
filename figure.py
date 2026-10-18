@@ -69,9 +69,7 @@ def visualize(cfg, records, gallery, retrieval):
                         spine.set_visible(True)
                         spine.set_color('#20945d')
                         spine.set_linewidth(2.5)
-        title = f'{item["query_id"]} · CSV reference/target pair · green border = relevant retrieval'
-        fig.suptitle(fill(title, 95), x=.5, ha='center', fontsize=12, fontweight='bold', color='#17324d', y=.99)
-        fig.tight_layout(rect=(.005, .005, .995, .965), pad=.6, h_pad=2.0, w_pad=.6)
+        fig.tight_layout(rect=(.005, .005, .995, .995), pad=.6, h_pad=2.0, w_pad=.6)
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
         for ax, (_, modifier) in zip(axes[:, 2], conditions):
