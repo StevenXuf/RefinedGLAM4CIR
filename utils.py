@@ -1,5 +1,4 @@
-"""Configuration, reproducibility, logging, and atomic experiment artifacts."""
-import argparse
+"""Configuration, atomic output, reproducibility, and GPU selection."""
 import hashlib
 import json
 import logging
@@ -13,47 +12,31 @@ ROOT = Path(__file__).resolve().parent
 
 def get_config(path=None, split=None):
     path = Path(path or ROOT / 'config.yaml').resolve()
-    with path.open() as stream:
-        cfg = yaml.safe_load(stream)
-    if split is not None:
-        cfg['split'] = split
-    from loading_data import validate_test_split
-    validate_test_split(cfg)
-    cfg['runtime']['gpu_id'] = cfg['runtime'].get('gpu_ids', {}).get(cfg['split'], cfg['runtime']['gpu_id'])
+    cfg = yaml.safe_load(path.read_text())
+    cfg['split'] = split or cfg['split']
+    from loading_data import validate_split
+    validate_split(cfg)
     for key, value in cfg['paths'].items():
-        p = Path(value).expanduser()
-        cfg['paths'][key] = str(p if p.is_absolute() else path.parent / p)
+        cfg['paths'][key] = str((path.parent / Path(value).expanduser()).resolve())
     cfg['paths']['output_dir'] = str(Path(cfg['paths']['output_dir']) / cfg['split'])
-    if cfg['generation']['batch_size'] < 1 or cfg['generation']['image_batch_size'] < 1:
-        raise ValueError('Generation batch sizes must be positive')
+    if not 1 <= cfg['generation']['min_words'] <= cfg['generation']['max_words'] <= 15:
+        raise ValueError('Generation requires 1 <= min_words <= max_words <= 15')
+    if min(cfg['generation']['batch_size'], cfg['generation']['image_batch_size'], cfg['retrieval']['batch_size']) < 1:
+        raise ValueError('Batch sizes must be positive')
     if not 0 <= cfg['retrieval']['image_weight'] <= 1:
-        raise ValueError('retrieval.image_weight must be between 0 and 1')
-    for key in ['query_limit']:
-        if cfg['subset'].get(key) is not None and cfg['subset'][key] < 1:
-            raise ValueError(f'{key} must be positive or null')
-    if cfg['visualization']['num_examples'] < 1 or cfg['visualization']['top_k'] < 1:
-        raise ValueError('Visualization counts must be positive')
-    if not all(isinstance(word, str) for word in cfg['perturbation']['editable_words']):
-        raise ValueError('editable_words must be strings; quote YAML words such as "on"')
-    if not 1 <= cfg['perturbation']['typo_words'] <= cfg['perturbation']['max_typo_words']:
-        raise ValueError('typo_words must be positive and <= max_typo_words')
+        raise ValueError('image_weight must be between zero and one')
+    limit = cfg['subset'].get('query_limit')
+    if limit is not None and limit < 1:
+        raise ValueError('query_limit must be positive or null')
+    from perturbation import KINDS
+    if not cfg['perturbation']['types'] or set(cfg['perturbation']['types']) - set(KINDS):
+        raise ValueError(f'Choose perturbations from {list(KINDS)}')
     return cfg
 
 
-def parse_args(stages):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
-    parser.add_argument('--split', choices=['test_id', 'test_ood'])
-    parser.add_argument('--stage', choices=stages, default=stages[0])
-    return parser.parse_args()
-
-
-def setup_logging(path):
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s | %(levelname)s | %(message)s',
-                        handlers=[logging.FileHandler(path), logging.StreamHandler()], force=True)
-    return logging.getLogger('perturbedcir')
+def setup_logging():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s', force=True)
+    return logging.getLogger('glam')
 
 
 def seed_everything(cfg):
@@ -70,32 +53,33 @@ def seed_everything(cfg):
 def get_device(cfg):
     import torch
     if cfg['runtime']['require_cuda'] and not torch.cuda.is_available():
-        raise RuntimeError('CUDA required but unavailable; run on the GPU server.')
+        raise RuntimeError('CUDA required but unavailable; use the GPU server')
     device = torch.device(f"cuda:{cfg['runtime']['gpu_id']}" if torch.cuda.is_available() else 'cpu')
     if device.type == 'cuda':
         torch.cuda.set_device(device)
     return device
 
 
-def save_json(path, data):
+def save_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + '.tmp')
-    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + '\n')
-    tmp.replace(path)
+    temporary = path.with_suffix(path.suffix + '.tmp')
+    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + '\n')
+    temporary.replace(path)
 
 
 def read_json(path):
     return json.loads(Path(path).read_text())
 
 
+def output_path(cfg, name):
+    return Path(cfg['paths']['output_dir']) / name
+
+
 def fingerprint(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
-def file_hash(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
-
-
-def output_path(cfg, name):
-    return Path(cfg['paths']['output_dir']) / name
+def batches(items, size):
+    for start in range(0, len(items), size):
+        yield items[start:start + size]

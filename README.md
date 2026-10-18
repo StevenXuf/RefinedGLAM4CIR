@@ -1,127 +1,140 @@
 # PerturbedCIR4GLAM
 
-PerturbedCIR4GLAM measures how realistic changes in search wording affect composed image retrieval on the GLAM collection. A vision-language model inspects a reference image and its annotated target images to write an improved textual modifier. A retrieval model combines the reference image and modifier to rank the gallery. The language model then introduces spelling errors or changes the wording, and retrieval is repeated against the same complete gallery.
+This project measures how everyday typing and editing mistakes affect composed image retrieval on GLAM. A multimodal language model observes a reference image and its annotated targets, generates a short modification request, and selects explicit textual corruptions. A retrieval encoder combines the reference image and text and ranks the same complete available gallery for every condition.
 
-This project performs inference only. It does not train or fine-tune any model. It is derived from [StevenXuf/CIR4DH](https://github.com/StevenXuf/CIR4DH) and retains its MIT license.
+The project performs inference only. It derives from [CIR4DH](https://github.com/StevenXuf/CIR4DH) and retains its MIT license.
 
-## Data protocol
+## Run one split
 
-Only `test_id` and `test_ood` are supported. Training, validation, and other splits are rejected.
-
-- **`cir_db.csv` defines the queries.** Each row contains a comma-separated `id1` reference field, comma-separated `id2` target field, the original `query` modifier, and a `partition`. Reference/target relationships come exclusively from that row. The first existing reference is used, matching the original loader. Every existing non-reference `id2` target is retained and used for modifier generation and retrieval ground truth. No targets are sampled and no rows are removed because they have many targets.
-- **`db_processed.txt` defines gallery partition membership.** Its first column is an image ID and its second column is the partition. The loader selects every existing unique image in the requested test partition, matching the original availability filtering. It never uses this file to invent reference/target pairings.
-- **The gallery always contains every available image, including during query-subset checks.** There is no gallery-size setting. A legacy non-null `gallery_limit` is rejected. Missing local files are logged and listed in the manifest. The default `missing_gallery_policy: available` matches the original loader and uses every existing image. Set this policy to `strict` to require every declared file and fail if any is absent. For each query, its own reference can be masked from retrieval according to `evaluation.exclude_reference`.
-- Images are resolved by their selected test IDs under `/data/data_fxu/GLAM/raw`. Physical storage-folder names are not annotation partitions: many IDs marked test_id in the metadata are stored under train/val directories. `image_storage_folders` controls path lookup only; only IDs selected from test annotations can enter either query generation or the gallery. No training/validation annotation partitions are evaluated, and no GLAM images are downloaded.
-- Duplicate reference/target groups are removed when `remove_duplicates: true`, following the original configuration. The original modifier is preserved verbatim. Image-path checks and row counts are logged.
-
-The metadata declares these sizes before local image-availability checks, with the default pair deduplication:
-
-| Split | Raw CSV rows | Unique CSV pairs | Declared gallery |
-|---|---:|---:|---:|
-| test_ood | 88 | 81 | 22,373 |
-| test_id | 2,559 | 2,002 | 2,631 |
-
-The current local test_id data is missing 268 declared gallery images; see [data availability](reports/data_availability.md). Following the original loader, its available dataset contains 1,429 valid query pairs and all 2,363 existing gallery images. The full test_ood dataset contains 81 valid pairs and all 22,373 declared gallery images. These availability counts are reported with the metrics; no arbitrary gallery or target-count sampling is applied.
-
-The default full runs use every valid query. `subset.query_limit` can restrict queries for a functional check; it has no effect on gallery membership or target coverage. Set `remove_duplicates: false` if repeated CSV pairs should count as separate queries.
-
-## Installation and full evaluation
-
-Use Python 3.10+ and a CUDA-compatible PyTorch/torchvision installation, then install the remaining requirements:
+Install a CUDA-compatible PyTorch/torchvision build, then:
 
 ```bash
 python -m pip install -r requirements.txt
-python run.py --stage both
+python main.py --split test_ood
+python main.py --split test_id
 ```
 
-On the existing server, `/home/fxu/my-env/bin/python` is the tested interpreter. All experiment settings are in `config.yaml`. By default, the two test splits run in separate processes on GPUs 2 (`test_ood`) and 1 (`test_id`); adjust `runtime.gpu_ids` for your server. The runner waits for both jobs and prints a combined Markdown table containing unperturbed, typo, informal, and paraphrase results for both splits.
+On the current server, the isolated project interpreter is `.venv/bin/python`. All experiment settings, model IDs/revisions, GPU selection, data paths, word limits, and output settings are in `config.yaml`. The default Qwen3-VL-8B fits one A6000 and uses `generation.gpu_ids: [1]`. Other generation models and retrieval use `runtime.gpu_id`. GPU inference is required by default.
 
-Run either split independently:
+To run the complete pipeline separately for both supported splits:
 
 ```bash
-python run.py --stage all --split test_ood
-python run.py --stage all --split test_id
+bash run_splits.sh
+# With another interpreter or configuration:
+PYTHON=/path/to/python bash run_splits.sh /path/to/config.yaml
 ```
 
-Full results and tables are written to `outputs/full/results.md`, `results.csv`, and `results.json`. Per-split artifacts are under `outputs/full/test_ood/` and `outputs/full/test_id/`. Published results are summarized in [reports/full_results.md](reports/full_results.md).
+The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own unperturbed/perturbed metric table. For an optional console log, use `bash run_splits.sh > outputs/run.log 2>&1` after creating `outputs/`.
 
-Paths are resolved relative to the configuration file. To repeat an experiment with different settings or source code, choose a new `paths.output_dir`; signatures prevent incompatible checkpoints from being mixed. Model weights are cached in `.model_cache/`. CUDA is required by default. If missing assets are restored later, use a new output directory; the manifest guard detects the availability change.
+## Data protocol
 
-## How the experiment works
+Only `test_id` and `test_ood` have CIR triplets in the provided annotations. Training and validation image metadata do not define reference–target relationships, so those partitions are excluded. No model is trained.
 
-1. Freeze query and full available-gallery manifests from the two metadata files. Record declared/available/missing counts and verify coverage of every available positive target.
-2. Describe the reference and every corresponding target image with the configured vision-language model. A per-image caption cache avoids describing the same image repeatedly. Only images explicitly present in CSV query pairs enter this generation cache.
-3. Synthesize a modifier from the reference observation and all target observations from that same CSV row. The original low-quality modifier is retained for inspection and can optionally be supplied as a noisy hint. Target images are alternatives, not objects to merge into one scene. Synthesis includes shared traits and limitations for heterogeneous groups.
-4. Retrieve using the reference image plus the generated unperturbed modifier. Save the clean metrics before perturbation.
-5. Use the language model to generate spelling errors, informal wording, and paraphrases. Spelling edits are applied only to selected word spans and checked against edit budgets. By default, rephrasing protects complete visual phrases, preserving their content and order while allowing function-word/syntax changes. Set `perturbation.preserve_content_words: false` for broader lexical paraphrases, which need additional semantic review.
-6. Retrieve again with each perturbed modifier, holding the reference image, complete gallery, ground truth, fusion, exclusions, and metrics fixed. Report perturbed-minus-unperturbed changes in percentage points.
-7. Save random paired examples showing the reference, a relevant target, each modifier, and its top-5 retrieved images. Green borders identify relevant results.
+- `cir_db.csv` is the actual file name in the source repository; there is no `db_cir.csv`. Its `partition`, `id1`, `id2`, and `query` columns define existing triplets. The first available reference and **all existing non-reference targets from the same row** are used. The old modifier is preserved for inspection but is not supplied as a generation hint.
+- `db_processed.txt` defines gallery partition membership only. Every unique available image in the selected partition is searched. It never supplies or invents query pairs.
+- Files are resolved under `/data/data_fxu/GLAM/raw`; no images are downloaded. Physical storage folders are independent of annotation partitions, so a selected test ID may resolve under a folder named `train` or `val` without evaluating unrelated training/validation annotations.
+- Missing files are skipped using the original loader's availability rule. Counts are logged and included in final metrics. `missing_gallery_policy: strict` instead requires every declared gallery file.
+- Pair deduplication follows the original loader. All retained queries are evaluated by default. `subset.query_limit` is an optional query-only diagnostic limit and **never reduces the gallery or the target group**. Gallery subsampling and target-count filters are rejected.
 
-Qwen inference is batched for both single-image observations and text generation. Invalid items are retried individually; successful items are checkpointed before failures are reported. Other model adapters use serial inference. If a protected-phrase rewrite repeatedly fails, the LLM selects among validated conservative surface forms using constrained token decoding. This preserves the visual content and provides a reliable inference fallback. Failed items are never silently omitted from the reported full query set.
+The current local data yields 81 valid test_ood query pairs with all 22,373 declared gallery images, and 1,429 valid test_id pairs with all 2,363 available images out of 2,631 declared. The other 268 test_id gallery files are absent locally; these results do not cover that missing portion.
 
-## Metrics
+## Generation and perturbations
 
-Each query uses `normalize(w * normalize(reference_image) + (1-w) * normalize(modifier_text))`, with `w = retrieval.image_weight`. Gallery image embeddings are normalized; ranking uses cosine similarity and deterministic tie ordering.
+The pipeline describes each unique CSV reference/target image once in memory, then synthesizes a modifier using the reference observation and every corresponding target observation. Targets are alternative acceptable results; prompts explicitly forbid merging them into one scene. Prompts require the correct reference-to-target direction, shared observable traits, and no invented provenance, material, or unchanged background claims.
 
-- `Recall@K`: fraction of all relevant images recovered in the first K for each query, averaged across queries. This retains the original multi-positive `RetrievalRecall` definition.
-- `HitRate@K`: fraction of queries with at least one relevant image in the first K.
-- `mAP` and `MRR`: average precision and reciprocal rank from the complete ranking.
-- `AVG`: mean of the configured Recall@K values, by default K = 1, 5, 10, 50.
+Modifiers must contain **5–15 whitespace-delimited words**, with 10–15 preferred. Overlong responses are rejected and replaced by a validated concise clause selected by the MLLM, rather than truncated mid-sentence. An editable word is required so every configured corruption can be applied. Target-conditioned generation is not a target-blind benchmark, and prompt checks cannot certify human-level visual accuracy.
 
-All metrics are percentages. Deltas are **perturbed minus unperturbed, in percentage points**. A positive delta means improvement. Full-gallery metrics replace the earlier experimental reports that used a sampled gallery; those earlier reports are not comparable with the current protocol.
+Concrete corruption types replace the former ambiguous informal style:
 
-## Quality checks and interpretation
-
-The default diagnostic audit reviews six seeded queries per split, and every perturbation type for those queries. This audit sampling affects only quality-review calls: every query is still generated, perturbed, and evaluated, and every annotated target is used for generation. `generation.review_target_images` limits images displayed in the diagnostic review, while synthesis always receives observations of all targets. Set `quality_review_samples: null` to audit every query.
-
-A second prompt to the same model is not independent human validation. Review failures are recorded and flagged, and do not select or exclude queries from evaluation. Inspect the saved target observations, synthesis limitations, review reasons, and figures. Heterogeneous target sets and inferred materials can still produce inaccurate modifiers.
-
-Because the modifier generator sees the annotated targets, this experiment measures robustness of target-conditioned modifier construction and retrieval. It should not be described as a target-blind query-generation benchmark.
-
-## Modular scripts and individual stages
-
-| File | Purpose |
+| Type | Exact edit |
 |---|---|
-| `loading_data.py` | Test-only CSV query pairing and complete split-gallery loading |
-| `prompts.py` | Image-description, modifier, perturbation, and diagnostic-review prompts |
-| `generation.py` | Qwen/LLaVA/DeepSeek adapters, batched generation, parsing and perturbation validation |
-| `feature_extractor.py` | Retrieval encoders and reference/text composition |
-| `metrics_computation.py` | Ranking, multi-positive metrics, and deltas |
-| `run.py` | Resumable per-split stages and artifact management |
-| `results.py` | Two-GPU test-split runner and combined result tables |
-| `parallel_perturbation.py` | Optional query partitions for text inference across configured GPUs, validated merging before evaluation |
-| `figure.py` | Standalone paired top-5 visualization from saved results |
-| `utils.py` | Configuration, signatures, device selection, seeding and logging |
+| `deletion` | Omit one internal letter from one word, simulating a missed keystroke |
+| `character_swap` | Transpose adjacent internal letters in one word, such as `blue` → `bule` |
+| `capitalization` | Change letter case only, simulating accidental Caps Lock or inconsistent case |
+| `keyboard_typo` | Replace one internal letter with a neighbouring key in the same QWERTY row |
 
-```bash
-python run.py --stage prepare --split test_ood
-python run.py --stage generate --split test_ood
-python run.py --stage retrieve-clean --split test_ood
-python run.py --stage perturb --split test_ood
-python run.py --stage evaluate --split test_ood
-python figure.py --split test_ood
-python figure.py --split test_id
-python results.py  # print/save the combined table from completed runs
+The MLLM selects among candidates produced by the specified operation; the application validates and applies that exact candidate. This keeps edit severity controlled, makes the perturbations independently checkable, and avoids semantic rewrites disguised as typos. Character swapping refers to letters within a word, not swapping subjects or attributes. Capitalization can leave retrieval unchanged when the encoder lowercases text.
+
+Current model families are configurable through `generation.model`:
+
+| Setting | Checkpoint | Implementation |
+|---|---|---|
+| `qwen` | [Qwen3-VL-8B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct) | Native Transformers; thinking disabled for concise JSON |
+| `llava` | [LLaVA-OneVision-2-8B-Instruct](https://huggingface.co/lmms-lab-encoder/LLaVA-OneVision-2-8B-Instruct) | Revision-pinned upstream custom code |
+| `deepseek` | [Janus-Pro-7B](https://huggingface.co/deepseek-community/Janus-Pro-7B) | Native HF conversion of DeepSeek's model, explicitly in understanding/text mode |
+
+The selected models are in the requested comparable 7–8B size range. They are recent available releases in that range, rather than a mixture of small models and a 16B/27B model. DeepSeek uses Hugging Face's native conversion of Janus-Pro; image generation is disabled. All three backends use the same environment and validated prompts. Model revisions are pinned in YAML. Qwen batches requests; LLaVA and Janus use serial requests for processor compatibility.
+
+When a model proposes an overlong request, the application constructs complete concise reference-to-target clauses by omitting secondary clauses or replacing the source description with "it". The same MLLM selects a concise candidate, which must pass all word-count and corruption checks. This never cuts a request at an arbitrary word boundary. Alternative-target and negation tokens are retained during shortening; logical operators are protected during character edits. Main objects can still be misidentified, so inspect the generated modifiers and figures; length/format checks are not human visual validation.
+
+All three selected backends were checked on actual CSV triplets, including every target in those triplets and every configured corruption. The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Choose a new output directory for each model comparison.
+
+## Retrieval heads and metrics
+
+Every extractor returns finite, L2-normalized image/text vectors in a shared embedding space. The query is:
+
+```text
+normalize(w * normalize(reference_image) + (1-w) * normalize(modifier_text))
 ```
 
-For a large split, after generation and clean retrieval, `python parallel_perturbation.py --split test_id` can replace the single-process perturbation stage. It uses the unique GPUs listed in `runtime.gpu_ids`, writes independent checkpoints, validates every original query/target/clean-text identity during merging, and preserves CSV order. Each worker retains the full available gallery manifest. Then resume `python run.py --stage all --split test_id` for the global seeded quality audit, final evaluation, and figures. Do not run another perturbation writer for the same split concurrently.
+`w` is `retrieval.image_weight`. Ranking uses cosine similarity with stable ties, and the query reference is excluded by default.
 
-Every entry point accepts `--config /path/to/config.yaml`. `prepare`, `figure.py`, and result-table collection do not require GPU inference.
+| Encoder | Features used |
+|---|---|
+| BLIP | `BlipForImageTextRetrieval` with image CLS → `vision_proj` and text-only CLS → `text_proj`, matching the **ITC retrieval head** (`use_itm_head=False`) |
+| CLIP | Trained image/text projection heads via `get_image_features` / `get_text_features` |
+| SigLIP / SigLIP2 | Trained pooled image/text representations from their retrieval feature APIs |
+| OpenCLIP / OpenVision | `encode_image` / `encode_text` in the trained contrastive space |
+| CoCa | Contrastive image/text encoders; caption-decoder states are never used |
 
-The original generation families `qwen`, `llava`, and `deepseek` are configurable. Qwen2.5-VL-7B-Instruct is the default. DeepSeek needs its optional upstream package and explicit `runtime.trust_remote_code: true`. Retrieval choices include `clip`, `openclip`, `blip`, `siglip`, `siglip2`, `coca`, and `openvision`; checkpoint IDs are in YAML. The tested default is OpenCLIP ViT-B-16/OpenAI with matching QuickGELU. Other backends require their own environment validation.
+BLIP's binary image-text matching classifier (`itm_head`) requires joint cross-attention and does not produce independent cosine-search embeddings. Captioning, VQA, raw vision hidden states, and unprojected text states are not used. Transformers 4 tensor and Transformers 5 projected pooler return formats are handled explicitly. Incomplete pretrained retrieval weights are rejected.
 
-## Saved artifacts and logs
+Recall@K is macro multi-positive recall: recovered relevant targets divided by all relevant targets, averaged across queries. HitRate@K, mAP, and MRR are also computed. AVG is the mean of Recall@1/5/10/50. All scores are percentages; deltas are perturbed minus unperturbed in percentage points. Gallery, positives, reference, fusion, and ranking settings stay fixed across conditions.
 
-Each split saves `manifest.json`, resolved configuration, environment information, per-image `observations.json`, `modifiers.json`, diagnostic `quality_report.json`, reusable image features, clean and paired metrics, per-query target ranks/top results, and `figures/query_*.png`. Full logs include LLM responses, validation retries, progress and metrics. `progress.json` supports monitoring without reading entire logs.
+## Outputs and figures
 
-`outputs/full/both.log` reports both worker states; `test_id.console.log` and `test_ood.console.log` contain worker output. Important results and examples are copied into `reports/` after validation. Large model weights, feature tensors and working run directories are ignored by Git.
+Only these experiment outputs are saved per split under `outputs/current/<split>/`:
 
-## Tests
+- `modifiers.json`: original CSV identities/text, generated modifiers, and their perturbed versions; incrementally saved for resumption.
+- `metrics.json`: final aggregate scores, deltas, model settings, query count, and gallery availability.
+- `figures/query_*.png`: three seeded examples with unperturbed and every perturbed modifier, reference/target images, and top-5 retrievals.
+
+Figures use equal 224×224 letterboxed images, wrapped centered text, a consistent layout, and green borders for relevant results. Sampling selects existing retained CSV triplets and uses the same triplets for every condition. `python figure.py --split test_ood` regenerates figures from saved modifiers; it recomputes retrieval against the entire gallery rather than storing intermediate rankings.
+
+Observations, feature tensors, full rankings, manifests, environment dumps, and diagnostic reports are not exported. GPU/model weights remain in the ignored `.model_cache/`. Intermediate computation stays in memory. A failed generation retains completed modifiers; restarting resumes them, but unfinished image observations are recomputed. Configuration/source/image-availability signatures reject incompatible modifier checkpoints; use a new `paths.output_dir` when changing an experiment.
+
+All outputs, old local reports, logs, environments, and model caches are ignored by Git. Local inspection files are preserved outside the tracked source tree.
+
+## Components and verification
+
+| File | Responsibility |
+|---|---|
+| `main.py` | Assemble data loading → generation → clean retrieval → perturbation → paired retrieval → figures |
+| `loading_data.py` | CSV triplets, local paths, and complete available split galleries |
+| `generation.py` / `prompts.py` | Model adapters, batched requests, prompts, JSON and word-length checks |
+| `perturbation.py` | Explicit corruption candidates and exact operation validation |
+| `feature_extractor.py` | Projected retrieval embeddings and reference/text composition |
+| `metrics_computation.py` | Stable ranking, multi-positive metrics, and paired deltas |
+| `figure.py` | Seeded paired visualizations |
+| `verify.py` | Actual GPU generation and native retrieval-head equivalence checks |
+| `utils.py` | YAML configuration, seeding, GPU selection, atomic output |
+| `run_splits.sh` | End-to-end invocation for each supported split |
+
+Stages can be checked independently, in order:
 
 ```bash
+python main.py --split test_ood --stage data
+python main.py --split test_ood --stage generate
+python main.py --split test_ood --stage perturb
+python main.py --split test_ood --stage evaluate
+python main.py --split test_ood --stage visualize
+python verify.py --component generation --model qwen
+python verify.py --component generation --model llava
+python verify.py --component generation --model deepseek
+python verify.py --component retrieval --model blip
+python verify.py --component retrieval --model openclip
 python -m pip install pytest
 python -m pytest -q
-python -m compileall -q *.py tests
 ```
 
-Twenty-six tests cover complete-gallery enforcement even with a query subset, CSV-only target conditioning, forbidden splits and gallery/target filters, missing/restored gallery images, original availability filtering, duplicate pairs, batched retry ordering, protected perturbations, and multi-positive ranking/metrics. GPU checks exercise the actual default model backends.
+Every Python entry point accepts `--config`. Retrieval checks also accept `clip`, `siglip`, `siglip2`, `coca`, and `openvision`. The checks compare extracted cosine scores numerically against the backend's own retrieval calculation; they check head correctness, not dataset retrieval accuracy. Generation checks use three small intact CSV target groups and validate all corruption conditions; full experiments do not filter target-group sizes.

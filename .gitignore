@@ -7,3 +7,8 @@ outputs/
 logs/
 figures/
 *.egg-info/
+reports/
+.cache/
+.ruff_cache/
+*.log
+.venv-*/

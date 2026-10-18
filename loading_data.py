@@ -1,10 +1,10 @@
-"""Resolve the original GLAM CSV pipeline against existing local PNG images only."""
+"""Resolve the original GLAM CSV pipeline against existing local images only."""
 import logging
 from pathlib import Path
 
 import pandas as pd
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 
 def load_image(path):
@@ -27,14 +27,14 @@ def split_ids(value):
     return list(dict.fromkeys(x.strip() for x in str(value).split(',') if x.strip()))
 
 
-TEST_SPLITS = ('test_id', 'test_ood')
+SPLITS = ('test_id', 'test_ood')
 
 
-def validate_test_split(cfg):
+def validate_split(cfg):
     if cfg.get('missing_gallery_policy', 'available') not in {'available', 'strict'}:
         raise ValueError('missing_gallery_policy must be available or strict')
-    if cfg['split'] not in TEST_SPLITS:
-        raise ValueError('Only test_id and test_ood inference splits are supported')
+    if cfg['split'] not in SPLITS:
+        raise ValueError('Supported inference splits: test_id, test_ood')
     if not cfg['image_storage_folders']:
         raise ValueError('At least one local image storage folder is required')
     if cfg['subset'].get('gallery_limit') is not None:
@@ -44,8 +44,14 @@ def validate_test_split(cfg):
 
 
 def process_df(cfg, logger):
-    validate_test_split(cfg)
-    df = pd.read_csv(cfg['paths']['cir_file'], dtype=str).fillna('')
+    validate_split(cfg)
+    source = cfg['paths']['cir_file']
+    df = pd.read_csv(source, dtype=str).fillna('')
+    required = {'id1', 'id2', 'query', 'partition'}
+    if not required <= set(df.columns):
+        raise ValueError(f'{source} must contain triplet columns {sorted(required)}; image metadata cannot define query pairs')
+    if not (df.partition == cfg['split']).any():
+        raise ValueError(f'No {cfg["split"]} triplets in {source}. Provide existing id1/id2/query/partition annotations. db_processed.txt only defines galleries.')
     df['csv_row'] = df.index
     df = df[df.partition == cfg['split']].copy()
     initial = len(df)
@@ -104,18 +110,12 @@ class GLAMQueryDataset(Dataset):
         record['pil_image'] = load_image(record['reference_path'])
         return record
 
-    def load_dataset(self):
-        return self
-
-    def load_dataloader(self):
-        return DataLoader(self, batch_size=self.cfg['retrieval']['batch_size'], shuffle=False,
-                          num_workers=self.cfg['runtime']['num_workers'], collate_fn=collate_samples)
 
 
 class GLAMGalleryDataset(Dataset):
     def __init__(self, cfg, logger=None, queries=None):
         logger = logger or logging.getLogger(__name__)
-        validate_test_split(cfg)
+        validate_split(cfg)
         df = pd.read_csv(cfg['paths']['db_processed_name'], header=None, dtype=str)
         names = sorted(set(df.loc[df[1] == cfg['split'], 0]))
         paths = search_image_path(names, cfg['image_storage_folders'], cfg['paths']['glam_root'])
@@ -133,8 +133,6 @@ class GLAMGalleryDataset(Dataset):
         if absent:
             logger.warning('Using ALL %d available %s gallery images; %d/%d declared files are missing. No sampling.', total, cfg['split'], len(absent), len(names))
         self.records = [{'image_id': name, 'path': path} for name, path in sorted(by_id.items())]
-        self.image_paths = [Path(item['path']) for item in self.records]
-        self.full_size = total
         if not self.records:
             raise ValueError('No gallery images available')
         logger.info('Gallery: full available=%d selected=%d relevant=%d scope=%s', total, len(self),
