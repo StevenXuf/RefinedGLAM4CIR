@@ -12,6 +12,16 @@ def display_image(path, size):
     return ImageOps.pad(load_image(path), (size, size), method=Image.Resampling.LANCZOS, color='white')
 
 
+def retrieval_caption(ax, rank, score):
+    from matplotlib.offsetbox import AnchoredOffsetbox, HPacker, TextArea
+    caption = HPacker(children=[
+        TextArea(f'Top-{rank} ', textprops={'color': 'black', 'fontsize': 9}),
+        TextArea(f'({score:.3f})', textprops={'color': '#176b44', 'fontsize': 9}),
+    ], align='baseline', pad=0, sep=0)
+    ax.add_artist(AnchoredOffsetbox(loc='lower center', child=caption, frameon=False,
+        bbox_to_anchor=(.5, 1), bbox_transform=ax.transAxes, pad=0, borderpad=.8))
+
+
 def visualize(cfg, records, gallery, retrieval):
     import matplotlib
     matplotlib.use('Agg')
@@ -53,9 +63,7 @@ def visualize(cfg, records, gallery, retrieval):
                 ax = axes[row, rank+2]
                 ax.imshow(display_image(by_id[hit['image_id']], size))
                 relevant = hit['image_id'] in item['target_ids']
-                title = f'#{rank}  {hit["image_id"]}\ncosine {hit["score"]:.3f}'
-                ax.set_title(fill(title.split('\n')[0], 19) + '\n' + title.split('\n')[1],
-                             loc='center', fontsize=8, color='#176b44' if relevant else '#374151', pad=8)
+                retrieval_caption(ax, rank, hit['score'])
                 if relevant:
                     for spine in ax.spines.values():
                         spine.set_visible(True)

@@ -175,6 +175,22 @@ def test_multitarget_metrics_and_reference_mask():
     assert metrics['Recall@5'] == 100
 
 
+def test_composed_query_cosines_are_unit_and_scale_invariant(cfg):
+    extractor = FeatureExtractor.__new__(FeatureExtractor)
+    extractor.cfg = cfg
+    extractor.get_text_features = lambda _: torch.tensor([[0., 1., 0.]])
+    query = extractor.compose(torch.tensor([[30., 0., 0.]]), ['modifier'])
+    torch.testing.assert_close(query.norm(dim=-1), torch.ones(1))
+    gallery = torch.tensor([[10., 10., 0.], [0., 40., 0.], [-12., -12., 0.]])
+    queries = [dict(query_id='q', reference_id='ref', target_ids=['a'])]
+    ranks, scores = rank_queries(query, gallery, ['a', 'b', 'c'], queries)
+    torch.testing.assert_close(scores, torch.tensor([[1., 2**-.5, -1.]]))
+    scaled_ranks, scaled_scores = rank_queries(query * 9, gallery * torch.tensor([[3.], [.25], [7.]]),
+                                              ['a', 'b', 'c'], queries)
+    assert ranks == scaled_ranks == [['a', 'b', 'c']]
+    torch.testing.assert_close(scores, scaled_scores)
+
+
 def test_reduced_outputs_and_all_components(cfg, capsys):
     q, g = load_data(cfg)
     data = load_modifiers(cfg, q, g)
