@@ -60,7 +60,7 @@ def visualize(cfg, records, gallery, retrieval):
                 ax.imshow(display_image(path, size))
                 ax.set_title(fill(title, 22), loc='center', fontsize=9, pad=8)
             text_ax = axes[row, 2]
-            label = {'reference_original': 'Reference + original modifier', 'unperturbed': 'Reference + generated modifier'}.get(
+            label = {'reference_original': 'Original modifier', 'unperturbed': 'Generated modifier'}.get(
                 condition, condition.replace('_', ' ').title())
             text_ax.text(.5, .78, fill(label, 24), ha='center', va='center',
                          transform=text_ax.transAxes, fontsize=10, fontweight='bold', color='#174675')
