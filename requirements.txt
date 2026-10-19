@@ -15,4 +15,3 @@ safetensors>=0.8
 sentencepiece>=0.2
 # LLaVA-OneVision-2 custom processor imports its optional video dependencies.
 decord>=0.6
-# Component/unit validation: pytest>=8

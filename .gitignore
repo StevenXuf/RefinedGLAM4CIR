@@ -12,3 +12,4 @@ reports/
 .ruff_cache/
 *.log
 .venv-*/
+/test/

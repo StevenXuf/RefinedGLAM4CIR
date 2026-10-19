@@ -38,6 +38,8 @@ Only `test_id` and `test_ood` have CIR triplets in the provided annotations. Tra
 
 The current local data yields 81 valid test_ood query pairs with all 22,373 declared gallery images, and 1,429 valid test_id pairs with all 2,363 available images out of 2,631 declared. The other 268 test_id gallery files are absent locally; these results do not cover that missing portion.
 
+The published CIR4DH protocol retains 1,435 test_id queries. This project removes repeated image IDs inside each target list before deduplicating reference/target pairs, which merges six additional rows with different original modifiers. These six rows are not missing-image exclusions. For exact paper reproduction, preserve the original loader's list multiplicities during pair deduplication.
+
 ## Generation and perturbations
 
 For each query, generation uses all available targets when there are at most three, otherwise a random sample of **three targets** (`generation.max_target_images`). Sampling uses the configured seed and query ID, is repeatable, and is recorded as `generation_target_ids`. The pipeline describes each unique reference/selected target image once in memory, then extracts a short shared-feature phrase for each selected multi-target group. A modifier describes the reference-to-target change using features shared by the selected targets. It cannot list alternative categories with "or" or merge targets into one scene. When only a sample is observed, the prompt asks for broad categories and stable structural traits, avoiding exact colour, count, material, pose, and layout requirements that could exclude unseen targets.
@@ -90,11 +92,15 @@ The selected models are in the requested comparable 7–8B size range. They are 
 
 When a model proposes an overlong request, the application constructs complete concise reference-to-target clauses by omitting secondary clauses or replacing the source description with "it". The same MLLM selects a concise candidate, which must pass all word-count and corruption checks. This never cuts a request at an arbitrary word boundary. Alternative-target and negation tokens are retained during shortening; logical operators are protected during character edits. Main objects can still be misidentified, so inspect the generated modifiers and figures; length/format checks are not human visual validation.
 
-Check each backend on three actual CSV triplets: one single-target query, one small multi-target query, and a query from the largest target group, sampling at most three targets per query and checking every configured corruption. The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Choose a new output directory for each model comparison.
+The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Choose a new output directory for each model comparison.
 
+<!--
+Local verification notes; omitted from the rendered project documentation.
+Check each backend on three actual CSV triplets: one single-target query, one small multi-target query, and a query from the largest target group, sampling at most three targets per query and checking every configured corruption.
 Run the component checks below before adopting another backend for a full experiment. A model can load successfully and still fail compatibility review on heterogeneous target groups; the application rejects those outputs instead of silently accepting them.
 
 On the current server, Qwen3-VL-8B, LLaVA-OneVision-2-8B, and Janus-Pro-7B passed the three-triplet GPU generation/corruption checks under this policy. These small checks verify execution and validation, not universal semantic accuracy.
+-->
 
 ## Retrieval heads and metrics
 
@@ -115,6 +121,8 @@ normalize(w * normalize(reference_image) + (1-w) * normalize(modifier_text))
 | CoCa | Contrastive image/text encoders; caption-decoder states are never used |
 
 BLIP's binary image-text matching classifier (`itm_head`) requires joint cross-attention and does not produce independent cosine-search embeddings. Captioning, VQA, raw vision hidden states, and unprojected text states are not used. Transformers 4 tensor and Transformers 5 projected pooler return formats are handled explicitly. Incomplete pretrained retrieval weights are rejected.
+
+Baseline scores are not a reproduction of Table 4 in the CIR4DH paper. That experiment uses OpenAI-pretrained ViT-B-16, forcibly resizes each image to 224×224 before the model transform, replaces `for` with `to` in modifiers, keeps reference images eligible for retrieval, and adds raw image/text embeddings for its combined baseline. This project's configured LAION checkpoint uses the model transform on the original image, preserves original modifiers, excludes the reference candidate, and normalizes each modality before fusion. The paper and this project both define Recall@K as macro multi-target recall.
 
 Every run evaluates these baselines on the same query cohort and complete available gallery:
 
@@ -146,7 +154,7 @@ Observations, feature tensors, full rankings, manifests, environment dumps, and 
 
 All outputs, old local reports, logs, environments, and model caches are ignored by Git. Local inspection files are preserved outside the tracked source tree.
 
-## Components and verification
+## Components
 
 | File | Responsibility |
 |---|---|
@@ -157,10 +165,13 @@ All outputs, old local reports, logs, environments, and model caches are ignored
 | `feature_extractor.py` | Projected retrieval embeddings and reference/text composition |
 | `metrics_computation.py` | Stable ranking, multi-positive metrics, and paired deltas |
 | `figure.py` | Seeded paired visualizations |
-| `verify.py` | Actual GPU generation and native retrieval-head equivalence checks |
 | `utils.py` | YAML configuration, seeding, GPU selection, atomic output |
 | `run_splits.sh` | End-to-end invocation for each supported split |
 
+Every production Python entry point accepts `--config`. Individual pipeline stages are available through `main.py --stage`.
+
+<!--
+Local verification instructions; all associated code is kept in the Git-ignored test/ directory.
 Stages can be checked independently, in order:
 
 ```bash
@@ -169,13 +180,14 @@ python main.py --split test_ood --stage generate
 python main.py --split test_ood --stage perturb
 python main.py --split test_ood --stage evaluate
 python main.py --split test_ood --stage visualize
-python verify.py --component generation --model qwen
-python verify.py --component generation --model llava
-python verify.py --component generation --model deepseek
-python verify.py --component retrieval --model blip
-python verify.py --component retrieval --model openclip
-python -m pip install pytest
-python -m pytest -q
+python test/verify.py --component generation --model qwen
+python test/verify.py --component generation --model llava
+python test/verify.py --component generation --model deepseek
+python test/verify.py --component retrieval --model blip
+python test/verify.py --component retrieval --model openclip
+python -m pip install -r test/requirements.txt
+python -m pytest -c test/pytest.ini --basetemp test/.tmp
 ```
 
 Every Python entry point accepts `--config`. Retrieval checks also accept `clip`, `siglip`, `siglip2`, `coca`, and `openvision`. The checks compare extracted cosine scores numerically against the backend's own retrieval calculation; they check head correctness, not dataset retrieval accuracy. Generation checks include single-target, small multi-target, and large multi-target queries, using the configured generation sample and validating all corruption conditions. Full experiments retain every available ground truth regardless of group size.
+-->
