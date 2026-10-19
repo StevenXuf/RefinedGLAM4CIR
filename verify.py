@@ -70,7 +70,7 @@ def check_generation(cfg):
     for record in data['records']:
         assert len(record['modifier'].split()) <= 15
         for kind, text in record['perturbations'].items():
-            validate_perturbation(text, record['modifier'], kind)
+            validate_perturbation(text, record['modifier'], kind, cfg, record['query_id'])
         print(record['query_id'], record['modifier'], record['perturbations'], flush=True)
     print(f'PASS {cfg["generation"]["model"]}: {len(queries)} real CSV triplets, all targets, all corruption types', flush=True)
 

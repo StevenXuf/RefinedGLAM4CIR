@@ -1,5 +1,6 @@
 """Split-wise end-to-end inference, with independently callable pipeline stages."""
 import argparse
+from collections import Counter
 import gc
 import json
 import logging
@@ -14,7 +15,7 @@ from feature_extractor import FeatureExtractor
 from generation import TextGenerator, validate_modifier
 from loading_data import GLAMGalleryDataset, GLAMQueryDataset, SPLITS, collate_samples, load_image
 from metrics_computation import compute_metrics, metric_deltas, rank_queries
-from perturbation import request as perturbation_request, validate_perturbation
+from perturbation import request as perturbation_request, sample_profile, validate_perturbation
 from utils import (ROOT, batches, fingerprint, get_config, output_path, read_json,
                    save_json, seed_everything, setup_logging)
 
@@ -50,8 +51,34 @@ def load_modifiers(cfg, queries, gallery):
             raise ValueError('Saved modifier does not match its original CSV triplet')
         validate_modifier({'modifier': record['modifier']}, cfg)
         for kind, text in record['perturbations'].items():
-            validate_perturbation(text, record['modifier'], kind)
+            validate_perturbation(text, record['modifier'], kind, cfg, record['query_id'])
     return data
+
+
+def reuse_clean_modifiers(cfg, queries, data, source):
+    """Explicitly import compatible clean queries, discarding every old perturbation."""
+    source = Path(source).resolve()
+    previous = read_json(source)
+    if data['records']:
+        raise ValueError('--reuse-clean requires an empty output checkpoint; omit it to resume')
+    expected_model = cfg['generation']['models'][cfg['generation']['model']]
+    if previous.get('generation_model') != expected_model or previous.get('split') != cfg['split']:
+        raise ValueError('Clean source must use the same split and generation checkpoint/revision')
+    records = previous['records']
+    if len({r['query_id'] for r in records}) != len(records):
+        raise ValueError('Duplicate query IDs in clean source')
+    by_id = {r['query_id']: r for r in records}
+    imported = []
+    for query in queries:
+        record = by_id.get(query['query_id'])
+        if record is None or any(record.get(k) != v for k, v in query.items()):
+            raise ValueError(f'Clean source does not match CSV triplet {query["query_id"]}')
+        text = validate_modifier({'modifier': record['modifier']}, cfg)
+        imported.append(dict(query, modifier=text, perturbations={}))
+    data['clean_source'] = {'path': str(source), 'content_hash': fingerprint(previous),
+                            'signature': previous.get('signature')}
+    checkpoint(cfg, data, {r['query_id']: r for r in imported}, queries)
+    logging.getLogger('glam').info('Reused %d exact clean CSV modifiers from %s; all perturbations will be regenerated', len(imported), source)
 
 
 def checkpoint(cfg, data, records, queries):
@@ -113,13 +140,17 @@ def perturb_modifiers(cfg, queries, data, generator=None, logger=None):
         if pending and generator is None:
             generator = TextGenerator(cfg, logger)
         for batch in batches(pending, cfg['generation']['batch_size']):
-            requests = [perturbation_request(r['modifier'], kind) for r in batch]
+            requests = [perturbation_request(r['modifier'], kind, cfg, r['query_id']) for r in batch]
             outputs = generator.request_json_many([r[0] for r in requests], [r[1] for r in requests])
             for record, text in zip(batch, outputs):
                 if not isinstance(text, Exception):
                     record['perturbations'][kind] = text
             checkpoint(cfg, data, records, queries)
             require_success(outputs)
+            logger.info('%s: %s %d/%d queries', cfg['split'], kind,
+                        sum(kind in r['perturbations'] for r in data['records']), len(queries))
+        severities = Counter(sample_profile(r['modifier'], kind, cfg, r['query_id'])['severity'] for r in data['records'])
+        logger.info('%s: %s sampled severity distribution %s', cfg['split'], kind, dict(severities))
         logger.info('%s: %s complete for %d queries', cfg['split'], kind, len(queries))
     return generator
 
@@ -192,6 +223,7 @@ def save_metrics(cfg, metrics, queries, gallery):
         'gallery_size': len(gallery), 'declared_gallery_size': gallery.declared_size,
         'missing_gallery_count': len(gallery.missing_ids), 'units': 'percent; deltas in percentage points',
         'generation_model': cfg['generation']['models'][cfg['generation']['model']], 'retrieval': cfg['retrieval'],
+        'seed': cfg['seed'], 'perturbation': cfg['perturbation'],
         'metrics': metrics, 'delta_vs_unperturbed': {kind: metric_deltas(metrics['unperturbed'], values)
             for kind, values in metrics.items() if kind != 'unperturbed'}}
     save_json(output_path(cfg, 'metrics.json'), result)
@@ -203,6 +235,8 @@ def main():
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
     parser.add_argument('--split', choices=SPLITS, required=True)
     parser.add_argument('--stage', choices=['all', 'data', 'generate', 'perturb', 'evaluate', 'visualize'], default='all')
+    parser.add_argument('--reuse-clean', metavar='MODIFIERS_JSON',
+                        help='Import clean modifiers from the same model/split and exact CSV triplets; regenerate corruptions')
     args = parser.parse_args()
     cfg = get_config(args.config, args.split)
     logger = setup_logging()
@@ -212,6 +246,8 @@ def main():
         print(f"{cfg['split']}: {len(queries)} valid queries; {len(gallery)}/{gallery.declared_size} available gallery images")
         return
     data = load_modifiers(cfg, queries, gallery)
+    if args.reuse_clean:
+        reuse_clean_modifiers(cfg, queries, data, args.reuse_clean)
     generator, extractor, features = None, None, None
     if args.stage in {'all', 'generate'}:
         generator = generate_modifiers(cfg, queries, data, logger=logger)

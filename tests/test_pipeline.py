@@ -10,9 +10,10 @@ from feature_extractor import FeatureExtractor, normalized_features
 from generation import TextGenerator, parse_json, validate_modifier
 from loading_data import GLAMGalleryDataset, GLAMQueryDataset
 from main import (example_ids, generate_modifiers, load_data, load_modifiers,
-                  perturb_modifiers, save_metrics)
+                  perturb_modifiers, reuse_clean_modifiers, save_metrics)
 from metrics_computation import compute_metrics, rank_queries
-from perturbation import candidates, request, validate_perturbation
+from perturbation import (KINDS, NEIGHBOURS, candidates, request, sample_profile,
+                          validate_perturbation, validate_settings)
 from utils import get_config, output_path
 
 
@@ -122,25 +123,111 @@ def test_modifier_hard_limit_and_json(cfg):
         parse_json('nothing')
 
 
-@pytest.mark.parametrize('kind', ['deletion', 'capitalization', 'character_swap', 'keyboard_typo'])
-def test_exact_corruption_operation_and_llm_choice(kind):
+@pytest.mark.parametrize('kind', list(KINDS))
+def test_exact_corruption_operation_and_llm_choice(cfg, kind):
     original = 'Replace the blue bowl with a tall white vase.'
-    task, check = request(original, kind)
+    task, check = request(original, kind, cfg, 'query')
     text = check({'choice': 0})
-    assert text != original and text in candidates(original, kind)
+    assert text != original and text in candidates(original, kind, cfg, 'query')
     with pytest.raises(ValueError):
-        validate_perturbation('Replace the bowl with a black vase.', original, kind)
+        validate_perturbation('Replace the bowl with a black vase.', original, kind, cfg, 'query')
     with pytest.raises(ValueError):
         check({'choice': True})
 
 
-def test_deletion_is_one_internal_letter_and_preserves_negation():
+def test_deletion_budget_and_preserved_negation(cfg):
     original = 'Replace the red bowl with a blue vase without handles.'
-    for option in candidates(original, 'deletion'):
-        assert len(option) == len(original)-1
+    budget = sample_profile(original, 'character_deletion', cfg)['edits']
+    for option in candidates(original, 'character_deletion', cfg):
+        assert len(option) == len(original)-budget
         assert 'without' in option and len(option.split()) == len(original.split())
-        assert any(original[:i] + original[i+1:] == option for i in range(1, len(original)-1))
-    assert candidates('Add inscriptions and crests to coins.', 'deletion')
+    assert candidates('Add inscriptions and crests to coins.', 'character_deletion', cfg)
+
+
+@pytest.mark.parametrize('kind', list(KINDS))
+def test_severities_are_seeded_and_edits_stay_in_the_named_type(cfg, kind):
+    original = 'Replace the red carved bowl with a taller blue vase without handles.'
+    from collections import Counter
+    choices = candidates(original, kind, cfg, 'q17')
+    assert choices == candidates(original, kind, cfg, 'q17')
+    budget = sample_profile(original, kind, cfg, 'q17')['edits']
+    for text in choices:
+        if kind == 'capitalization':
+            assert text.lower() == original.lower()
+            assert sum(c.isupper() for c in text) == budget
+        elif kind in {'character_insertion', 'character_repetition', 'space_insertion'}:
+            assert len(text) == len(original) + budget
+            if kind == 'space_insertion':
+                assert text.replace(' ', '') == original.replace(' ', '')
+            elif kind == 'character_repetition':
+                import re
+                assert re.sub(r'(.)\1+', r'\1', text) == re.sub(r'(.)\1+', r'\1', original)
+        elif kind in {'character_deletion', 'space_deletion'}:
+            assert len(text) == len(original) - budget
+            if kind == 'space_deletion':
+                assert text.replace(' ', '') == original.replace(' ', '')
+        elif kind == 'adjacent_character_transposition':
+            assert Counter(text) == Counter(original)
+            assert sum(a != b for a, b in zip(text, original)) == 2 * budget
+        elif kind == 'character_substitution':
+            assert len(text) == len(original)
+            changed = [(a, b) for a, b in zip(original, text) if a != b]
+            assert len(changed) == budget
+            assert all(b.lower() in NEIGHBOURS[a.lower()] for a, b in changed)
+
+
+def test_distribution_has_mostly_mild_cases_and_rare_extremes(cfg):
+    from collections import Counter
+    original = 'Replace the carved wooden bowl with a blue ceramic vase without handles.'
+    profiles = [sample_profile(original, 'character_deletion', cfg, str(i)) for i in range(10000)]
+    counts = Counter(p['severity'] for p in profiles)
+    assert .72 < counts['mild']/10000 < .78
+    assert .005 < counts['extreme']/10000 < .015
+    assert max(p['edits'] for p in profiles) > 10
+    profiles = [sample_profile(original, 'capitalization', cfg, str(i)) for i in range(10000)]
+    counts = Counter(p['severity'] for p in profiles)
+    assert .97 < counts['mixed']/10000 < .99
+    assert .005 < counts['lowercase']/10000 < .015
+    assert .005 < counts['uppercase']/10000 < .015
+    letters = sum(c.isalpha() for c in original)
+    mixed = [p['edits']/letters for p in profiles if p['severity'] == 'mixed']
+    assert .08 < sum(mixed)/len(mixed) < .13
+
+
+def test_extreme_profiles_remain_valid_and_have_exact_budgets(cfg):
+    cfg['perturbation']['severity_probabilities'] = dict(mild=0., moderate=0., severe=0., extreme=1.)
+    cfg['perturbation']['edit_fraction']['extreme'] = [1., 1.]
+    for kind in KINDS:
+        for original in ['Replace the blue bowl with a wooden vase.', 'Add inscriptions and crests to coins.']:
+            task, check = request(original, kind, cfg, 'extreme')
+            assert check({'choice': 0}) != original
+    cfg['perturbation']['capitalization']['mode_probabilities'] = dict(mixed=0., lowercase=0., uppercase=1.)
+    assert candidates(original, 'capitalization', cfg) == [original.upper()]
+    cfg['perturbation']['capitalization']['mode_probabilities'] = dict(mixed=0., lowercase=1., uppercase=0.)
+    assert candidates(original, 'capitalization', cfg) == [original.lower()]
+
+
+def test_keyboard_neighbours_include_adjacent_rows():
+    assert 'e' in NEIGHBOURS['d'] and 'c' in NEIGHBOURS['d']
+    assert 'f' in NEIGHBOURS['d'] and 'p' not in NEIGHBOURS['d']
+
+
+def test_candidate_locations_are_not_biased_toward_sentence_start(cfg):
+    cfg['perturbation']['candidate_count'] = 1
+    cfg['perturbation']['severity_probabilities'] = dict(mild=1., moderate=0., severe=0., extreme=0.)
+    cfg['perturbation']['edit_fraction']['mild'] = [.001, .001]
+    original = 'AbcdefghijkL MnopqrstuvwX Yz0123456789'
+    late = 0
+    for i in range(1000):
+        text = candidates(original, 'character_deletion', cfg, str(i))[0]
+        late += text.startswith('AbcdefghijkL MnopqrstuvwX ')
+    assert .25 < late/1000 < .42
+
+
+def test_bad_distribution_configuration_rejected(cfg):
+    cfg['perturbation']['severity_probabilities']['extreme'] = .5
+    with pytest.raises(ValueError, match='sum to 1'):
+        validate_settings(cfg['perturbation'])
 
 
 def test_batched_retry_preserves_successes(cfg):
@@ -219,6 +306,30 @@ def test_reduced_outputs_and_all_components(cfg, capsys):
     cfg['seed'] += 1
     with pytest.raises(ValueError, match='changed'):
         load_modifiers(cfg, q, g)
+
+
+def test_clean_reuse_requires_same_model_and_exact_csv_triplets(cfg, tmp_path):
+    from utils import save_json
+    q, g = load_data(cfg)
+    old = load_modifiers(cfg, q, g)
+    modifier = 'Replace the white bowl with a tall blue vase.'
+    old['records'] = [dict(q[0], modifier=modifier, perturbations={'keyboard_typo': 'obsolete'})]
+    source = tmp_path/'previous.json'
+    save_json(source, old)
+    data = load_modifiers(cfg, q, g)
+    reuse_clean_modifiers(cfg, q, data, source)
+    assert data['records'] == [dict(q[0], modifier=modifier, perturbations={})]
+    assert load_modifiers(cfg, q, g)['clean_source']['content_hash']
+    with pytest.raises(ValueError, match='empty'):
+        reuse_clean_modifiers(cfg, q, data, source)
+    old['records'][0]['target_ids'] = ['c']
+    save_json(source, old)
+    with pytest.raises(ValueError, match='CSV triplet'):
+        reuse_clean_modifiers(cfg, q, dict(records=[]), source)
+    old['generation_model'] = dict(id='other')
+    save_json(source, old)
+    with pytest.raises(ValueError, match='same split and generation'):
+        reuse_clean_modifiers(cfg, q, dict(records=[]), source)
 
 
 def test_seeded_examples_and_image_size(cfg):

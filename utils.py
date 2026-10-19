@@ -28,9 +28,10 @@ def get_config(path=None, split=None):
     limit = cfg['subset'].get('query_limit')
     if limit is not None and limit < 1:
         raise ValueError('query_limit must be positive or null')
-    from perturbation import KINDS
+    from perturbation import KINDS, validate_settings
     if not cfg['perturbation']['types'] or set(cfg['perturbation']['types']) - set(KINDS):
         raise ValueError(f'Choose perturbations from {list(KINDS)}')
+    validate_settings(cfg['perturbation'])
     return cfg
 
 

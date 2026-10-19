@@ -1,64 +1,197 @@
-"""LLM-selected, explicitly checked everyday typing/editing corruptions."""
+"""Seeded severity sampling, MLLM-selected corruptions, and exact validation."""
+import bisect
+import hashlib
+import math
+import random
 import re
 
 from prompts import PERTURBATION
 
 KINDS = {
-    'deletion': 'Omit one internal letter from one word, simulating a missed keystroke.',
-    'character_swap': 'Transpose two adjacent internal letters in one word, like blue -> bule.',
-    'capitalization': 'Change letter case only, like accidental CAPS LOCK.',
-    'keyboard_typo': 'Replace one letter by a neighbouring key on an English QWERTY keyboard.',
+    'character_deletion': 'Delete characters inside words, simulating missed keystrokes.',
+    'character_insertion': 'Insert extra characters inside words.',
+    'character_substitution': 'Substitute characters with neighbouring English QWERTY keys.',
+    'adjacent_character_transposition': 'Transpose adjacent characters inside words.',
+    'character_repetition': 'Repeat characters, simulating held or repeated keystrokes.',
+    'space_insertion': 'Insert spaces inside words.',
+    'space_deletion': 'Delete spaces between words.',
+    'capitalization': 'Change character case only, with the sampled uppercase fraction.',
 }
-# Leave logical operators intact and keep every word boundary.
 PROTECTED = {'no', 'not', 'without', 'or', 'and', 'nor'}
-ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm']
-NEIGHBOURS = {letter: set(row[max(0, i-1):i] + row[i+1:i+2]) for row in ROWS for i, letter in enumerate(row)}
+# Staggered QWERTY rows include horizontal, vertical and diagonal neighbours.
+KEY_ROWS = [('1234567890', 0.), ('qwertyuiop', .25), ('asdfghjkl', .5), ('zxcvbnm', 1.)]
+KEYS = {char: (i + offset, row) for row, (letters, offset) in enumerate(KEY_ROWS) for i, char in enumerate(letters)}
+NEIGHBOURS = {char: ''.join(sorted(other for other, (u, v) in KEYS.items()
+    if other != char and (x-u)**2 + (y-v)**2 <= 1.45**2)) for char, (x, y) in KEYS.items()}
 
 
-def candidates(original, kind):
+def validate_settings(settings):
+    for probabilities in [settings['severity_probabilities'], settings['capitalization']['mode_probabilities']]:
+        if not probabilities or any(not math.isfinite(p) or p < 0 for p in probabilities.values()) or not math.isclose(sum(probabilities.values()), 1.):
+            raise ValueError('Perturbation probabilities must be finite, nonnegative, and sum to 1')
+    if set(settings['severity_probabilities']) != set(settings['edit_fraction']):
+        raise ValueError('Each severity needs an edit_fraction range')
+    if any(len(bounds) != 2 or not 0 < bounds[0] <= bounds[1] <= 1 for bounds in settings['edit_fraction'].values()):
+        raise ValueError('Edit fraction ranges must satisfy 0 < minimum <= maximum <= 1')
+    if set(settings['capitalization']['mode_probabilities']) != {'mixed', 'lowercase', 'uppercase'}:
+        raise ValueError('Capitalization modes must be mixed, lowercase, and uppercase')
+    beta = settings['capitalization']['uppercase_beta']
+    if len(beta) != 2 or any(not math.isfinite(v) or v <= 0 for v in beta):
+        raise ValueError('Capitalization beta distribution needs two positive finite parameters')
+    if type(settings['candidate_count']) is not int or not 1 <= settings['candidate_count'] <= 64:
+        raise ValueError('candidate_count must be an integer between 1 and 64')
+    alphabet = settings['insertion_characters']
+    if not isinstance(alphabet, str) or not re.fullmatch(r'[A-Za-z0-9]+', alphabet) or len(set(alphabet)) != len(alphabet):
+        raise ValueError('insertion_characters must be distinct ASCII letters/digits')
+
+
+def edit_sites(original, kind, alphabet):
+    """Original-string spans and allowed replacements; sites never edit logical words."""
+    words = list(re.finditer(r'[A-Za-z0-9]+', original))
+    if kind == 'space_deletion':
+        protected = [m.span() for m in words if m.group().lower() in PROTECTED]
+        return [(m.start(), m.end(), ['']) for m in re.finditer(r' +', original)
+                if not any(end == m.start() or start == m.end() for start, end in protected)]
+    sites = []
+    for match in words:
+        if match.group().lower() in PROTECTED or len(match.group()) < 4:
+            continue
+        start, end = match.span()
+        if kind in {'character_insertion', 'space_insertion'}:
+            sites.extend((i, i, list(alphabet) if kind == 'character_insertion' else [' '])
+                         for i in range(start+1, end))
+            continue
+        for i in range(start+1, end-1):
+            char = original[i]
+            if kind == 'character_deletion':
+                replacements = ['']
+            elif kind == 'character_substitution':
+                replacements = [c.upper() if char.isupper() else c for c in NEIGHBOURS.get(char.lower(), '')]
+            elif kind == 'character_repetition':
+                replacements = [char * 2]
+            elif kind == 'adjacent_character_transposition' and i+1 < end-1 and char != original[i+1]:
+                sites.append((i, i+2, [original[i:i+2][::-1]]))
+                continue
+            else:
+                continue
+            if replacements:
+                sites.append((i, i+1, replacements))
+    return sites
+
+
+def applicable(original, kind):
     if kind not in KINDS:
         raise ValueError(f'Unknown perturbation: {kind}')
-    options = []
-    words = list(re.finditer(r"[A-Za-z]+(?:'[A-Za-z]+)?", original))
     if kind == 'capitalization':
-        options = [original.upper(), original.lower(), original.swapcase()]
+        return sum(c.isalpha() for c in original) >= 2
+    return bool(edit_sites(original, kind, 'a'))
+
+
+def site_capacity(sites):
+    """Maximum nonoverlapping edits in every suffix, including adjacent swaps."""
+    starts = [s[0] for s in sites]
+    following = [bisect.bisect_left(starts, end, lo=i+1) for i, (_, end, _) in enumerate(sites)]
+    capacity = [0] * (len(sites)+1)
+    for i in range(len(sites)-1, -1, -1):
+        capacity[i] = max(capacity[i+1], 1+capacity[following[i]])
+    return following, capacity
+
+
+def sample_profile(original, kind, cfg, context=''):
+    """Fix severity before the MLLM chooses edit locations; independent of batch order."""
+    settings = cfg['perturbation']
+    digest = hashlib.sha256(f'{cfg["seed"]}\0{context}\0{kind}\0{original}'.encode()).digest()
+    seed = int.from_bytes(digest, 'big')
+    rng = random.Random(seed)
+    if kind == 'capitalization':
+        modes = settings['capitalization']['mode_probabilities']
+        mode = rng.choices(list(modes), weights=list(modes.values()))[0]
+        letters = sum(c.isalpha() for c in original)
+        if mode == 'lowercase' and original.lower() == original:
+            mode = 'mixed'
+        if mode == 'uppercase' and original.upper() == original:
+            mode = 'mixed'
+        if mode == 'mixed':
+            alpha, beta = settings['capitalization']['uppercase_beta']
+            rate = rng.betavariate(alpha, beta)
+            count = min(letters-1, max(1, sum(rng.random() < rate for _ in range(letters))))
+        else:
+            rate, count = (0., 0) if mode == 'lowercase' else (1., letters)
+        return dict(seed=seed, severity=mode, rate=rate, edits=count)
+    levels = settings['severity_probabilities']
+    severity = rng.choices(list(levels), weights=list(levels.values()))[0]
+    rate = rng.uniform(*settings['edit_fraction'][severity])
+    sites = edit_sites(original, kind, settings['insertion_characters'])
+    _, capacity = site_capacity(sites)
+    count = min(capacity[0], max(1, int(len(sites) * rate + .5)))
+    return dict(seed=seed, severity=severity, rate=rate, edits=count)
+
+
+def candidates(original, kind, cfg, context=''):
+    if not applicable(original, kind):
+        return []
+    settings = cfg['perturbation']
+    profile = sample_profile(original, kind, cfg, context)
+    rng = random.Random(profile['seed'] ^ 0xCAFE)
+    options = []
+    if kind == 'capitalization' and profile['severity'] != 'mixed':
+        return [original.lower() if profile['severity'] == 'lowercase' else original.upper()]
+    if kind == 'capitalization':
+        letters = [i for i, c in enumerate(original) if c.isalpha()]
     else:
-        for match in words:
-            word = match.group()
-            if len(word) < 4 or word.lower() in PROTECTED:
-                continue
-            # Internal edits preserve recognisable word boundaries.
-            for i in range(1, len(word)-1):
-                if kind == 'deletion':
-                    replacement = word[:i] + word[i+1:]
-                    options.append(original[:match.start()] + replacement + original[match.end():])
-                elif kind == 'character_swap' and i + 1 < len(word)-1 and word[i] != word[i+1]:
-                    replacement = word[:i] + word[i+1] + word[i] + word[i+2:]
-                    options.append(original[:match.start()] + replacement + original[match.end():])
-                elif kind == 'keyboard_typo':
-                    for letter in sorted(NEIGHBOURS.get(word[i].lower(), ())):
-                        replacement = word[:i] + letter + word[i+1:]
-                        options.append(original[:match.start()] + replacement + original[match.end():])
-    return list(dict.fromkeys(option for option in options if option != original))
+        sites = edit_sites(original, kind, settings['insertion_characters'])
+        following, capacity = site_capacity(sites)
+        # Count feasible plans so edit locations are uniform across the whole text,
+        # rather than favouring the first few characters of the first word.
+        plans = [[1] + [0] * profile['edits'] for _ in range(len(sites)+1)]
+        for i in range(len(sites)-1, -1, -1):
+            for count in range(1, min(profile['edits'], capacity[i])+1):
+                plans[i][count] = plans[i+1][count] + plans[following[i]][count-1]
+    for _ in range(settings['candidate_count'] * 24):
+        if kind == 'capitalization':
+            upper = set(rng.sample(letters, profile['edits']))
+            text = ''.join(c.upper() if i in upper else c.lower() for i, c in enumerate(original))
+        else:
+            plan, i, remaining = [], 0, profile['edits']
+            while remaining:
+                take = plans[following[i]][remaining-1]
+                skip = plans[i+1][remaining]
+                if rng.randrange(take + skip) < take:
+                    start, end, replacements = sites[i]
+                    plan.append((start, end, rng.choice(replacements)))
+                    remaining -= 1
+                    i = following[i]
+                else:
+                    i += 1
+            text = original
+            for start, end, replacement in reversed(plan):
+                text = text[:start] + replacement + text[end:]
+        if text != original and text not in options:
+            options.append(text)
+        if len(options) == settings['candidate_count']:
+            break
+    return options
 
 
-def validate_perturbation(text, original, kind):
-    if text not in candidates(original, kind):
-        raise ValueError(f'Not a valid single-operation {kind} corruption')
+def validate_perturbation(text, original, kind, cfg, context=''):
+    if text not in candidates(original, kind, cfg, context):
+        raise ValueError(f'Not a valid seeded {kind} corruption at the sampled severity')
     return text
 
 
-def request(original, kind):
-    options = candidates(original, kind)
+def request(original, kind, cfg, context=''):
+    options = candidates(original, kind, cfg, context)
     if not options:
-        raise ValueError(f'No {kind} operation possible; use a word with editable internal letters')
-    # Bounded prompt length; candidates remain deterministic and independently verifiable.
-    options = options[:24]
-    task = {'field': 'choice', 'system': PERTURBATION, 'prompt': f'Operation: {KINDS[kind]}\nOriginal: {original}\nOptions:\n' +
+        raise ValueError(f'No {kind} operation possible for this modifier')
+    profile = sample_profile(original, kind, cfg, context)
+    task = {'field': 'choice', 'system': PERTURBATION, 'prompt':
+            f'Operation: {KINDS[kind]}\nSampled severity: {profile["severity"]}; '
+            f'{profile["edits"]} ' + ('uppercase characters' if kind == 'capitalization' else 'edit operations') +
+            f'. Do not reduce or change this severity.\nOriginal: {original}\nOptions:\n' +
             '\n'.join(f'{i}: {text}' for i, text in enumerate(options))}
     def validate(result):
         index = result.get('choice')
         if type(index) is not int or not 0 <= index < len(options):
             raise ValueError(f'choice must be an integer in 0..{len(options)-1}')
-        return validate_perturbation(options[index], original, kind)
+        return validate_perturbation(options[index], original, kind, cfg, context)
     return task, validate

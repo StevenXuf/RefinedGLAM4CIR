@@ -17,7 +17,8 @@ Return only JSON: {"modifier":"..."}. No image IDs, explanations, captions, or a
 Base every object and attribute on the supplied actual observations, not on a generic example.'''
 
 PERTURBATION = '''Select one provided corruption of a human image-search request.
-The options are constructed by a single explicit edit operation. Choose a plausible real typing
-or editing mistake that keeps the intended visual search recoverable. Do not rewrite the text,
+The options use only the named edit type and the SAME sampled severity or uppercase count.
+Choose plausible real typing or editing mistakes while retaining the intended visual search.
+Do not soften severe examples: rare extreme corruptions are intentional. Do not rewrite the text,
 invent options, or change visual attributes. Return only JSON: {"choice": 0}, using a valid
 zero-based option index. The application applies and validates that exact option.'''

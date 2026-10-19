@@ -3,12 +3,14 @@ split: test_ood
 remove_duplicates: true
 missing_gallery_policy: available
 image_storage_folders: [train, val, test_id, test_ood]
+
 paths:
   glam_root: /data/data_fxu/GLAM/raw
-  cir_file: cir_db.csv  # Existing file name; db_cir.csv is not present in the source repo.
+  cir_file: cir_db.csv  # Existing annotations; db_cir.csv is not provided.
   db_processed_name: db_processed.txt
   output_dir: outputs/current
   model_cache: .model_cache
+
 runtime:
   gpu_id: 1
   require_cuda: true
@@ -16,8 +18,10 @@ runtime:
   num_workers: 4
   cpu_threads: 4
   local_files_only: false
+
 subset:
   query_limit: null  # Query-only diagnostic subset; gallery is ALWAYS complete.
+
 generation:
   model: qwen  # qwen, llava, deepseek
   min_words: 5
@@ -27,42 +31,81 @@ generation:
   max_attempts: 6
   max_new_tokens: 128
   max_pixels: 200704
-  # Current Qwen fits one A6000; choose multiple IDs when selecting a larger checkpoint.
   gpu_ids: [1]
   max_memory_gib: 40
+
   models:
     qwen:
       id: Qwen/Qwen3-VL-8B-Instruct
       revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
       trust_remote_code: false
+
     llava:
       id: lmms-lab-encoder/LLaVA-OneVision-2-8B-Instruct
       revision: 878cde7e04fd962a6082951d8f83083a73fea588
       trust_remote_code: true
+
     deepseek:
-      id: deepseek-community/Janus-Pro-7B  # HF conversion of DeepSeek's multimodal model; understanding/text mode.
+      id: deepseek-community/Janus-Pro-7B
       revision: 8f23139ed8d37346501091b3690291cb7b16f9fc
       trust_remote_code: false
+
 perturbation:
-  types: [deletion, character_swap, capitalization, keyboard_typo]
+  types:
+    - character_deletion
+    - character_insertion
+    - character_substitution
+    - adjacent_character_transposition
+    - character_repetition
+    - space_insertion
+    - space_deletion
+    - capitalization
+
+  candidate_count: 8
+  insertion_characters: abcdefghijklmnopqrstuvwxyz0123456789
+
+  # Simulation assumptions: mostly small edit budgets; extremes remain possible.
+  severity_probabilities:
+    mild: 0.75
+    moderate: 0.20
+    severe: 0.04
+    extreme: 0.01
+
+  # Fraction of eligible original-string edit sites; at least one operation.
+  edit_fraction:
+    mild: [0.01, 0.03]
+    moderate: [0.04, 0.08]
+    severe: [0.10, 0.20]
+    extreme: [0.30, 1.00]
+
+  capitalization:
+    mode_probabilities:
+      mixed: 0.98
+      lowercase: 0.01
+      uppercase: 0.01
+    uppercase_beta: [2.0, 18.0]  # Mean uppercase probability 10%; most letters stay lowercase.
+
 retrieval:
   model: openclip  # clip, openclip, blip, siglip, siglip2, coca, openvision
   batch_size: 64
   image_weight: 0.5
+
   models:
     clip: openai/clip-vit-base-patch16
-    openclip: ViT-B-16-quickgelu
-    openclip_pretrained: openai
+    openclip: ViT-B-16
+    openclip_pretrained: laion2b_s34b_b88k
     blip: Salesforce/blip-itm-base-coco
     siglip: google/siglip-base-patch16-224
     siglip2: google/siglip2-base-patch16-224
     coca: coca_ViT-B-32
     coca_pretrained: mscoco_finetuned_laion2b_s13b_b90k
     openvision: hf-hub:UCSC-VLAA/openvision-vit-base-patch16-224
+
 evaluation:
   top_ks: [1, 5, 10, 50]
   exclude_reference: true
   query_batch_size: 16
+
 visualization:
   num_examples: 3
   top_k: 5

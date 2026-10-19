@@ -44,16 +44,33 @@ The pipeline describes each unique CSV reference/target image once in memory, th
 
 Modifiers must contain **5–15 whitespace-delimited words**, with 10–15 preferred. Overlong responses are rejected and replaced by a validated concise clause selected by the MLLM, rather than truncated mid-sentence. An editable word is required so every configured corruption can be applied. Target-conditioned generation is not a target-blind benchmark, and prompt checks cannot certify human-level visual accuracy.
 
-Concrete corruption types replace the former ambiguous informal style:
+The corruption types are:
 
 | Type | Exact edit |
 |---|---|
-| `deletion` | Omit one internal letter from one word, simulating a missed keystroke |
-| `character_swap` | Transpose adjacent internal letters in one word, such as `blue` → `bule` |
-| `capitalization` | Change letter case only, simulating accidental Caps Lock or inconsistent case |
-| `keyboard_typo` | Replace one internal letter with a neighbouring key in the same QWERTY row |
+| `character_deletion` | Delete internal characters, leaving word endpoints intact |
+| `character_insertion` | Insert configured letters/digits inside words |
+| `character_substitution` | Replace internal characters with horizontal, vertical, or diagonal QWERTY neighbours |
+| `adjacent_character_transposition` | Transpose nonoverlapping adjacent internal character pairs, such as `blue` → `bule` |
+| `character_repetition` | Double selected internal characters, simulating repeated keystrokes |
+| `space_insertion` | Insert spaces inside words |
+| `space_deletion` | Remove spaces between words |
+| `capitalization` | Randomize which characters are uppercase, usually retaining mostly lowercase text |
 
-The MLLM selects among candidates produced by the specified operation; the application validates and applies that exact candidate. This keeps edit severity controlled, makes the perturbations independently checkable, and avoids semantic rewrites disguised as typos. Character swapping refers to letters within a word, not swapping subjects or attributes. Capitalization can leave retrieval unchanged when the encoder lowercases text.
+For character and space edits, each query/type independently samples a severity: mild 75%, moderate 20%, severe 4%, extreme 1%. The corresponding edit fractions are 1–3%, 4–8%, 10–20%, and 30–100% of eligible original-string sites. Budgets are rounded to the nearest integer, require at least one edit, and are capped at the number of nonoverlapping operations possible. Short texts can therefore share the same edit count across severity levels. No edit changes punctuation or edits inside logical words (`no`, `not`, `without`, `or`, `and`, `nor`); space deletion also preserves their surrounding boundaries.
+
+Capitalization is mixed-case 98% of the time. Its uppercase probability is drawn from Beta(2, 18), with mean 10%, then used to sample an uppercase-character count; mixed cases always contain both cases. Characters assigned uppercase are randomized rather than capitalizing whole words. All-lowercase and all-uppercase modes each have probability 1%; an extreme that would leave the original unchanged falls back to mixed case. These distributions model varying corruption severity; they are simulation assumptions, not empirical measurements of human error rates. All probabilities, ranges, beta parameters, candidate count, and insertion characters are in `config.yaml`.
+
+The application samples severity reproducibly from the seed, CSV query ID, clean modifier, and perturbation type **before** asking the MLLM to choose among candidates with that fixed budget. This prevents the MLLM from preferentially choosing milder cases. It chooses edit locations/replacements; the application validates and applies the exact seeded candidate. Transpositions never exchange words or visual attributes. Space edits can change the perturbed word count; the 5–15-word constraint applies to clean modifiers. Capitalization may leave retrieval unchanged when the encoder lowercases text. Per-split severity counts are logged, and final metrics retain the full perturbation configuration.
+
+To reuse previously inspected clean modifiers with a new corruption/retrieval configuration, use an empty output directory and explicitly import the old checkpoint once:
+
+```bash
+python main.py --split test_ood --stage generate --reuse-clean /path/to/old/test_ood/modifiers.json
+bash run_splits.sh
+```
+
+Import the corresponding `test_id` checkpoint in the same way when reusing both splits. The import checks the generation model/revision, split, every original CSV triplet, and modifier validity; it discards old corruptions and records the source checkpoint hash. Only use this option when the old clean generation protocol is appropriate for the new experiment. Without this option, generation runs normally. Omit it when resuming a populated output directory.
 
 Current model families are configurable through `generation.model`:
 
@@ -71,7 +88,7 @@ All three selected backends were checked on actual CSV triplets, including every
 
 ## Retrieval heads and metrics
 
-Every extractor returns finite, L2-normalized image/text vectors in a shared embedding space. The query is:
+The default retrieval checkpoint is OpenCLIP `ViT-B-16` pretrained on `laion2b_s34b_b88k`. Every extractor returns finite, L2-normalized image/text vectors in a shared embedding space. The query is:
 
 ```text
 normalize(w * normalize(reference_image) + (1-w) * normalize(modifier_text))

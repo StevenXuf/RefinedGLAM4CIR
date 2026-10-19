@@ -29,8 +29,8 @@ def validate_modifier(result, cfg):
     if re.search(r'\b\w+_\d+\b', text):
         raise ValueError('Do not include image IDs')
     # Every configured corruption must be possible; never silently omit a condition.
-    from perturbation import candidates
-    if any(not candidates(text, kind) for kind in cfg['perturbation']['types']):
+    from perturbation import applicable
+    if any(not applicable(text, kind) for kind in cfg['perturbation']['types']):
         raise ValueError('Use a natural request containing a descriptive word of at least four letters')
     return text
 
@@ -112,6 +112,7 @@ class TextGenerator:
         options = dict(max_new_tokens=self.cfg['generation']['max_new_tokens'], do_sample=False)
         if self.name == 'deepseek':
             options['generation_mode'] = 'text'
+        input_length = inputs['input_ids'].shape[1]
         try:
             ids = self.model.generate(**inputs, **options)
         except torch.cuda.OutOfMemoryError:
@@ -122,7 +123,7 @@ class TextGenerator:
             middle = len(tasks) // 2
             self.logger.warning('Halving generation batch after CUDA OOM')
             return self.generate_many(tasks[:middle]) + self.generate_many(tasks[middle:])
-        outputs = self.processor.batch_decode(ids[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)
+        outputs = self.processor.batch_decode(ids[:, input_length:], skip_special_tokens=True)
         return [prefix + text for prefix, text in zip(prefixes, outputs)]
 
     def request_json_many(self, tasks, validators):
