@@ -11,19 +11,32 @@ import torch
 from torch.utils.data import DataLoader
 
 import prompts
-from feature_extractor import FeatureExtractor
-from generation import TextGenerator, validate_modifier
+from feature_extractor import FeatureExtractor, normalized_features
+from generation import (GENERATION_POLICY, TextGenerator,
+                        generate_grounded_modifiers, validate_modifier)
 from loading_data import GLAMGalleryDataset, GLAMQueryDataset, SPLITS, collate_samples, load_image
 from metrics_computation import compute_metrics, metric_deltas, rank_queries
 from perturbation import request as perturbation_request, sample_profile, validate_perturbation
 from utils import (ROOT, batches, fingerprint, get_config, output_path, read_json,
                    save_json, seed_everything, setup_logging)
 
+BASELINES = ('reference_only', 'original_text_only', 'generated_text_only', 'reference_original')
+
 
 def load_data(cfg, logger=None):
     queries = GLAMQueryDataset(cfg, logger).records
     gallery = GLAMGalleryDataset(cfg, logger, queries)
     return queries, gallery
+
+
+def generation_targets(cfg, query):
+    """Seeded target-image sample for generation; never mutate evaluation ground truth."""
+    ids = query['target_ids']
+    limit = cfg['generation']['max_target_images']
+    if len(ids) <= limit:
+        return list(ids)
+    seed = int(fingerprint({'seed': cfg['seed'], 'query_id': query['query_id'], 'targets': sorted(ids)}), 16)
+    return random.Random(seed).sample(sorted(ids), limit)
 
 
 def signature(cfg, queries, gallery):
@@ -39,7 +52,8 @@ def load_modifiers(cfg, queries, gallery):
     path = output_path(cfg, 'modifiers.json')
     expected = signature(cfg, queries, gallery)
     if not path.exists():
-        return {'signature': expected, 'split': cfg['split'], 'generation_model': cfg['generation']['models'][cfg['generation']['model']], 'records': []}
+        return {'signature': expected, 'split': cfg['split'], 'generation_model': cfg['generation']['models'][cfg['generation']['model']],
+                'generation_policy': GENERATION_POLICY, 'records': []}
     data = read_json(path)
     if data['signature'] != expected:
         raise ValueError('Configuration, source, or image availability changed; choose a new paths.output_dir')
@@ -50,20 +64,24 @@ def load_modifiers(cfg, queries, gallery):
         if record['query_id'] not in by_id or any(record.get(k) != v for k, v in by_id[record['query_id']].items()):
             raise ValueError('Saved modifier does not match its original CSV triplet')
         validate_modifier({'modifier': record['modifier']}, cfg)
+        if record.get('generation_target_ids') != generation_targets(cfg, record):
+            raise ValueError('Saved generation targets do not match the configured seeded sample')
         for kind, text in record['perturbations'].items():
             validate_perturbation(text, record['modifier'], kind, cfg, record['query_id'])
     return data
 
 
-def reuse_clean_modifiers(cfg, queries, data, source):
-    """Explicitly import compatible clean queries, discarding every old perturbation."""
+def reuse_modifiers(cfg, queries, data, source, include_perturbations=False):
+    """Explicitly import matching CSV queries and independently validate reused variants."""
     source = Path(source).resolve()
     previous = read_json(source)
     if data['records']:
-        raise ValueError('--reuse-clean requires an empty output checkpoint; omit it to resume')
+        raise ValueError('Modifier import requires an empty output checkpoint; omit it to resume')
     expected_model = cfg['generation']['models'][cfg['generation']['model']]
     if previous.get('generation_model') != expected_model or previous.get('split') != cfg['split']:
         raise ValueError('Clean source must use the same split and generation checkpoint/revision')
+    if previous.get('generation_policy') != GENERATION_POLICY:
+        raise ValueError('Generation policy differs; regenerate modifiers under the sampled shared-feature protocol')
     records = previous['records']
     if len({r['query_id'] for r in records}) != len(records):
         raise ValueError('Duplicate query IDs in clean source')
@@ -71,14 +89,24 @@ def reuse_clean_modifiers(cfg, queries, data, source):
     imported = []
     for query in queries:
         record = by_id.get(query['query_id'])
-        if record is None or any(record.get(k) != v for k, v in query.items()):
+        if record is None:
+            continue  # Partial checkpoints resume generation for the remaining queries.
+        if any(record.get(k) != v for k, v in query.items()):
             raise ValueError(f'Clean source does not match CSV triplet {query["query_id"]}')
+        if record.get('generation_target_ids') != generation_targets(cfg, query):
+            raise ValueError('Generation target sampling differs; regenerate modifiers')
         text = validate_modifier({'modifier': record['modifier']}, cfg)
-        imported.append(dict(query, modifier=text, perturbations={}))
-    data['clean_source'] = {'path': str(source), 'content_hash': fingerprint(previous),
+        perturbations = {}
+        if include_perturbations:
+            for kind in cfg['perturbation']['types']:
+                if kind in record['perturbations']:
+                    perturbations[kind] = validate_perturbation(record['perturbations'][kind], text, kind, cfg, query['query_id'])
+        imported.append(dict(query, generation_target_ids=record['generation_target_ids'], modifier=text, perturbations=perturbations))
+    data['modifier_source' if include_perturbations else 'clean_source'] = {'path': str(source), 'content_hash': fingerprint(previous),
                             'signature': previous.get('signature')}
     checkpoint(cfg, data, {r['query_id']: r for r in imported}, queries)
-    logging.getLogger('glam').info('Reused %d exact clean CSV modifiers from %s; all perturbations will be regenerated', len(imported), source)
+    logging.getLogger('glam').info('Reused %d exact clean CSV modifiers and %d validated perturbations from %s',
+                                  len(imported), sum(len(r['perturbations']) for r in imported), source)
 
 
 def checkpoint(cfg, data, records, queries):
@@ -100,9 +128,11 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
         return generator
     generator = generator or TextGenerator(cfg, logger)
     paths = {}
+    selected_targets = {q['query_id']: generation_targets(cfg, q) for q in pending}
     for query in pending:
         paths[query['reference_id']] = query['reference_path']
-        paths.update(zip(query['target_ids'], query['target_paths']))
+        paths.update((name, path) for name, path in zip(query['target_ids'], query['target_paths'])
+                     if name in selected_targets[query['query_id']])
     observations = {}
     def description(result):
         text = result.get('description')
@@ -116,17 +146,41 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
         require_success(outputs)
         observations.update((name, text) for (name, _), text in zip(batch, outputs))
         logger.info('%s: observed %d/%d CSV images', cfg['split'], len(observations), len(paths))
+    groups = {tuple(sorted(selected_targets[q['query_id']])) for q in pending}
+    shared = {ids: observations[ids[0]] for ids in groups if len(ids) == 1}
+    def common_features(result):
+        text = result.get('shared_features')
+        if not isinstance(text, str) or not text.strip() or len(text.split()) > cfg['generation']['shared_features_max_words']:
+            raise ValueError('shared_features must be a short nonempty phrase')
+        import re
+        if re.search(r'\bor\b', text, re.I):
+            raise ValueError('Use one short broader category. DROP differing layout/colour clauses completely; no or alternatives.')
+        return text.strip()
+    for group_batch in batches(sorted(ids for ids in groups if len(ids) > 1), cfg['generation']['batch_size']):
+        tasks = [{'field': 'shared_features', 'system': prompts.SHARED_FEATURES,
+                  'prompt': 'INTERSECT ALL ENTRIES: ' + json.dumps([observations[name] for name in ids]) +
+                            f'\nUse at most {cfg["generation"]["shared_features_max_words"]} words.'} for ids in group_batch]
+        outputs = generator.request_json_many(tasks, [common_features] * len(tasks))
+        for ids, text in zip(group_batch, outputs):
+            if isinstance(text, Exception):
+                logger.warning('Shared summary failed for %s; using the individual sampled observations: %s', ids, text)
+                shared[ids] = None
+            else:
+                shared[ids] = text
     for batch in batches(pending, cfg['generation']['batch_size']):
-        tasks = [{'field': 'modifier', 'system': prompts.MODIFIER, 'prompt': 'BEFORE: ' + observations[q['reference_id']] +
-                  '\nAFTER alternatives: ' + json.dumps([observations[name] for name in q['target_ids']]) +
-                  f"\nUse {cfg['generation']['min_words']}-{cfg['generation']['max_words']} words."} for q in batch]
-        outputs = generator.request_json_many(tasks, [lambda result: validate_modifier(result, cfg)] * len(tasks))
+        outputs = generate_grounded_modifiers(generator, cfg,
+            [observations[q['reference_id']] for q in batch],
+            [[observations[name] for name in selected_targets[q['query_id']]] for q in batch],
+            [shared[tuple(sorted(selected_targets[q['query_id']]))] for q in batch],
+            [len(q['target_ids']) for q in batch],
+            target_paths=[[paths[name] for name in selected_targets[q['query_id']]] for q in batch])
         for query, text in zip(batch, outputs):
             if not isinstance(text, Exception):
-                records[query['query_id']] = dict(query, modifier=text, perturbations={})
+                records[query['query_id']] = dict(query, generation_target_ids=selected_targets[query['query_id']], modifier=text, perturbations={})
         checkpoint(cfg, data, records, queries)
         require_success(outputs)
-        logger.info('%s: generated %d/%d modifiers', cfg['split'], len(records), len(queries))
+        logger.info('%s: generated and reviewed every sampled target (maximum %d) for %d/%d modifiers',
+                    cfg['split'], cfg['generation']['max_target_images'], len(records), len(queries))
     return generator
 
 
@@ -174,13 +228,28 @@ def example_ids(cfg, records):
         min(cfg['visualization']['num_examples'], len(records)))
 
 
+def query_features(extractor, reference_features, records, condition):
+    """Image-only, text-only, or normalized image-plus-text queries in the same space."""
+    if condition == 'reference_only':
+        return normalized_features(reference_features)
+    if condition in {'original_text_only', 'reference_original'}:
+        texts = [r['original_modifier'] for r in records]
+    elif condition in {'generated_text_only', 'unperturbed'}:
+        texts = [r['modifier'] for r in records]
+    else:
+        texts = [r['perturbations'][condition] for r in records]
+    if condition in {'original_text_only', 'generated_text_only'}:
+        return extractor.get_text_features(texts)
+    return extractor.compose(reference_features, texts)
+
+
 def evaluate(cfg, records, gallery, extractor=None, features=None, conditions=None, examples_only=False):
     extractor = extractor or FeatureExtractor(cfg)
     if features is None:
         features = (encode_images(gallery.records, 'path', extractor, cfg),
                     encode_images(records, 'reference_path', extractor, cfg))
     gallery_features, reference_features = features
-    conditions = conditions or ['unperturbed'] + cfg['perturbation']['types']
+    conditions = conditions or [*BASELINES, 'unperturbed', *cfg['perturbation']['types']]
     gallery_ids = [g['image_id'] for g in gallery.records]
     gallery_index = {name: i for i, name in enumerate(gallery_ids)}
     selected = set(example_ids(cfg, records))
@@ -194,11 +263,11 @@ def evaluate(cfg, records, gallery, extractor=None, features=None, conditions=No
             if not indexes:
                 continue
             chosen = [batch[i] for i in indexes]
-            texts = [r['modifier'] if condition == 'unperturbed' else r['perturbations'][condition] for r in chosen]
-            query_features = extractor.compose(reference_features[[start+i for i in indexes]], texts)
-            rankings, scores = rank_queries(query_features, gallery_features, gallery_ids, chosen,
+            composed = query_features(extractor, reference_features[[start+i for i in indexes]], chosen, condition)
+            rankings, scores = rank_queries(composed, gallery_features, gallery_ids, chosen,
                                              cfg['evaluation']['exclude_reference'])
-            _, details = compute_metrics(rankings, chosen, cfg['evaluation']['top_ks'])
+            _, details = compute_metrics(rankings, chosen, cfg['evaluation']['top_ks'], gallery_ids,
+                                         cfg['evaluation']['exclude_reference'])
             rows.extend(details)
             for i, record in enumerate(chosen):
                 if record['query_id'] in selected:
@@ -210,11 +279,15 @@ def evaluate(cfg, records, gallery, extractor=None, features=None, conditions=No
 
 
 def print_metrics(cfg, metrics, count, gallery):
-    columns = [f'Recall@{k}' for k in cfg['evaluation']['top_ks']] + ['AVG', 'mAP', 'MRR']
+    available = set(next(iter(metrics.values())))
+    preferred = [f'Recall@{k}' for k in cfg['evaluation']['top_ks']] + [f'HitRate@{k}' for k in cfg['evaluation']['top_ks']] + ['mAP', 'MRR', 'AVG']
+    columns = [name for name in preferred if name in available] + sorted(available - set(preferred))
     print(f'\n{cfg["split"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.')
     print('| Condition | ' + ' | '.join(columns) + ' |')
     print('|---|' + '---:|' * len(columns))
     for condition, values in metrics.items():
+        if set(values) != available:
+            raise ValueError('All conditions must report the same metric columns')
         print('| ' + condition + ' | ' + ' | '.join(f'{values[c]:.2f}' for c in columns) + ' |', flush=True)
 
 
@@ -223,6 +296,8 @@ def save_metrics(cfg, metrics, queries, gallery):
         'gallery_size': len(gallery), 'declared_gallery_size': gallery.declared_size,
         'missing_gallery_count': len(gallery.missing_ids), 'units': 'percent; deltas in percentage points',
         'generation_model': cfg['generation']['models'][cfg['generation']['model']], 'retrieval': cfg['retrieval'],
+        'generation_policy': GENERATION_POLICY,
+        'generation_settings': cfg['generation'],
         'seed': cfg['seed'], 'perturbation': cfg['perturbation'],
         'metrics': metrics, 'delta_vs_unperturbed': {kind: metric_deltas(metrics['unperturbed'], values)
             for kind, values in metrics.items() if kind != 'unperturbed'}}
@@ -235,8 +310,11 @@ def main():
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
     parser.add_argument('--split', choices=SPLITS, required=True)
     parser.add_argument('--stage', choices=['all', 'data', 'generate', 'perturb', 'evaluate', 'visualize'], default='all')
-    parser.add_argument('--reuse-clean', metavar='MODIFIERS_JSON',
+    reuse = parser.add_mutually_exclusive_group()
+    reuse.add_argument('--reuse-clean', metavar='MODIFIERS_JSON',
                         help='Import clean modifiers from the same model/split and exact CSV triplets; regenerate corruptions')
+    reuse.add_argument('--reuse-modifiers', metavar='MODIFIERS_JSON',
+                       help='Import matching clean modifiers and validate existing perturbations under the current settings')
     args = parser.parse_args()
     cfg = get_config(args.config, args.split)
     logger = setup_logging()
@@ -246,13 +324,13 @@ def main():
         print(f"{cfg['split']}: {len(queries)} valid queries; {len(gallery)}/{gallery.declared_size} available gallery images")
         return
     data = load_modifiers(cfg, queries, gallery)
-    if args.reuse_clean:
-        reuse_clean_modifiers(cfg, queries, data, args.reuse_clean)
+    if args.reuse_clean or args.reuse_modifiers:
+        reuse_modifiers(cfg, queries, data, args.reuse_clean or args.reuse_modifiers, bool(args.reuse_modifiers))
     generator, extractor, features = None, None, None
     if args.stage in {'all', 'generate'}:
         generator = generate_modifiers(cfg, queries, data, logger=logger)
     if args.stage == 'all':
-        metrics, _, extractor, features = evaluate(cfg, data['records'], gallery, conditions=['unperturbed'])
+        metrics, _, extractor, features = evaluate(cfg, data['records'], gallery, conditions=[*BASELINES, 'unperturbed'])
         save_metrics(cfg, metrics, queries, gallery)
     if args.stage in {'all', 'perturb'}:
         generator = perturb_modifiers(cfg, queries, data, generator, logger)

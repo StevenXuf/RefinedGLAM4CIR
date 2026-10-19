@@ -24,13 +24,13 @@ bash run_splits.sh
 PYTHON=/path/to/python bash run_splits.sh /path/to/config.yaml
 ```
 
-The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own unperturbed/perturbed metric table. For an optional console log, use `bash run_splits.sh > outputs/run.log 2>&1` after creating `outputs/`.
+The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own baseline/unperturbed/perturbed metric table and saves the console output to that split's `run.log`. For an additional combined log, use `bash run_splits.sh > outputs/run.log 2>&1` after creating `outputs/`.
 
 ## Data protocol
 
 Only `test_id` and `test_ood` have CIR triplets in the provided annotations. Training and validation image metadata do not define reference–target relationships, so those partitions are excluded. No model is trained.
 
-- `cir_db.csv` is the actual file name in the source repository; there is no `db_cir.csv`. Its `partition`, `id1`, `id2`, and `query` columns define existing triplets. The first available reference and **all existing non-reference targets from the same row** are used. The old modifier is preserved for inspection but is not supplied as a generation hint.
+- `cir_db.csv` is the actual file name in the source repository; there is no `db_cir.csv`. Its `partition`, `id1`, `id2`, and `query` columns define existing triplets. Evaluation uses the first available reference and **all existing non-reference targets from the same row**. Generation samples up to three of those targets. The original modifier supplies the text baselines but is not a generation hint.
 - `db_processed.txt` defines gallery partition membership only. Every unique available image in the selected partition is searched. It never supplies or invents query pairs.
 - Files are resolved under `/data/data_fxu/GLAM/raw`; no images are downloaded. Physical storage folders are independent of annotation partitions, so a selected test ID may resolve under a folder named `train` or `val` without evaluating unrelated training/validation annotations.
 - Missing files are skipped using the original loader's availability rule. Counts are logged and included in final metrics. `missing_gallery_policy: strict` instead requires every declared gallery file.
@@ -40,9 +40,15 @@ The current local data yields 81 valid test_ood query pairs with all 22,373 decl
 
 ## Generation and perturbations
 
-The pipeline describes each unique CSV reference/target image once in memory, then synthesizes a modifier using the reference observation and every corresponding target observation. Targets are alternative acceptable results; prompts explicitly forbid merging them into one scene. Prompts require the correct reference-to-target direction, shared observable traits, and no invented provenance, material, or unchanged background claims.
+For each query, generation uses all available targets when there are at most three, otherwise a random sample of **three targets** (`generation.max_target_images`). Sampling uses the configured seed and query ID, is repeatable, and is recorded as `generation_target_ids`. The pipeline describes each unique reference/selected target image once in memory, then extracts a short shared-feature phrase for each selected multi-target group. A modifier describes the reference-to-target change using features shared by the selected targets. It cannot list alternative categories with "or" or merge targets into one scene. When only a sample is observed, the prompt asks for broad categories and stable structural traits, avoiding exact colour, count, material, pose, and layout requirements that could exclude unseen targets.
+
+If a shared summary fails format checks, generation uses the individual sampled observations directly. This does not bypass the modifier checks or target compatibility reviews.
+
+After generation, the MLLM reviews the desired result against **each selected target image**, inspecting actual pixels rather than relying on a short caption that might omit important features. Every selected target must pass. If any fails, the application replaces the shared summary with individual observations and asks for a broader rewrite. After two rejected requests, it asks for a search request containing only their common object category. Every rewrite receives the same individual visual reviews, up to `generation.target_review_attempts`. Explicit replacement source phrases are excluded from the target compatibility check. Exhausted reviews stop the run after checkpointing accepted modifiers. Observations, shared phrases, and review responses remain in memory. These checks are model judgements, and unsampled targets are not visually reviewed. **All available targets remain ground truths for metrics and figure highlights; neither the gallery nor evaluation positives are sampled.**
 
 Modifiers must contain **5–15 whitespace-delimited words**, with 10–15 preferred. Overlong responses are rejected and replaced by a validated concise clause selected by the MLLM, rather than truncated mid-sentence. An editable word is required so every configured corruption can be applied. Target-conditioned generation is not a target-blind benchmark, and prompt checks cannot certify human-level visual accuracy.
+
+If narrower categories repeatedly fail review, the final attempt asks the MLLM to select one of the broad "physical objects" requests in `generation.fallback_modifiers`, then visually reviews that exact request against each sampled target. A constrained choice prevents the model from reintroducing rejected attributes. These fallback templates can provide little retrieval information and remain visible in the saved modifiers. Shared-feature generation does not guarantee an improvement over the original text.
 
 The corruption types are:
 
@@ -70,7 +76,7 @@ python main.py --split test_ood --stage generate --reuse-clean /path/to/old/test
 bash run_splits.sh
 ```
 
-Import the corresponding `test_id` checkpoint in the same way when reusing both splits. The import checks the generation model/revision, split, every original CSV triplet, and modifier validity; it discards old corruptions and records the source checkpoint hash. Only use this option when the old clean generation protocol is appropriate for the new experiment. Without this option, generation runs normally. Omit it when resuming a populated output directory.
+Import the corresponding `test_id` checkpoint in the same way when reusing both splits. The import checks the generation model/revision, shared-target generation policy, split, original CSV metadata for each imported record, sampled target IDs, and modifier validity; it discards old corruptions and records the source checkpoint hash. Partial checkpoints are supported: the remaining queries are generated normally and evaluation still requires the whole cohort. Legacy checkpoints created before the shared-target policy must be regenerated. For evaluation-only changes, `--reuse-modifiers` imports compatible clean modifiers **and** individually validates saved corruptions against their seeded candidates. Without an import option, generation runs normally. Omit import options when resuming a populated output directory.
 
 Current model families are configurable through `generation.model`:
 
@@ -84,7 +90,11 @@ The selected models are in the requested comparable 7–8B size range. They are 
 
 When a model proposes an overlong request, the application constructs complete concise reference-to-target clauses by omitting secondary clauses or replacing the source description with "it". The same MLLM selects a concise candidate, which must pass all word-count and corruption checks. This never cuts a request at an arbitrary word boundary. Alternative-target and negation tokens are retained during shortening; logical operators are protected during character edits. Main objects can still be misidentified, so inspect the generated modifiers and figures; length/format checks are not human visual validation.
 
-All three selected backends were checked on actual CSV triplets, including every target in those triplets and every configured corruption. The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Choose a new output directory for each model comparison.
+Check each backend on three actual CSV triplets: one single-target query, one small multi-target query, and a query from the largest target group, sampling at most three targets per query and checking every configured corruption. The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Choose a new output directory for each model comparison.
+
+Run the component checks below before adopting another backend for a full experiment. A model can load successfully and still fail compatibility review on heterogeneous target groups; the application rejects those outputs instead of silently accepting them.
+
+On the current server, Qwen3-VL-8B, LLaVA-OneVision-2-8B, and Janus-Pro-7B passed the three-triplet GPU generation/corruption checks under this policy. These small checks verify execution and validation, not universal semantic accuracy.
 
 ## Retrieval heads and metrics
 
@@ -106,7 +116,20 @@ normalize(w * normalize(reference_image) + (1-w) * normalize(modifier_text))
 
 BLIP's binary image-text matching classifier (`itm_head`) requires joint cross-attention and does not produce independent cosine-search embeddings. Captioning, VQA, raw vision hidden states, and unprojected text states are not used. Transformers 4 tensor and Transformers 5 projected pooler return formats are handled explicitly. Incomplete pretrained retrieval weights are rejected.
 
-Recall@K is macro multi-positive recall: recovered relevant targets divided by all relevant targets, averaged across queries. HitRate@K, mAP, and MRR are also computed. AVG is the mean of Recall@1/5/10/50. All scores are percentages; deltas are perturbed minus unperturbed in percentage points. Gallery, positives, reference, fusion, and ranking settings stay fixed across conditions.
+Every run evaluates these baselines on the same query cohort and complete available gallery:
+
+| Condition | Query representation |
+|---|---|
+| `reference_only` | Reference image only |
+| `original_text_only` | Original modifier from `cir_db.csv` only |
+| `generated_text_only` | Reviewed generated modifier only |
+| `reference_original` | Normalized reference image + original modifier |
+| `unperturbed` | Normalized reference image + generated modifier |
+| Each corruption type | Normalized reference image + perturbed generated modifier |
+
+TorchMetrics computes Recall@K, HitRate@K, average precision, and reciprocal rank for each query; query values are macro-averaged into Recall@K, HitRate@K, mAP, and MRR. Recall@K divides retrieved positives by **all available relevant targets for that query**; HitRate@K measures whether at least one was retrieved. Missing target files are removed individually before generation and evaluation. Metrics also intersect target IDs with the actual gallery; a query with no available positives is skipped. Complete gallery rankings are required, so a target below a displayed top-5 list is never mistaken for a missing target.
+
+Real cosine scores determine rankings, with deterministic ties and the same reference-image exclusion in every condition, including image-only retrieval. Metrics receive positive rank-equivalent scores to preserve that ordering without TorchMetrics ignoring relevant candidates with zero/negative cosine scores. Figures continue to display actual cosine similarity. AVG is the mean of Recall@1/5/10/50. **Every computed metric, including all HitRate@K columns, is printed and saved.** All scores are percentages; deltas are measured against `unperturbed` in percentage points.
 
 ## Outputs and figures
 
@@ -114,9 +137,10 @@ Only these experiment outputs are saved per split under `outputs/current/<split>
 
 - `modifiers.json`: original CSV identities/text, generated modifiers, and their perturbed versions; incrementally saved for resumption.
 - `metrics.json`: final aggregate scores, deltas, model settings, query count, and gallery availability.
-- `figures/query_*.png`: three seeded examples with unperturbed and every perturbed modifier, reference/target images, and top-5 retrievals.
+- `run.log`: split execution messages and every printed metric table, written by `run_splits.sh`.
+- `figures/query_*.png`: three seeded examples with original, generated, and selected perturbed modifiers, reference/target images, and top-5 retrievals.
 
-Figures use equal 224×224 letterboxed images, equal square subplot axes (including text panels), wrapped centered text, tight layout, and green borders for relevant results. Retrieval captions show `Top-1 (0.786)`, with the rank in black and cosine similarity in green. Sampling selects existing retained CSV triplets and uses the same triplets for every condition. `python figure.py --split test_ood` regenerates figures from saved modifiers; it recomputes retrieval against the entire gallery rather than storing intermediate rankings.
+The first figure row shows **reference + original modifier**, followed by reference + generated modifier and the corruption conditions. Capitalization remains evaluated in the metrics but is excluded from every figure through `visualization.exclude_conditions`. Figures use equal 224×224 letterboxed images, equal square subplot axes (including text panels), wrapped centered text, tight layout, and green borders for **any available ground-truth target**, including targets outside the generation sample. Retrieval captions show `Top-1 (0.786)`, with the rank in black and cosine similarity in green. Sampling selects existing retained CSV triplets and uses the same triplets for every condition. `python figure.py --split test_ood` regenerates figures from saved modifiers; it recomputes retrieval against the entire gallery rather than storing intermediate rankings.
 
 Observations, feature tensors, full rankings, manifests, environment dumps, and diagnostic reports are not exported. GPU/model weights remain in the ignored `.model_cache/`. Intermediate computation stays in memory. A failed generation retains completed modifiers; restarting resumes them, but unfinished image observations are recomputed. Configuration/source/image-availability signatures reject incompatible modifier checkpoints; use a new `paths.output_dir` when changing an experiment.
 
@@ -154,4 +178,4 @@ python -m pip install pytest
 python -m pytest -q
 ```
 
-Every Python entry point accepts `--config`. Retrieval checks also accept `clip`, `siglip`, `siglip2`, `coca`, and `openvision`. The checks compare extracted cosine scores numerically against the backend's own retrieval calculation; they check head correctness, not dataset retrieval accuracy. Generation checks use three small intact CSV target groups and validate all corruption conditions; full experiments do not filter target-group sizes.
+Every Python entry point accepts `--config`. Retrieval checks also accept `clip`, `siglip`, `siglip2`, `coca`, and `openvision`. The checks compare extracted cosine scores numerically against the backend's own retrieval calculation; they check head correctness, not dataset retrieval accuracy. Generation checks include single-target, small multi-target, and large multi-target queries, using the configured generation sample and validating all corruption conditions. Full experiments retain every available ground truth regardless of group size.

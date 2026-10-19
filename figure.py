@@ -22,6 +22,12 @@ def retrieval_caption(ax, rank, score):
         bbox_to_anchor=(.5, 1), bbox_transform=ax.transAxes, pad=0, borderpad=.8))
 
 
+def figure_conditions(cfg, item):
+    return [('reference_original', item['original_modifier']), ('unperturbed', item['modifier'])] + [
+        (kind, item['perturbations'][kind]) for kind in cfg['perturbation']['types']
+        if kind not in cfg['visualization']['exclude_conditions']]
+
+
 def visualize(cfg, records, gallery, retrieval):
     import matplotlib
     matplotlib.use('Agg')
@@ -36,7 +42,7 @@ def visualize(cfg, records, gallery, retrieval):
     for item in records:
         if item['query_id'] not in selected:
             continue
-        conditions = [('unperturbed', item['modifier'])] + [(k, item['perturbations'][k]) for k in cfg['perturbation']['types']]
+        conditions = figure_conditions(cfg, item)
         fig, axes = plt.subplots(len(conditions), top_k+3, squeeze=False,
             figsize=(2.35*(top_k+3), 2.85*len(conditions)))
         fig.set_facecolor('#edf1f6')
@@ -54,7 +60,9 @@ def visualize(cfg, records, gallery, retrieval):
                 ax.imshow(display_image(path, size))
                 ax.set_title(fill(title, 22), loc='center', fontsize=9, pad=8)
             text_ax = axes[row, 2]
-            text_ax.text(.5, .78, fill(condition.replace('_', ' ').title(), 24), ha='center', va='center',
+            label = {'reference_original': 'Reference + original modifier', 'unperturbed': 'Reference + generated modifier'}.get(
+                condition, condition.replace('_', ' ').title())
+            text_ax.text(.5, .78, fill(label, 24), ha='center', va='center',
                          transform=text_ax.transAxes, fontsize=10, fontweight='bold', color='#174675')
             modifier_text = text_ax.text(.5, .45, fill(modifier, cfg['visualization']['wrap_width']), ha='center', va='center',
                          transform=text_ax.transAxes, multialignment='center', fontsize=9, linespacing=1.4)

@@ -1,6 +1,7 @@
 # Install a CUDA-compatible PyTorch/torchvision build first.
 torch>=2.4
 torchvision>=0.19
+torchmetrics==1.8.0
 transformers==5.20.1
 huggingface-hub==1.33.0
 accelerate>=1.0

@@ -5,7 +5,9 @@ import re
 
 import torch
 
-from utils import get_device
+from utils import batches, get_device
+
+GENERATION_POLICY = 'sampled_visual_review_v1'
 
 
 def parse_json(text):
@@ -28,11 +30,114 @@ def validate_modifier(result, cfg):
         raise ValueError(f"Write {cfg['generation']['min_words']}-{cfg['generation']['max_words']} words; received {len(text.split())}")
     if re.search(r'\b\w+_\d+\b', text):
         raise ValueError('Do not include image IDs')
+    if re.search(r'\b(?:BEFORE|COMMON FEATURES|SINGLE TARGET)\b', text):
+        raise ValueError('Use natural object words or it, not prompt labels such as BEFORE')
+    if re.search(r'\bor\b', text, re.I):
+        raise ValueError('Describe features shared by every target; do not enumerate alternatives using or')
     # Every configured corruption must be possible; never silently omit a condition.
     from perturbation import applicable
     if any(not applicable(text, kind) for kind in cfg['perturbation']['types']):
         raise ValueError('Use a natural request containing a descriptive word of at least four letters')
     return text
+
+
+def target_requirements(text):
+    """Remove the source of an explicit replacement from target-only auditing."""
+    match = re.match(r'(?is)^(?:replace|change|swap|exchange|substitute|turn|transform)\s+.+?\s+(?:with|to|for|into)\s+(.+)$', text)
+    return match.group(1) if match else text
+
+
+def generate_grounded_modifiers(generator, cfg, before, after, shared, full_counts=None, target_paths=None):
+    """Generate, review every sampled target, and broaden rejected requirements."""
+    import prompts
+    if not before or len(before) != len(after) or len(before) != len(shared) or any(not targets for targets in after):
+        raise ValueError('Need aligned nonempty reference, target-group, and shared-feature observations')
+    full_counts = full_counts or [len(targets) for targets in after]
+    if len(full_counts) != len(before) or any(count < len(targets) for count, targets in zip(full_counts, after)):
+        raise ValueError('Full target counts must align with and include the sampled targets')
+    if target_paths is not None and (len(target_paths) != len(after) or any(len(paths) != len(targets) for paths, targets in zip(target_paths, after))):
+        raise ValueError('Target image paths must align with all sampled observations')
+    tasks = [{'field': 'modifier', 'system': prompts.MODIFIER,
+              'prompt': f'BEFORE: {source}\nCOMMON FEATURES OF ALL {len(targets)} TARGETS: {common}' +
+                        f'\nThese observations cover {len(targets)} of {count} available targets. ' +
+                        ('Use broad object categories and stable structural traits; omit exact colour, count, material, pose, and layout requirements because unseen targets may differ.' if count > len(targets) else '') +
+                        f'\nUse {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words.'}
+             for source, targets, common, count in zip(before, after, shared, full_counts)]
+    for i, common in enumerate(shared):
+        if common is None:
+            tasks[i]['prompt'] = f'REFERENCE IMAGE: {before[i]}\nINDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i]) + f'\nWrite {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words using only features shared by all these targets.'
+    results = [ValueError('All-target review not passed')] * len(tasks)
+    pending = list(range(len(tasks)))
+    feedback = [''] * len(tasks)
+    for attempt in range(cfg['generation']['target_review_attempts']):
+        if not pending:
+            break
+        requests = [dict(tasks[i], prompt=tasks[i]['prompt'] + feedback[i]) for i in pending]
+        validators = [lambda r: validate_modifier(r, cfg)] * len(pending)
+        if attempt == cfg['generation']['target_review_attempts'] - 1 and attempt > 0:
+            options = cfg['generation']['fallback_modifiers']
+            requests = [{'field': 'choice', 'system': prompts.CATEGORY_FALLBACK,
+                         'prompt': '\n'.join(f'{j}: {value}' for j, value in enumerate(options))} for i in pending]
+            def choose(result):
+                index = result.get('choice')
+                if type(index) is not int or not 0 <= index < len(options):
+                    raise ValueError('Choose one listed integer index')
+                return validate_modifier({'modifier': options[index]}, cfg)
+            validators = [choose] * len(pending)
+        outputs = generator.request_json_many(requests, validators)
+        proposed = {i: text for i, text in zip(pending, outputs) if not isinstance(text, Exception)}
+        for i, text in zip(pending, outputs):
+            if isinstance(text, Exception):
+                results[i] = text
+                tasks[i]['system'] = prompts.BROAD_MODIFIER
+                tasks[i]['prompt'] = 'INDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i])
+                feedback[i] = '\nPrevious validation error: ' + str(text) + '\nUse one broader common category and no alternatives.'
+        reviews, checks, owners = [], [], []
+        for i, text in proposed.items():
+            for j, observation in enumerate(after[i]):
+                task = {'field': 'coverage', 'system': prompts.TARGET_REVIEW,
+                        'prompt': f'DESIRED RESULT REQUIREMENTS: {target_requirements(text)}\nSINGLE TARGET: {observation}'}
+                if target_paths is not None:
+                    from loading_data import load_image
+                    task.update(system=prompts.VISUAL_TARGET_REVIEW,
+                                prompt=f'DESIRED RESULT REQUIREMENTS: {target_requirements(text)}\nJudge only the attached target image.',
+                                images=[load_image(target_paths[i][j])])
+                reviews.append(task)
+                owners.append((i, f'target {j+1}'))
+            def check(result):
+                coverage = result.get('coverage')
+                if coverage not in {'Y', 'N'}:
+                    raise ValueError('coverage must be Y or N for the single target under review')
+                if coverage == 'N' and not result.get('reason'):
+                    raise ValueError('Explain which desired-result requirement is unsupported')
+                return result
+            checks.extend([check] * len(after[i]))
+        if reviews:
+            outcomes = []
+            for jobs, validators in zip(batches(reviews, cfg['generation']['batch_size']), batches(checks, cfg['generation']['batch_size'])):
+                outcomes.extend(generator.request_json_many(jobs, validators))
+            if len(outcomes) != len(owners):
+                raise ValueError('Every supplied target must receive an individual review')
+            rejected = {}
+            for (i, label), review in zip(owners, outcomes):
+                if isinstance(review, Exception) or review['coverage'] != 'Y':
+                    rejected.setdefault(i, []).append((label, str(review)))
+            for i in proposed:
+                if i not in rejected:
+                    results[i] = proposed[i]
+                else:
+                    logging.getLogger(__name__).warning('Modifier target review: candidate=%r failures=%s', proposed[i], rejected[i])
+                    results[i] = ValueError(f'Sampled-target compatibility review rejected {proposed[i]!r}: {rejected[i]}')
+                    # Discard the possibly incorrect shared summary on retry. Direct
+                    # observations let the model recover without copying its mistake.
+                    tasks[i]['prompt'] = f'REFERENCE IMAGE: {before[i]}\nINDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i])
+                    feedback[i] = '\nFailed target reviews: ' + str(rejected[i]) + '\nFind a broader category true of ALL these targets. Omit conflicting shape, colour, count, material, and scene details. Use it for the reference and write one natural 5-15 word search request.'
+                    if attempt >= 1:
+                        tasks[i]['system'] = prompts.BROAD_MODIFIER
+                        tasks[i]['prompt'] = 'INDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i])
+                        feedback[i] = '\nThe previous category was rejected: ' + str(rejected[i]) + '\nChoose a strictly broader category that includes the disputed target too. Use only this common category and no other details.'
+        pending = [i for i in pending if isinstance(results[i], Exception)]
+    return results
 
 
 def concise_candidates(text, maximum):
@@ -158,7 +263,7 @@ class TextGenerator:
                             shortening[i] = options
                             continue
                     retry.append(i)
-                    requests[i]['prompt'] = tasks[i]['prompt'] + '\nRejected response: ' + raw + '\nFix: ' + str(error)
+                    requests[i]['prompt'] = tasks[i]['prompt'] + '\nThe previous response failed validation. Fix: ' + str(error)
             pending = retry
         if shortening:
             jobs, checks, indices = [], [], list(shortening)

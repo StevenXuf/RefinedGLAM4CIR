@@ -23,6 +23,13 @@ def get_config(path=None, split=None):
         raise ValueError('Generation requires 1 <= min_words <= max_words <= 15')
     if min(cfg['generation']['batch_size'], cfg['generation']['image_batch_size'], cfg['retrieval']['batch_size']) < 1:
         raise ValueError('Batch sizes must be positive')
+    if cfg['generation']['target_review_attempts'] < 1 or cfg['generation']['shared_features_max_words'] < 1:
+        raise ValueError('Target review attempts and shared-feature word limit must be positive')
+    if type(cfg['generation']['max_target_images']) is not int or cfg['generation']['max_target_images'] < 1:
+        raise ValueError('max_target_images must be a positive integer; it never limits metric ground truths')
+    fallback = cfg['generation']['fallback_modifiers']
+    if not fallback or any(not isinstance(text, str) or not cfg['generation']['min_words'] <= len(text.split()) <= cfg['generation']['max_words'] for text in fallback):
+        raise ValueError('Fallback requests must respect the configured word limits')
     if not 0 <= cfg['retrieval']['image_weight'] <= 1:
         raise ValueError('image_weight must be between zero and one')
     limit = cfg['subset'].get('query_limit')

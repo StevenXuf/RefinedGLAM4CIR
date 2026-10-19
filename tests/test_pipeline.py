@@ -7,10 +7,11 @@ import torch
 from PIL import Image
 
 from feature_extractor import FeatureExtractor, normalized_features
-from generation import TextGenerator, parse_json, validate_modifier
+from generation import (TextGenerator, generate_grounded_modifiers, parse_json,
+                        validate_modifier)
 from loading_data import GLAMGalleryDataset, GLAMQueryDataset
-from main import (example_ids, generate_modifiers, load_data, load_modifiers,
-                  perturb_modifiers, reuse_clean_modifiers, save_metrics)
+from main import (example_ids, generate_modifiers, generation_targets, load_data, load_modifiers,
+                  perturb_modifiers, query_features, reuse_modifiers, save_metrics)
 from metrics_computation import compute_metrics, rank_queries
 from perturbation import (KINDS, NEIGHBOURS, candidates, request, sample_profile,
                           validate_perturbation, validate_settings)
@@ -257,9 +258,72 @@ def test_projected_vectors_and_modality_normalization(cfg):
 def test_multitarget_metrics_and_reference_mask():
     q = [dict(query_id='q', reference_id='ref', target_ids=['a', 'b'])]
     ranks, _ = rank_queries(torch.tensor([[1., 0.]]), torch.tensor([[1., 0.], [.8, .2], [0., 1.]]), ['ref', 'a', 'b'], q)
-    metrics, _ = compute_metrics(ranks, q, [1, 5])
+    metrics, _ = compute_metrics(ranks, q, [1, 5], ['ref', 'a', 'b'])
     assert ranks == [['a', 'b']] and metrics['Recall@1'] == 50 and metrics['HitRate@1'] == 100
     assert metrics['Recall@5'] == 100
+
+
+def test_torchmetrics_multi_positive_macro_and_missing_targets():
+    queries = [dict(query_id='q1', reference_id='ref', target_ids=['a', 'b', 'not_downloaded']),
+               dict(query_id='q2', reference_id='ref', target_ids=['c'])]
+    metrics, rows = compute_metrics([['c', 'a', 'd', 'b'], ['c', 'a', 'b', 'd']], queries, [1, 2, 4], ['a', 'b', 'c', 'd'])
+    assert len(rows) == 2
+    assert metrics == pytest.approx({'MRR':75, 'mAP':75, 'Recall@1':50, 'Recall@2':75, 'Recall@4':100,
+                                     'HitRate@1':50, 'HitRate@2':100, 'HitRate@4':100, 'AVG':75})
+
+
+def test_missing_all_targets_skipped_but_truncated_rankings_rejected():
+    q = [dict(query_id='missing', reference_id='ref', target_ids=['absent']),
+         dict(query_id='valid', reference_id='ref', target_ids=['a'])]
+    metrics, rows = compute_metrics([['b', 'a'], ['b', 'a']], q, [1, 2], ['a', 'b'])
+    assert [r['query_id'] for r in rows] == ['valid'] and metrics['mAP'] == 50
+    with pytest.raises(ValueError, match='complete available gallery'):
+        compute_metrics([['b'], ['b']], q, [1], ['a', 'b'])
+    with pytest.raises(ValueError, match='No queries'):
+        compute_metrics([['a', 'b']], q[:1], [1], ['a', 'b'])
+
+
+def test_negative_cosines_and_stable_ties_keep_relevant_candidates():
+    q = [dict(query_id='q', reference_id='ref', target_ids=['a'])]
+    rankings, scores = rank_queries(torch.tensor([[1., 0.]]), torch.tensor([[-1., 0.], [-.8, -.6]]), ['a','b'], q)
+    assert (scores < 0).all()
+    metrics, _ = compute_metrics(rankings, q, [1, 2], ['a', 'b'])
+    assert metrics['mAP'] == 50 and metrics['MRR'] == 50 and metrics['Recall@2'] == 100
+    ranks, _ = rank_queries(torch.tensor([[1., 0.]]), torch.tensor([[0., 1.], [0., 1.]]), ['a','b'], q)
+    assert ranks == [['a', 'b']]
+    metrics, _ = compute_metrics(ranks, q, [1], ['a', 'b'])
+    assert metrics['mAP'] == 100 and metrics['Recall@1'] == 100
+
+
+def test_partially_missing_target_group_keeps_remaining_target(cfg):
+    from pathlib import Path
+    (Path(cfg['paths']['glam_root'])/'test_ood'/'b.png').unlink()
+    q, g = load_data(cfg)
+    assert len(q) == 1 and q[0]['target_ids'] == ['a']
+    assert len(g) == 4
+    ranks = [[r['image_id'] for r in g.records if r['image_id'] != 'ref']]
+    metrics, _ = compute_metrics(ranks, q, [1, 5], [r['image_id'] for r in g.records])
+    assert metrics['Recall@1'] == 100 and metrics['mAP'] == 100
+
+
+def test_baseline_queries_use_the_correct_modalities(cfg):
+    import torch.nn.functional as F
+    calls = []
+    extractor = FeatureExtractor.__new__(FeatureExtractor)
+    extractor.cfg = cfg
+    def text_features(texts):
+        calls.append(texts)
+        return torch.tensor([[0., 1., 0.]]) if texts == ['original'] else torch.tensor([[0., 0., 1.]])
+    extractor.get_text_features = text_features
+    reference = torch.tensor([[20., 0., 0.]])
+    records = [dict(original_modifier='original', modifier='generated', perturbations={'character_deletion':'perturbed'})]
+    torch.testing.assert_close(query_features(extractor, reference, records, 'reference_only'), torch.tensor([[1., 0., 0.]]))
+    assert not calls
+    torch.testing.assert_close(query_features(extractor, reference, records, 'original_text_only'), torch.tensor([[0., 1., 0.]]))
+    torch.testing.assert_close(query_features(extractor, reference, records, 'generated_text_only'), torch.tensor([[0., 0., 1.]]))
+    torch.testing.assert_close(query_features(extractor, reference, records, 'reference_original'), F.normalize(torch.tensor([[1., 1., 0.]]), dim=-1))
+    torch.testing.assert_close(query_features(extractor, reference, records, 'unperturbed'), F.normalize(torch.tensor([[1., 0., 1.]]), dim=-1))
+    assert calls == [['original'], ['generated'], ['original'], ['generated']]
 
 
 def test_composed_query_cosines_are_unit_and_scale_invariant(cfg):
@@ -287,8 +351,12 @@ def test_reduced_outputs_and_all_components(cfg, capsys):
             for task, check in zip(tasks, validators):
                 if 'Options:' in task['prompt']:
                     result = {'choice':0}
+                elif task.get('field') == 'shared_features':
+                    result = {'shared_features':'a white vase'}
+                elif task.get('field') == 'coverage':
+                    result = {'coverage':'Y', 'direction_correct':True}
                 elif 'BEFORE:' in task['prompt']:
-                    assert task['prompt'].count('a white vase') == 3  # reference plus both exact CSV targets
+                    assert task['prompt'].count('a white vase') == 2  # reference and all-target shared phrase
                     result = {'modifier':'Replace the white bowl with a tall blue vase.'}
                 else:
                     result = {'description':'a white vase'}
@@ -298,10 +366,12 @@ def test_reduced_outputs_and_all_components(cfg, capsys):
     generate_modifiers(cfg, q, data, generator)
     perturb_modifiers(cfg, q, data, generator)
     assert set(data['records'][0]['perturbations']) == set(cfg['perturbation']['types'])
-    metrics = {'unperturbed':{k:0 for k in ['Recall@1','Recall@5','Recall@10','Recall@50','AVG','mAP','MRR']}}
+    metrics = {'unperturbed':{k:0 for k in ['Recall@1','Recall@5','Recall@10','Recall@50',
+                                           'HitRate@1','HitRate@5','HitRate@10','HitRate@50','AVG','mAP','MRR']}}
     save_metrics(cfg, metrics, q, g)
     assert {p.name for p in output_path(cfg, '').iterdir()} == {'modifiers.json', 'metrics.json'}
-    assert '| unperturbed |' in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert '| unperturbed |' in output and all(key in output for key in metrics['unperturbed'])
     assert load_modifiers(cfg, q, g)['records'] == data['records']
     cfg['seed'] += 1
     with pytest.raises(ValueError, match='changed'):
@@ -313,23 +383,23 @@ def test_clean_reuse_requires_same_model_and_exact_csv_triplets(cfg, tmp_path):
     q, g = load_data(cfg)
     old = load_modifiers(cfg, q, g)
     modifier = 'Replace the white bowl with a tall blue vase.'
-    old['records'] = [dict(q[0], modifier=modifier, perturbations={'keyboard_typo': 'obsolete'})]
+    old['records'] = [dict(q[0], generation_target_ids=generation_targets(cfg, q[0]), modifier=modifier, perturbations={'keyboard_typo': 'obsolete'})]
     source = tmp_path/'previous.json'
     save_json(source, old)
     data = load_modifiers(cfg, q, g)
-    reuse_clean_modifiers(cfg, q, data, source)
-    assert data['records'] == [dict(q[0], modifier=modifier, perturbations={})]
+    reuse_modifiers(cfg, q, data, source)
+    assert data['records'] == [dict(q[0], generation_target_ids=generation_targets(cfg, q[0]), modifier=modifier, perturbations={})]
     assert load_modifiers(cfg, q, g)['clean_source']['content_hash']
     with pytest.raises(ValueError, match='empty'):
-        reuse_clean_modifiers(cfg, q, data, source)
+        reuse_modifiers(cfg, q, data, source)
     old['records'][0]['target_ids'] = ['c']
     save_json(source, old)
     with pytest.raises(ValueError, match='CSV triplet'):
-        reuse_clean_modifiers(cfg, q, dict(records=[]), source)
+        reuse_modifiers(cfg, q, dict(records=[]), source)
     old['generation_model'] = dict(id='other')
     save_json(source, old)
     with pytest.raises(ValueError, match='same split and generation'):
-        reuse_clean_modifiers(cfg, q, dict(records=[]), source)
+        reuse_modifiers(cfg, q, dict(records=[]), source)
 
 
 def test_seeded_examples_and_image_size(cfg):
@@ -337,6 +407,215 @@ def test_seeded_examples_and_image_size(cfg):
     q, _ = load_data(cfg)
     assert example_ids(cfg, q) == example_ids(cfg, q)
     assert display_image(q[0]['reference_path'], 224).size == (224, 224)
+
+
+def test_partial_checkpoint_import_keeps_the_full_query_cohort(cfg, tmp_path):
+    from utils import save_json
+    cfg['remove_duplicates'] = False
+    queries, gallery = load_data(cfg)
+    assert len(queries) == 2
+    data = load_modifiers(cfg, queries, gallery)
+    old = dict(data, records=[dict(queries[0], generation_target_ids=generation_targets(cfg, queries[0]),
+                                  modifier='Replace it with a ceramic vase.', perturbations={})])
+    source = tmp_path / 'partial.json'
+    save_json(source, old)
+    reuse_modifiers(cfg, queries, data, source)
+    assert len(data['records']) == 1
+    assert len(load_data(cfg)[0]) == 2
+    assert load_modifiers(cfg, queries, gallery)['records'] == data['records']
+
+
+def test_original_baseline_is_first_and_capitalization_is_not_plotted(cfg):
+    from figure import figure_conditions
+    item = dict(original_modifier='original', modifier='generated',
+                perturbations={k:k for k in cfg['perturbation']['types']})
+    conditions = figure_conditions(cfg, item)
+    assert conditions[:2] == [('reference_original','original'), ('unperturbed','generated')]
+    assert 'capitalization' not in {c for c, _ in conditions}
+    assert len(conditions) == 9
+
+
+def test_generation_samples_three_without_changing_metric_ground_truth(cfg):
+    import copy
+    record = dict(query_id='q', target_ids=[f'image_{i}' for i in range(20)])
+    before = copy.deepcopy(record)
+    selected = generation_targets(cfg, record)
+    assert len(selected) == len(set(selected)) == 3
+    assert set(selected) <= set(record['target_ids'])
+    assert selected == generation_targets(cfg, record)
+    assert record == before
+    assert len(record['target_ids']) == 20
+    record['target_ids'] = ['a', 'b']
+    assert generation_targets(cfg, record) == ['a', 'b']
+
+
+def test_figure_highlights_ground_truth_outside_generation_sample(cfg, monkeypatch):
+    from figure import figure_conditions, visualize
+    from matplotlib.colors import to_rgba
+    from matplotlib.figure import Figure
+    queries, gallery = load_data(cfg)
+    record = dict(queries[0], generation_target_ids=['a'], modifier='Replace it with a ceramic vase.',
+                  perturbations={kind:'Replace it with a ceramic vase.' for kind in cfg['perturbation']['types']})
+    cfg['visualization']['top_k'] = 2
+    retrieval = {condition: {record['query_id']: [dict(image_id='b', score=.8), dict(image_id='c', score=.6)]}
+                 for condition, _ in figure_conditions(cfg, record)}
+    saved = []
+    def inspect(fig, *args, **kwargs):
+        saved.append(True)
+        assert fig._suptitle is None
+        sizes = [(ax.get_window_extent().width, ax.get_window_extent().height) for ax in fig.axes]
+        for width, height in sizes:
+            assert width == pytest.approx(height)
+            assert width == pytest.approx(sizes[0][0])
+        for offset in range(0, len(fig.axes), 5):
+            assert all(spine.get_visible() and spine.get_edgecolor() == to_rgba('#20945d')
+                       for spine in fig.axes[offset+3].spines.values())
+            assert not any(spine.get_visible() for spine in fig.axes[offset+4].spines.values())
+    monkeypatch.setattr(Figure, 'savefig', inspect)
+    visualize(cfg, [record], gallery.records, retrieval)
+    assert saved == [True]
+
+
+def test_every_target_is_reviewed_and_minority_mismatch_forces_broader_modifier(cfg):
+    seen = []
+    class Generator:
+        attempts = 0
+        def request_json_many(self, tasks, validators):
+            outputs = []
+            for task, validate in zip(tasks, validators):
+                seen.append(task)
+                if task['field'] == 'modifier':
+                    self.attempts += 1
+                    result = {'modifier': 'Replace the bowl with a tall blue vase.' if self.attempts == 1 else
+                              'Replace the bowl with a tall ceramic vase.'}
+                else:
+                    result = {'coverage':'N' if self.attempts == 1 and 'green vase' in task['prompt'] else 'Y',
+                              'direction_correct':True, 'reason':'Blue excludes the green target'}
+                outputs.append(validate(result))
+            return outputs
+    result = generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['a blue vase','a green vase']], ['ceramic vases'])
+    assert result == ['Replace the bowl with a tall ceramic vase.']
+    reviews = [task for task in seen if task['field'] == 'coverage' and 'SINGLE TARGET:' in task['prompt']]
+    assert len(reviews) == 4 and any('green vase' in task['prompt'] for task in reviews)
+    assert all('BEFORE:' not in task['prompt'] for task in reviews)
+    assert 'Failed target reviews' in [t for t in seen if t['field'] == 'modifier'][1]['prompt']
+    with pytest.raises(ValueError, match='shared by every target'):
+        validate_modifier({'modifier':'Replace the bowl with a blue or green vase.'}, cfg)
+
+
+def test_rejected_target_review_never_returns_an_unchecked_modifier(cfg):
+    class Generator:
+        def request_json_many(self, tasks, validators):
+            return [check({'modifier':'Replace the white bowl with a tall blue vase.'} if task['field'] == 'modifier'
+                          else {'choice':0} if task['field'] == 'choice' else {'coverage':'N', 'reason':'Wrong category'})
+                    for task, check in zip(tasks, validators)]
+    result = generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['a blue vase', 'a green vase']], ['ceramic vases'])
+    assert isinstance(result[0], ValueError)
+
+
+def test_target_review_excludes_the_replacement_source():
+    from generation import target_requirements
+    assert target_requirements('Replace dragon heads with metal animal heads on stone walls') == 'metal animal heads on stone walls'
+    assert target_requirements('Change the bowl into a ceramic vase.') == 'a ceramic vase.'
+    assert target_requirements('Make it blue.') == 'Make it blue.'
+
+
+def test_repeated_rejection_uses_a_reviewed_common_category(cfg):
+    import prompts
+    jobs = []
+    class Generator:
+        broad = False
+        def request_json_many(self, tasks, validators):
+            results = []
+            for task, check in zip(tasks, validators):
+                jobs.append(task)
+                if task['field'] == 'modifier':
+                    self.broad = task['system'] == prompts.BROAD_MODIFIER
+                    value = {'modifier':'Find an image of an artifact.' if self.broad else 'Find an image of a blue vase.'}
+                else:
+                    value = {'coverage':'Y' if self.broad else 'N', 'reason':'Blue is not common'}
+                results.append(check(value))
+            return results
+    result = generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['a blue vase', 'a green statue']], ['blue vases'])
+    assert result == ['Find an image of an artifact.']
+    modifier_jobs = [task for task in jobs if task['field'] == 'modifier']
+    assert len(modifier_jobs) == 3
+    assert 'blue vases' not in modifier_jobs[-1]['prompt']
+    assert all(observation in modifier_jobs[-1]['prompt'] for observation in ['a blue vase', 'a green statue'])
+    assert len([task for task in jobs if task['field'] == 'coverage']) == 6
+
+
+def test_format_failure_also_discards_the_incorrect_shared_summary(cfg):
+    import prompts
+    class Generator:
+        def request_json_many(self, tasks, validators):
+            results = []
+            for task, check in zip(tasks, validators):
+                if task['field'] == 'modifier':
+                    if task['system'] != prompts.BROAD_MODIFIER:
+                        results.append(ValueError('Do not enumerate alternatives using or'))
+                        continue
+                    assert 'INDIVIDUAL TARGET IMAGES' in task['prompt']
+                    assert 'incorrect summary' not in task['prompt']
+                    results.append(check({'modifier':'Find an image of an artifact.'}))
+                else:
+                    results.append(check({'coverage':'Y'}))
+            return results
+    assert generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['a vase', 'a statue']], ['incorrect summary']) == ['Find an image of an artifact.']
+
+
+def test_failed_shared_summary_uses_individual_observations(cfg):
+    seen = []
+    class Generator:
+        def request_json_many(self, tasks, validators):
+            for task in tasks:
+                if task['field'] == 'modifier':
+                    seen.append(task['prompt'])
+            return [check({'modifier':'Find an image of an artifact.'} if task['field'] == 'modifier' else {'coverage':'Y'})
+                    for task, check in zip(tasks, validators)]
+    assert generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['a vase', 'a statue']], [None]) == ['Find an image of an artifact.']
+    assert all(text in seen[0] for text in ['INDIVIDUAL TARGET IMAGES', 'a vase', 'a statue'])
+    assert 'None' not in seen[0]
+
+
+def test_visual_review_sees_actual_targets_without_incomplete_captions(cfg):
+    import prompts
+    seen = []
+    queries, _ = load_data(cfg)
+    class Generator:
+        def request_json_many(self, tasks, validators):
+            seen.extend(tasks)
+            return [check({'modifier':'Find an image of a figurine.'} if task['field'] == 'modifier' else {'coverage':'Y'})
+                    for task, check in zip(tasks, validators)]
+    result = generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['unknown triangular object', 'an elongated object']],
+                                        ['figurines'], target_paths=[queries[0]['target_paths']])
+    assert result == ['Find an image of a figurine.']
+    reviews = [task for task in seen if task['field'] == 'coverage']
+    assert len(reviews) == 2
+    assert all(task['system'] == prompts.VISUAL_TARGET_REVIEW and len(task['images']) == 1 for task in reviews)
+    assert all('triangular' not in task['prompt'] and 'elongated' not in task['prompt'] for task in reviews)
+    assert all(task['images'][0].size == (32, 40) for task in reviews)
+
+
+def test_final_fallback_applies_the_exact_chosen_request_and_reviews_it(cfg):
+    class Generator:
+        fallback = False
+        def request_json_many(self, tasks, validators):
+            results = []
+            for task, check in zip(tasks, validators):
+                if task['field'] == 'choice':
+                    self.fallback = True
+                    value = {'choice':1}
+                elif task['field'] == 'modifier':
+                    value = {'modifier':'Find an image of a golden chair.'}
+                else:
+                    if self.fallback:
+                        assert cfg['generation']['fallback_modifiers'][1] in task['prompt']
+                    value = {'coverage':'Y' if self.fallback else 'N', 'reason':'No gold visible'}
+                results.append(check(value))
+            return results
+    result = generate_grounded_modifiers(Generator(), cfg, ['a bowl'], [['a wooden chair']], ['chairs'])
+    assert result == [cfg['generation']['fallback_modifiers'][1]]
 
 
 def test_concise_clauses_preserve_target_and_logic():

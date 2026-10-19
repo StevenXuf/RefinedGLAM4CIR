@@ -31,6 +31,13 @@ generation:
   max_attempts: 6
   max_new_tokens: 128
   max_pixels: 200704
+  target_review_attempts: 6
+  shared_features_max_words: 40
+  max_target_images: 3  # Generation only; evaluation retains ALL available ground truths.
+  fallback_modifiers:  # Last attempt only; still requires individual visual review.
+    - Find an image of physical objects.
+    - Show a picture containing physical objects.
+    - Find a picture of physical objects.
   gpu_ids: [1]
   max_memory_gib: 40
 
@@ -112,3 +119,4 @@ visualization:
   image_size: 224
   wrap_width: 29
   dpi: 120
+  exclude_conditions: [capitalization]  # Still evaluated and saved in the metrics.

@@ -63,8 +63,11 @@ def process_df(cfg, logger):
                 found = search_image_path([name], cfg['image_storage_folders'], cfg['paths']['glam_root'])
                 cache[name] = str(found[0]) if found else None
         return [name for name in names if cache[name]]
+    declared_targets = df.id2.map(lambda value: len(split_ids(value))).sum()
     for column in ['id1', 'id2']:
         df[column] = df[column].map(resolve)
+    logger.info('Target annotations: declared links=%d available links=%d missing links=%d; partial target groups retained',
+                declared_targets, df.id2.map(len).sum(), declared_targets-df.id2.map(len).sum())
     df = df[df.id1.map(bool) & df.id2.map(bool)]
     valid = len(df)
     if cfg['remove_duplicates']:

@@ -53,7 +53,11 @@ def check_retrieval(cfg):
 def check_generation(cfg):
     cfg['subset']['query_limit'] = None
     queries, gallery = load_data(cfg)
-    queries = sorted(queries, key=lambda q: (len(q['target_ids']), q['csv_row']))[:3]
+    single = sorted((q for q in queries if len(q['target_ids']) == 1), key=lambda q: q['csv_row'])
+    multi = sorted((q for q in queries if len(q['target_ids']) > 1), key=lambda q: (len(q['target_ids']), q['csv_row']))
+    queries = single[:1] + multi[:1] + multi[-1:]
+    if len(queries) != 3:
+        raise ValueError('Generation verification requires single-target and multi-target triplets')
     cfg['subset']['query_limit'] = 3
     data = load_modifiers(cfg, queries, gallery)
     generator = TextGenerator(cfg)
@@ -63,6 +67,8 @@ def check_generation(cfg):
         for task, result in zip(tasks, results):
             if task.get('field') == 'description':
                 print('Image observation:', result, flush=True)
+            elif task.get('field') in {'modifier', 'shared_features'}:
+                print(task['field'] + ':', result, flush=True)
         return results
     generator.request_json_many = inspected_request
     generate_modifiers(cfg, queries, data, generator, logging.getLogger('verify'))
@@ -72,7 +78,7 @@ def check_generation(cfg):
         for kind, text in record['perturbations'].items():
             validate_perturbation(text, record['modifier'], kind, cfg, record['query_id'])
         print(record['query_id'], record['modifier'], record['perturbations'], flush=True)
-    print(f'PASS {cfg["generation"]["model"]}: {len(queries)} real CSV triplets, all targets, all corruption types', flush=True)
+    print(f'PASS {cfg["generation"]["model"]}: {len(queries)} real CSV triplets, at most {cfg["generation"]["max_target_images"]} sampled targets each, all corruption types', flush=True)
 
 
 if __name__ == '__main__':
@@ -86,6 +92,7 @@ if __name__ == '__main__':
     cfg = get_config(args.config, args.split)
     if args.gpu is not None:
         cfg['runtime']['gpu_id'] = args.gpu
+        cfg['generation']['gpu_ids'] = [args.gpu]
     cfg['subset']['query_limit'] = 3
     directory = ROOT / 'outputs' / 'checks'
     directory.mkdir(parents=True, exist_ok=True)
