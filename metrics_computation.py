@@ -7,10 +7,7 @@ import logging
 
 import torch
 import torch.nn.functional as F
-from torchmetrics.functional.retrieval import (retrieval_average_precision,
-                                              retrieval_hit_rate,
-                                              retrieval_recall,
-                                              retrieval_reciprocal_rank)
+from torchmetrics.retrieval import RetrievalHitRate, RetrievalMAP, RetrievalMRR, RetrievalRecall
 
 
 def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude_reference=True):
@@ -37,6 +34,7 @@ def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude
 
 
 def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=True):
+    """Compute unmodified TorchMetrics module outputs, grouping candidates by query."""
     if not rankings or len(rankings) != len(queries):
         raise ValueError('Need aligned, nonempty rankings and queries')
     if not top_ks or any(type(k) is not int or k < 1 for k in top_ks) or len(set(top_ks)) != len(top_ks):
@@ -44,8 +42,8 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
     if len(set(gallery_ids)) != len(gallery_ids):
         raise ValueError('Duplicate gallery IDs')
     available = set(gallery_ids)
-    per_query = []
-    for ranking, query in zip(rankings, queries):
+    predictions, targets, query_indexes = [], [], []
+    for query_index, (ranking, query) in enumerate(zip(rankings, queries)):
         if len(set(ranking)) != len(ranking):
             raise ValueError('Rankings must contain unique image IDs')
         eligible = available - {query['reference_id']} if exclude_reference else available
@@ -55,29 +53,23 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
         if not relevant:
             logging.getLogger(__name__).warning('Skipping %s: no available relevant targets', query['query_id'])
             continue
-        target = torch.tensor([name in relevant for name in ranking], dtype=torch.bool)
         # All metrics depend on order, not score magnitudes. Positive unique rank
         # scores preserve stable cosine ordering (including ties) without TorchMetrics
         # discarding relevant candidates whose actual cosine is zero or negative.
-        preds = torch.arange(len(ranking), 0, -1, dtype=torch.float32)
-        row = {'query_id': query['query_id']}
-        for k in top_ks:
-            row[f'Recall@{k}'] = 100 * retrieval_recall(preds, target, top_k=k).item()
-            row[f'HitRate@{k}'] = 100 * retrieval_hit_rate(preds, target, top_k=k).item()
-            row[f'MRR@{k}'] = 100 * retrieval_reciprocal_rank(preds, target, top_k=k).item()
-            # TorchMetrics AP@K divides by retrieved positives. Rescale to the
-            # attainable positive count so omitted relevant items are penalized.
-            found = target[:k].sum().item()
-            row[f'mAP@{k}'] = (100 * retrieval_average_precision(preds, target, top_k=k).item()
-                              * found / min(k, len(relevant)))
-        for family in ('Recall', 'MRR', 'mAP', 'HitRate'):
-            row[f'{family}_AVG'] = sum(row[f'{family}@{k}'] for k in top_ks) / len(top_ks)
-        per_query.append(row)
-    if not per_query:
+        predictions.append(torch.arange(len(ranking), 0, -1, dtype=torch.float32))
+        targets.append(torch.tensor([name in relevant for name in ranking], dtype=torch.bool))
+        query_indexes.append(torch.full((len(ranking),), query_index, dtype=torch.long))
+    if not predictions:
         raise ValueError('No queries have available relevant targets')
-    means = {key: sum(row[key] for row in per_query) / len(per_query)
-             for key in per_query[0] if key != 'query_id'}
-    return means, per_query
+    preds, target, indexes = map(torch.cat, (predictions, targets, query_indexes))
+    results = {}
+    for family, metric_class in (('Recall', RetrievalRecall), ('MRR', RetrievalMRR),
+                                 ('mAP', RetrievalMAP), ('HitRate', RetrievalHitRate)):
+        for k in top_ks:
+            metric = metric_class(top_k=k, aggregation='mean', empty_target_action='error')
+            results[f'{family}@{k}'] = 100 * metric(preds, target, indexes=indexes).item()
+        results[f'{family}_AVG'] = sum(results[f'{family}@{k}'] for k in top_ks) / len(top_ks)
+    return results
 
 
 def metric_deltas(clean, perturbed):

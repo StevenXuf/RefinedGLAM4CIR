@@ -8,6 +8,7 @@ import random
 from pathlib import Path
 
 import torch
+import torchmetrics
 from torch.utils.data import DataLoader
 
 import prompts
@@ -255,7 +256,7 @@ def evaluate(cfg, records, gallery, extractor=None, features=None, conditions=No
     selected = set(example_ids(cfg, records))
     metrics, examples = {}, {}
     for condition in conditions:
-        rows = []
+        condition_rankings, condition_queries = [], []
         examples[condition] = {}
         for start in range(0, len(records), cfg['evaluation']['query_batch_size']):
             batch = records[start:start+cfg['evaluation']['query_batch_size']]
@@ -266,15 +267,17 @@ def evaluate(cfg, records, gallery, extractor=None, features=None, conditions=No
             composed = query_features(extractor, reference_features[[start+i for i in indexes]], chosen, condition)
             rankings, scores = rank_queries(composed, gallery_features, gallery_ids, chosen,
                                              cfg['evaluation']['exclude_reference'])
-            _, details = compute_metrics(rankings, chosen, cfg['evaluation']['top_ks'], gallery_ids,
-                                         cfg['evaluation']['exclude_reference'])
-            rows.extend(details)
+            condition_rankings.extend(rankings)
+            condition_queries.extend(chosen)
             for i, record in enumerate(chosen):
                 if record['query_id'] in selected:
                     examples[condition][record['query_id']] = [
                         {'image_id': name, 'score': float(scores[i, gallery_index[name]])}
                         for name in rankings[i][:cfg['visualization']['top_k']]]
-        metrics[condition] = {k: sum(row[k] for row in rows)/len(rows) for k in rows[0] if k != 'query_id'}
+        metrics[condition] = compute_metrics(condition_rankings, condition_queries,
+            cfg['evaluation']['top_ks'], gallery_ids, cfg['evaluation']['exclude_reference'])
+        logging.getLogger('glam').info('%s: evaluated %s for %d queries against the complete available gallery',
+                                      cfg['split'], condition, len(condition_queries))
     return metrics, examples, extractor, features
 
 
@@ -298,7 +301,9 @@ def save_metrics(cfg, metrics, queries, gallery):
         'generation_model': cfg['generation']['models'][cfg['generation']['model']], 'retrieval': cfg['retrieval'],
         'generation_policy': GENERATION_POLICY,
         'generation_settings': cfg['generation'],
-        'evaluation': {**cfg['evaluation'], 'ap_normalization': 'min(K, available relevant targets)',
+        'evaluation': {**cfg['evaluation'], 'implementation': 'torchmetrics.retrieval module API',
+                       'torchmetrics_version': torchmetrics.__version__,
+                       'ap_normalization': 'unmodified RetrievalMAP(top_k=K); mean precision over positives retrieved within K',
                        'averages': 'arithmetic mean over configured top_ks for each metric'},
         'seed': cfg['seed'], 'perturbation': cfg['perturbation'],
         'metrics': metrics, 'delta_vs_unperturbed': {kind: metric_deltas(metrics['unperturbed'], values)
