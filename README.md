@@ -24,7 +24,7 @@ bash run_splits.sh
 PYTHON=/path/to/python bash run_splits.sh /path/to/config.yaml
 ```
 
-The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own baseline/unperturbed/perturbed metric table and saves the console output to that split's `run.log`. For an additional combined log, use `bash run_splits.sh > outputs/run.log 2>&1` after creating `outputs/`.
+The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own baseline/unperturbed/perturbed tables for recall, MRR, mAP, and hit rate and saves the console output to that split's `run.log`. For an additional combined log, use `bash run_splits.sh > outputs/run.log 2>&1` after creating `outputs/`.
 
 ## Data protocol
 
@@ -135,9 +135,9 @@ Every run evaluates these baselines on the same query cohort and complete availa
 | `unperturbed` | Normalized reference image + generated modifier |
 | Each corruption type | Normalized reference image + perturbed generated modifier |
 
-TorchMetrics computes Recall@K, HitRate@K, average precision, and reciprocal rank for each query; query values are macro-averaged into Recall@K, HitRate@K, mAP, and MRR. Recall@K divides retrieved positives by **all available relevant targets for that query**; HitRate@K measures whether at least one was retrieved. Missing target files are removed individually before generation and evaluation. Metrics also intersect target IDs with the actual gallery; a query with no available positives is skipped. Complete gallery rankings are required, so a target below a displayed top-5 list is never mistaken for a missing target.
+All metric families use the same cutoffs in `evaluation.top_ks` (by default 1, 5, 10, and 50). TorchMetrics computes recall, hit rate, and reciprocal rank at each cutoff. For mAP@K, the sum of precision at relevant ranks up to K is divided by **min(K, number of available relevant targets)**; the implementation rescales TorchMetrics' truncated average precision to this denominator. Query values are macro-averaged separately at every cutoff. MRR@K is zero when the first relevant result is below K. Recall@K divides retrieved positives by **all available relevant targets for that query**; HitRate@K measures whether at least one was retrieved. Missing target files are removed individually before generation and evaluation. Metrics also intersect target IDs with the actual gallery; a query with no available positives is skipped. Complete gallery rankings are required, so a target below a displayed top-5 list is never mistaken for a missing target.
 
-Real cosine scores determine rankings, with deterministic ties and the same reference-image exclusion in every condition, including image-only retrieval. Metrics receive positive rank-equivalent scores to preserve that ordering without TorchMetrics ignoring relevant candidates with zero/negative cosine scores. Figures continue to display actual cosine similarity. AVG is the mean of Recall@1/5/10/50. **Every computed metric, including all HitRate@K columns, is printed and saved.** All scores are percentages; deltas are measured against `unperturbed` in percentage points.
+Real cosine scores determine rankings, with deterministic ties and the same reference-image exclusion in every condition, including image-only retrieval. Metrics receive positive rank-equivalent scores to preserve that ordering without TorchMetrics ignoring relevant candidates with zero/negative cosine scores. Figures continue to display actual cosine similarity. Each family has its own arithmetic mean over the configured cutoffs: `Recall_AVG`, `MRR_AVG`, `mAP_AVG`, and `HitRate_AVG`. These are cutoff averages, not full-gallery scores. **Every computed metric is printed in its family's table and saved.** All scores are percentages; deltas are measured against `unperturbed` in percentage points.
 
 ## Outputs and figures
 

@@ -39,7 +39,7 @@ def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude
 def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=True):
     if not rankings or len(rankings) != len(queries):
         raise ValueError('Need aligned, nonempty rankings and queries')
-    if not top_ks or any(k < 1 for k in top_ks):
+    if not top_ks or any(type(k) is not int or k < 1 for k in top_ks) or len(set(top_ks)) != len(top_ks):
         raise ValueError('top_ks must contain positive integers')
     if len(set(gallery_ids)) != len(gallery_ids):
         raise ValueError('Duplicate gallery IDs')
@@ -60,13 +60,18 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
         # scores preserve stable cosine ordering (including ties) without TorchMetrics
         # discarding relevant candidates whose actual cosine is zero or negative.
         preds = torch.arange(len(ranking), 0, -1, dtype=torch.float32)
-        row = {'query_id': query['query_id'],
-               'MRR': 100 * retrieval_reciprocal_rank(preds, target).item(),
-               'mAP': 100 * retrieval_average_precision(preds, target).item()}
+        row = {'query_id': query['query_id']}
         for k in top_ks:
             row[f'Recall@{k}'] = 100 * retrieval_recall(preds, target, top_k=k).item()
             row[f'HitRate@{k}'] = 100 * retrieval_hit_rate(preds, target, top_k=k).item()
-        row['AVG'] = sum(row[f'Recall@{k}'] for k in top_ks) / len(top_ks)
+            row[f'MRR@{k}'] = 100 * retrieval_reciprocal_rank(preds, target, top_k=k).item()
+            # TorchMetrics AP@K divides by retrieved positives. Rescale to the
+            # attainable positive count so omitted relevant items are penalized.
+            found = target[:k].sum().item()
+            row[f'mAP@{k}'] = (100 * retrieval_average_precision(preds, target, top_k=k).item()
+                              * found / min(k, len(relevant)))
+        for family in ('Recall', 'MRR', 'mAP', 'HitRate'):
+            row[f'{family}_AVG'] = sum(row[f'{family}@{k}'] for k in top_ks) / len(top_ks)
         per_query.append(row)
     if not per_query:
         raise ValueError('No queries have available relevant targets')

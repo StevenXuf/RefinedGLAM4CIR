@@ -280,15 +280,15 @@ def evaluate(cfg, records, gallery, extractor=None, features=None, conditions=No
 
 def print_metrics(cfg, metrics, count, gallery):
     available = set(next(iter(metrics.values())))
-    preferred = [f'Recall@{k}' for k in cfg['evaluation']['top_ks']] + [f'HitRate@{k}' for k in cfg['evaluation']['top_ks']] + ['mAP', 'MRR', 'AVG']
-    columns = [name for name in preferred if name in available] + sorted(available - set(preferred))
     print(f'\n{cfg["split"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.')
-    print('| Condition | ' + ' | '.join(columns) + ' |')
-    print('|---|' + '---:|' * len(columns))
-    for condition, values in metrics.items():
-        if set(values) != available:
-            raise ValueError('All conditions must report the same metric columns')
-        print('| ' + condition + ' | ' + ' | '.join(f'{values[c]:.2f}' for c in columns) + ' |', flush=True)
+    for family in ('Recall', 'MRR', 'mAP', 'HitRate'):
+        columns = [f'{family}@{k}' for k in cfg['evaluation']['top_ks']] + [f'{family}_AVG']
+        print('\n| Condition | ' + ' | '.join(columns) + ' |')
+        print('|---|' + '---:|' * len(columns))
+        for condition, values in metrics.items():
+            if set(values) != available or not set(columns) <= available:
+                raise ValueError('All conditions must report the same cutoff metrics and averages')
+            print('| ' + condition + ' | ' + ' | '.join(f'{values[c]:.2f}' for c in columns) + ' |', flush=True)
 
 
 def save_metrics(cfg, metrics, queries, gallery):
@@ -298,6 +298,8 @@ def save_metrics(cfg, metrics, queries, gallery):
         'generation_model': cfg['generation']['models'][cfg['generation']['model']], 'retrieval': cfg['retrieval'],
         'generation_policy': GENERATION_POLICY,
         'generation_settings': cfg['generation'],
+        'evaluation': {**cfg['evaluation'], 'ap_normalization': 'min(K, available relevant targets)',
+                       'averages': 'arithmetic mean over configured top_ks for each metric'},
         'seed': cfg['seed'], 'perturbation': cfg['perturbation'],
         'metrics': metrics, 'delta_vs_unperturbed': {kind: metric_deltas(metrics['unperturbed'], values)
             for kind, values in metrics.items() if kind != 'unperturbed'}}
