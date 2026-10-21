@@ -1,4 +1,4 @@
-# PerturbedCIR4GLAM
+# PerturbedGLAM4CIR
 
 This project measures how everyday typing and editing mistakes affect composed image retrieval on GLAM. A multimodal language model observes a reference image and its annotated targets, generates a short modification request, and selects explicit textual corruptions. A retrieval encoder combines the reference image and text and ranks the same complete available gallery for every condition.
 
