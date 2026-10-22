@@ -1,4 +1,4 @@
-"""Multi-positive macro recall, hit rate, mAP, and MRR with reference masking.
+"""Multi-positive macro recall, mAP, and MRR with reference masking.
 
 Recall follows the original torchmetrics RetrievalRecall definition: recovered
 relevant images / all relevant images, averaged over queries, reported in percent.
@@ -8,7 +8,7 @@ import logging
 
 import torch
 import torch.nn.functional as F
-from torchmetrics.retrieval import RetrievalHitRate, RetrievalMAP, RetrievalMRR, RetrievalRecall
+from torchmetrics.retrieval import RetrievalMAP, RetrievalMRR, RetrievalRecall
 
 
 def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude_reference=True):
@@ -82,7 +82,6 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
         ('Recall', RetrievalRecall),
         ('MRR', RetrievalMRR),
         ('mAP', RetrievalMAP),
-        ('HitRate', RetrievalHitRate),
     ):
         for k in top_ks:
             metric = metric_class(top_k=k, aggregation='mean', empty_target_action='error')

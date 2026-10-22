@@ -448,7 +448,7 @@ def print_metrics(cfg, metrics, count, gallery):
     print(
         f'\n{cfg["split"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.'
     )
-    for family in ('Recall', 'MRR', 'mAP', 'HitRate'):
+    for family in ('Recall', 'MRR', 'mAP'):
         columns = [f'{family}@{k}' for k in cfg['evaluation']['top_ks']] + [f'{family}_AVG']
         print('\n| Condition | ' + ' | '.join(columns) + ' |')
         print('|---|' + '---:|' * len(columns))
