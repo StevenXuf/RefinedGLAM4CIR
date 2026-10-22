@@ -445,20 +445,20 @@ def evaluate(
 
 def print_metrics(cfg, metrics, count, gallery):
     available = set(next(iter(metrics.values())))
-    print(
+    lines = [
         f'\n{cfg["split"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.'
-    )
+    ]
     for family in ('Recall', 'MRR', 'mAP'):
         columns = [f'{family}@{k}' for k in cfg['evaluation']['top_ks']] + [f'{family}_AVG']
-        print('\n| Condition | ' + ' | '.join(columns) + ' |')
-        print('|---|' + '---:|' * len(columns))
+        lines.append('\n| Condition | ' + ' | '.join(columns) + ' |')
+        lines.append('|---|' + '---:|' * len(columns))
         for condition, values in metrics.items():
             if set(values) != available or not set(columns) <= available:
                 raise ValueError('All conditions must report the same cutoff metrics and averages')
-            print(
-                '| ' + condition + ' | ' + ' | '.join(f'{values[c]:.2f}' for c in columns) + ' |',
-                flush=True,
+            lines.append(
+                '| ' + condition + ' | ' + ' | '.join(f'{values[c]:.2f}' for c in columns) + ' |'
             )
+    logging.getLogger('glam').info('\n'.join(lines))
 
 
 def save_metrics(cfg, metrics, queries, gallery):
@@ -516,12 +516,12 @@ def main():
     )
     args = parser.parse_args()
     cfg = get_config(args.config, args.split)
-    logger = setup_logging()
+    logger = setup_logging(cfg)
     seed_everything(cfg)
 
     queries, gallery = load_data(cfg, logger)
     if args.stage == 'data':
-        print(
+        logger.info(
             f'{cfg["split"]}: {len(queries)} valid queries; {len(gallery)}/{gallery.declared_size} available gallery images'
         )
         return
@@ -536,10 +536,9 @@ def main():
     if args.stage in {'all', 'generate'}:
         generator = generate_modifiers(cfg, queries, data, logger=logger)
     if args.stage == 'all':
-        metrics, _, extractor, features = evaluate(
+        metrics, examples, extractor, features = evaluate(
             cfg, data['records'], gallery, conditions=[*BASELINES, 'unperturbed']
         )
-        save_metrics(cfg, metrics, queries, gallery)
     if args.stage in {'all', 'perturb'}:
         generator = perturb_modifiers(cfg, queries, data, generator, logger)
 
@@ -553,14 +552,20 @@ def main():
             set(cfg['perturbation']['types']) - r['perturbations'].keys() for r in data['records']
         ):
             raise ValueError('Generate and perturb every query before paired retrieval')
-        metrics, examples, extractor, features = evaluate(
+        final_metrics, final_examples, extractor, features = evaluate(
             cfg,
             data['records'],
             gallery,
             extractor,
             features,
+            conditions=cfg['perturbation']['types'] if args.stage == 'all' else None,
             examples_only=args.stage == 'visualize',
         )
+        if args.stage == 'all':
+            metrics.update(final_metrics)
+            examples.update(final_examples)
+        else:
+            metrics, examples = final_metrics, final_examples
         if args.stage != 'visualize':
             save_metrics(cfg, metrics, queries, gallery)
         if args.stage in {'all', 'visualize'}:
@@ -570,4 +575,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception:
+        logging.getLogger('glam').exception('Pipeline failed')
+        raise SystemExit(1)

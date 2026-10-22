@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import random
+import sys
 from pathlib import Path
 
 import yaml
@@ -64,10 +65,20 @@ def get_config(path=None, split=None):
     return cfg
 
 
-def setup_logging():
+def setup_logging(cfg):
+    """Write console messages and one fresh log for the selected split."""
+    path = output_path(cfg, 'run.log')
+    path.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
-        level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s', force=True
+        level=logging.INFO,
+        format='%(asctime)s | %(levelname)s | %(message)s',
+        handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(path, mode='w')],
+        force=True,
     )
+    for previous in path.parent.glob('run*.log'):
+        if previous != path:
+            previous.unlink()
+    logging.captureWarnings(True)
     return logging.getLogger('glam')
 
 

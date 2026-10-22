@@ -1,12 +1,13 @@
 """Three seeded CSV-triplet comparisons with equal square axes and centered wrapped text."""
 
 import argparse
+import logging
 from textwrap import fill
 
 from PIL import Image, ImageOps
 
 from loading_data import SPLITS, load_image
-from utils import ROOT, get_config, output_path
+from utils import ROOT, get_config, output_path, setup_logging
 
 
 def display_image(path, size):
@@ -145,7 +146,7 @@ def visualize(cfg, records, gallery, retrieval):
         path = output_path(cfg, f'figures/example_{item["csv_row"]}.png')
         fig.savefig(path, dpi=cfg['visualization']['dpi'], facecolor=fig.get_facecolor())
         plt.close(fig)
-        print(f'Saved {path}', flush=True)
+        logging.getLogger('glam').info('Saved %s', path)
 
 
 if __name__ == '__main__':
@@ -156,6 +157,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', choices=SPLITS, required=True)
     args = parser.parse_args()
     cfg = get_config(args.config, args.split)
+    setup_logging(cfg)
     queries, gallery = load_data(cfg)
     data = load_modifiers(cfg, queries, gallery)
     _, examples, _, _ = evaluate(cfg, data['records'], gallery, examples_only=True)
