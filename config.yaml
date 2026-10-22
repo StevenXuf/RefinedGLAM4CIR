@@ -31,13 +31,32 @@ generation:
   max_attempts: 6
   max_new_tokens: 128
   max_pixels: 200704
-  target_review_attempts: 6
+  target_review_attempts: 6  # Final attempt starts category search; rejected choices are excluded.
   shared_features_max_words: 40
   max_target_images: 3  # Generation only; evaluation retains ALL available ground truths.
-  fallback_modifiers:  # Last attempt only; still requires individual visual review.
-    - Find an image of physical objects.
-    - Show a picture containing physical objects.
-    - Find a picture of physical objects.
+  fallback_modifiers:  # Last repair only; still reviewed against every sampled target.
+    - Show me tools with metal parts.
+    - Show me some tools, please.
+    - Show me some clothing, please.
+    - Show me some jewelry, please.
+    - Show me some sculptures, please.
+    - Show me some clay objects.
+    - Show me some drawings, please.
+    - Show me some printed pictures.
+    - Show me some coins, please.
+    - Show me some containers, please.
+    - Show me some textiles, please.
+    - Show me some furniture, please.
+    - Show me buildings in a picture.
+    - Show me objects with wooden parts.
+    - Show me a carved mask.
+    - Show me bones with visible surface detail.
+    - Show me some musical instruments.
+    - Show me some vehicles, please.
+    - Show me some people, please.
+    - Show me drawings of body parts.
+    - Show me some stone objects.
+    - Show me some objects, please.
   gpu_ids: [1]
   max_memory_gib: 40
 

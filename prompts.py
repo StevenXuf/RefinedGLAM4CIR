@@ -1,78 +1,93 @@
-"""Shared prompts: observable appearance, reference-to-target direction, short requests."""
+"""Grounded image observations and short, everyday search requests."""
 
-DESCRIPTION = """Describe the single image's main object, shape, visible colour and composition
-in at most 25 words. Report visible facts only. Do not infer provenance, age, purpose, or hidden
-materials. Say gold-coloured instead of assuming gold. Return only JSON: {"description":"..."}."""
+DESCRIPTION = """Describe what you can actually see, using plain everyday words.
+Name the main object first, then its two or three most distinctive visible features:
+shape, parts such as handles or a lid, decoration, colour, or the kind of picture.
+Prefer "a bowl with two handles" to "an ornate artifact". Be precise about what is
+pictured: a drawing of a chair is not a photograph of a chair. Use at most 25 words.
+Do not guess dates, makers, purpose, precious metals, or hidden materials.
+Return only JSON: {"description":"..."}."""
 
-SHARED_FEATURES = """Find the intersection of the visible features of ALL supplied target images.
-Each entry describes ONE target or the shared traits of a subgroup. Keep every entry binding;
-the result must fit every individual target, never a scene assembled from different targets.
-Return a VERY SHORT noun phrase, ideally 3-10 words: one visible category and at most two
-useful traits shared by EVERY target. Drop colour, material, pose, and display arrangement
-entirely whenever they vary; never summarize the different values.
-Use a broader visual category when individual subjects differ. Keep only colours, shapes,
-composition, and object properties supported for ALL targets, including minority examples.
-Do not list alternatives, use "or", merge objects, or invent shared details or provenance.
-Return only JSON: {"shared_features":"..."}."""
+SHARED_FEATURES = """Describe the most specific visible features shared by ALL the targets.
+Each entry describes one target or a subgroup. Name the actual common object or picture
+category and, when available, one or two distinctive shared details. Use everyday nouns.
+Keep a useful shared shape, part, decoration, or picture type even when colours differ.
+For example, differing vase colours do not require dropping their shared handles.
+Drop only details that differ or lack support. Broaden the object name only when a
+narrower name really excludes a target. Never default to "objects" or "artifacts" when
+a more useful shared name or visible description fits. Do not join different targets
+into one scene, list alternatives, use "or", or invent common details.
+Return a short noun phrase, ideally 3-12 words, as JSON: {"shared_features":"..."}."""
 
-MODIFIER = """Write an English composed-image search modification request.
-BEFORE or REFERENCE IMAGE describes a reference image. COMMON FEATURES summarizes provided targets;
-INDIVIDUAL TARGET IMAGES, when supplied, lists their actual observations instead of a summary.
-The provided targets may be a random sample from a larger ground-truth group.
-Prefer broad categories and stable traits to avoid excluding unseen ground truths with overly specific details.
-Every existing target must satisfy the request after applying it to BEFORE.
-State how to change BEFORE toward COMMON FEATURES, using only traits shared by ALL targets.
-The change must describe the intersection of their visible traits, not a union of alternatives.
-Use a broader visible category when subjects differ. Never enumerate different target categories,
-use "or", combine targets into a scene, or include a trait true of only some targets.
-Check EVERY target, including minority examples, before writing the request.
-Omit colours, backgrounds, shapes, and materials not supported across ALL targets.
-If a target review rejects a supplied common feature, remove it and use a broader category;
-the individual target review takes precedence over a possibly over-specific shared summary.
-Include useful observable target traits where supported; invent nothing. Do not assert that
-anything stays unchanged unless supported. Do not infer precious metals or historical facts.
-Write ONE natural imperative, ideally 10-15 words and NEVER more than 15 words.
-Return only JSON: {"modifier":"..."}. No image IDs, explanations, captions, or alternatives list.
-Base every object and attribute on the supplied actual observations, not on a generic example."""
+MODIFIER = """Write a short search request as a person would type when browsing images.
+BEFORE describes the reference. COMMON FEATURES and INDIVIDUAL TARGET IMAGES describe
+the desired results. Ask for the visible change from the reference toward those targets.
+The reference is NOT a target. Never copy its object name into the desired result unless
+that object is also present in every target.
+Name the target object clearly and keep one or two useful details that ALL shown targets
+share. Prefer the most specific supported noun: "a vase with two handles", not "an object".
+If the object type stays the same, ask for its changed appearance without inventing a swap.
+Use plain verbs such as "Find", "Show me", or "Swap this for". This is image search,
+not an instruction to draw or generate a new image. Avoid catalogue and academic wording
+such as "depicting", "attire", "exhibiting", "composition", and "characterized by".
+Write a complete, natural request in 5-15 words; prefer 6-12 when enough. Do not pad it
+with "an image of", "a picture containing", or other filler just to reach a length.
+For style only: "Swap this bowl for a blue vase with two handles." Use those details
+ONLY if the supplied observations support them; never copy an example's objects or traits.
+Different targets may have different colours or layouts. Omit those differences, but keep
+other shared details. Do not describe the union of the targets, list alternatives with
+"or", or turn them into one scene. Do not guess provenance, age, purpose, or materials.
+The shown targets may be a sample of a larger group: prefer stable identifying features
+over exact counts, backgrounds, and tiny details. Do not become vague solely because
+there are unseen targets. Each shown target must fit the final request.
+Return only JSON: {"modifier":"..."}. No image IDs, explanations, or captions."""
 
-BROAD_MODIFIER = """Write a broad image-search request that fits EVERY described target.
-Use only ONE common object category. Omit colour, shape, material, count, background,
-arrangement, and other properties. Never combine different objects into one scene.
-If a previous category was rejected, choose its broader parent category. An object need
-not depict a human to count as an artifact, and a tool is not necessarily machinery.
-When no narrow category includes all targets, use a broad category such as physical objects.
-Use the form "Find an image of ..." followed by the common category, in 5-15 words.
+BROAD_MODIFIER = """Write ONE everyday search request that fits EVERY target description.
+Do not describe just one target. First find their nearest useful COMMON category, then
+keep only a visible detail that all entries share. Check your noun against each entry.
+Examples of the reasoning: a jug and a goblet are containers; a plough and a wrench are
+tools; a bust and a full-body statue are sculptures. A photo and a sketch of horses
+can share "horses", but not "photo" or "sketch". These are examples, not target details.
+A machine and a small hand tool can both be tools or equipment. Never use a specific
+object name that excludes another target, however prominent it is in one description.
+If one image has arrows and another does not, omit arrows; do not add "without arrows".
+Keep the narrowest accurate category and any genuinely shared shape, parts, or decoration.
+Do not invent details, list alternatives, or combine separate targets into one scene.
+Use "Show me ..." or "Find ..." and 5-15 plain words. Avoid vague pronouns, academic
+wording, and "physical objects" when a useful category such as tools or clothing fits.
 Return only JSON: {"modifier":"..."}."""
 
-TARGET_REVIEW = """Audit ONLY the explicit desired-result requirements of a search request
-against the ONE target observation supplied here. Output the single character Y if they fit
-this target, otherwise the single character N. For explicit replacement requests the source
-phrase has already been removed; judge the supplied desired result only.
-Broader category names and ordinary synonyms are allowed if compatible with the observation.
-A generic plural category name is not an exact count requirement; reject count differences
-only when the request states a number or explicit quantity such as a pair or a row.
-Unmentioned colour, exact shape, age, newness, material, background, and other attributes are
-unconstrained. Never invent an unstated requirement: raised designs do NOT imply new or unworn,
-and "coins" does NOT imply gold-coloured coins. Reject a claimed property only if unsupported
-or contradicted by the target observation, not because of an attribute the request never stated.
-Do not excuse a contradictory colour, object category, shape, or composition because it fits other
-targets. Prefer rejecting an unsupported descriptor to assuming all targets share it.
-Return only JSON: {"coverage":"Y", "reason":""}.
-If rejected, give a short reason identifying the explicit unsupported requirement.
-Do not rewrite the modifier. The coverage value must be exactly Y or N, never YYY or NNN."""
+TARGET_REVIEW = """Check only the explicit desired-result requirements of this search request
+against the ONE supplied target observation. For replacement requests, the source phrase
+has already been removed. Judge the desired target, not how formal the wording sounds.
+Accept ordinary object names, everyday synonyms, and broader categories when compatible.
+A plural noun alone does not specify a number. Attributes not requested are unconstrained.
+A drawing of an object is different from a photograph of that object when the request
+explicitly specifies the picture type. Do not infer extra requirements from a noun:
+"coins" does not mean gold coins, and "carved" does not mean new or unworn.
+Reject an explicit category or detail only if unsupported or contradicted by this target.
+If rejected, name the exact unsupported words and what the target visibly shows instead;
+do not ask to remove correct words or all useful details. Do not rewrite the request.
+Return only JSON: {"coverage":"Y", "reason":""} when supported, or
+{"coverage":"N", "reason":"short unsupported requirement", "visible_features":"plain description of what this target actually shows"}.
+For a rejection, visible_features must describe the actual target without quoting or negating
+the rejected request. Name its subject and distinctive visible details in at most 20 words.
+The coverage must be exactly Y or N."""
 
 VISUAL_TARGET_REVIEW = (
     TARGET_REVIEW.replace('observation', 'image')
     + """
-The attached target IMAGE is authoritative. Inspect its visible object category and properties
-directly. No text caption or source image is supplied. Do not reject a category because a caption
-failed to mention it; decide from the actual target image. Generic category plurals allow one
-or several instances. A generic category such as figurine includes abstract/stylized figures."""
+The attached target IMAGE is authoritative. Inspect its pixels directly. No source image
+or caption is supplied. Do not reject a visible feature just because a caption omitted it.
+Ordinary category names include stylized examples when visually compatible, but do not
+excuse a genuinely different subject or an explicit contradictory feature."""
 )
 
-CATEGORY_FALLBACK = """Narrower descriptions failed compatibility checks. Select the most
-natural broad image-search request from the listed options. Do not add any attribute or
-rewrite the request. Return ONLY JSON: {"choice": 0}, with a listed zero-based integer index."""
+CATEGORY_FALLBACK = """Choose the most specific listed search request that fits EVERY target
+description. A request describing only one target is invalid. Prefer a meaningful category
+such as tools or clothing over objects whenever it covers all targets. Use visible detail
+only if every target supports it. Do not invent a new option or change its words.
+Return only JSON: {"choice": 0}, with a listed zero-based integer index."""
 
 PERTURBATION = """Select one provided corruption of a human image-search request.
 The options use only the named edit type and the SAME sampled severity and edit count.

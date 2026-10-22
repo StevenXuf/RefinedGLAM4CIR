@@ -218,7 +218,7 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
             {
                 'field': 'description',
                 'system': prompts.DESCRIPTION,
-                'prompt': 'Identify the main object, visible colour and shape in one short phrase. Return ONLY JSON with description, ideally 15-25 words. Finish the JSON object.',
+                'prompt': 'Name the main object and its distinctive visible parts, shape, decoration, or picture type in everyday words. Return ONLY JSON with description, at most 25 words. Finish the JSON object.',
                 'images': [load_image(path)],
             }
             for _, path in batch
@@ -242,7 +242,7 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
 
         if re.search(r'\bor\b', text, re.I):
             raise ValueError(
-                'Use one short broader category. DROP differing layout/colour clauses completely; no or alternatives.'
+                'Keep the most specific shared object name and supported details. Drop only differing attributes; no or alternatives.'
             )
         return text.strip()
 
