@@ -1,4 +1,5 @@
 """Three seeded CSV-triplet comparisons with equal square axes and centered wrapped text."""
+
 import argparse
 from textwrap import fill
 
@@ -9,29 +10,50 @@ from utils import ROOT, get_config, output_path
 
 
 def display_image(path, size):
-    return ImageOps.pad(load_image(path), (size, size), method=Image.Resampling.LANCZOS, color='white')
+    return ImageOps.pad(
+        load_image(path), (size, size), method=Image.Resampling.LANCZOS, color='white'
+    )
 
 
 def retrieval_caption(ax, rank, score):
     from matplotlib.offsetbox import AnchoredOffsetbox, HPacker, TextArea
-    caption = HPacker(children=[
-        TextArea(f'Top-{rank} ', textprops={'color': 'black', 'fontsize': 9}),
-        TextArea(f'({score:.3f})', textprops={'color': '#176b44', 'fontsize': 9}),
-    ], align='baseline', pad=0, sep=0)
-    ax.add_artist(AnchoredOffsetbox(loc='lower center', child=caption, frameon=False,
-        bbox_to_anchor=(.5, 1), bbox_transform=ax.transAxes, pad=0, borderpad=.8))
+
+    caption = HPacker(
+        children=[
+            TextArea(f'Top-{rank} ', textprops={'color': 'black', 'fontsize': 9}),
+            TextArea(f'({score:.3f})', textprops={'color': '#176b44', 'fontsize': 9}),
+        ],
+        align='baseline',
+        pad=0,
+        sep=0,
+    )
+    ax.add_artist(
+        AnchoredOffsetbox(
+            loc='lower center',
+            child=caption,
+            frameon=False,
+            bbox_to_anchor=(0.5, 1),
+            bbox_transform=ax.transAxes,
+            pad=0,
+            borderpad=0.8,
+        )
+    )
 
 
 def figure_conditions(cfg, item):
-    return [('reference_original', item['original_modifier']), ('unperturbed', item['modifier'])] + [
-        (kind, item['perturbations'][kind]) for kind in cfg['perturbation']['types']]
+    return [
+        ('reference_original', item['original_modifier']),
+        ('unperturbed', item['modifier']),
+    ] + [(kind, item['perturbations'][kind]) for kind in cfg['perturbation']['types']]
 
 
 def visualize(cfg, records, gallery, retrieval):
     import matplotlib
+
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from main import example_ids
+
     by_id = {g['image_id']: g['path'] for g in gallery}
     selected = set(example_ids(cfg, records))
     directory = output_path(cfg, 'figures')
@@ -42,8 +64,12 @@ def visualize(cfg, records, gallery, retrieval):
         if item['query_id'] not in selected:
             continue
         conditions = figure_conditions(cfg, item)
-        fig, axes = plt.subplots(len(conditions), top_k+3, squeeze=False,
-            figsize=(2.35*(top_k+3), 2.85*len(conditions)))
+        fig, axes = plt.subplots(
+            len(conditions),
+            top_k + 3,
+            squeeze=False,
+            figsize=(2.35 * (top_k + 3), 2.85 * len(conditions)),
+        )
         fig.set_facecolor('#edf1f6')
         for row, (condition, modifier) in enumerate(conditions):
             for ax in axes[row]:
@@ -53,21 +79,47 @@ def visualize(cfg, records, gallery, retrieval):
                 ax.set_yticks([])
                 for spine in ax.spines.values():
                     spine.set_visible(False)
-            cards = [(axes[row, 0], item['reference_path'], 'Reference'),
-                     (axes[row, 1], item['target_paths'][0], f'Target example ({len(item["target_ids"])} relevant)')]
+            cards = [
+                (axes[row, 0], item['reference_path'], 'Reference'),
+                (
+                    axes[row, 1],
+                    item['target_paths'][0],
+                    f'Target example ({len(item["target_ids"])} relevant)',
+                ),
+            ]
             for ax, path, title in cards:
                 ax.imshow(display_image(path, size))
                 ax.set_title(fill(title, 22), loc='center', fontsize=9, pad=8)
             text_ax = axes[row, 2]
-            label = {'reference_original': 'Original modifier', 'unperturbed': 'Generated modifier'}.get(
-                condition, condition.replace('_', ' ').title())
-            text_ax.text(.5, .78, fill(label, 24), ha='center', va='center',
-                         transform=text_ax.transAxes, fontsize=10, fontweight='bold', color='#174675')
-            modifier_text = text_ax.text(.5, .45, fill(modifier, cfg['visualization']['wrap_width']), ha='center', va='center',
-                         transform=text_ax.transAxes, multialignment='center', fontsize=9, linespacing=1.4)
+            label = {
+                'reference_original': 'Original modifier',
+                'unperturbed': 'Generated modifier',
+            }.get(condition, condition.replace('_', ' ').title())
+            text_ax.text(
+                0.5,
+                0.78,
+                fill(label, 24),
+                ha='center',
+                va='center',
+                transform=text_ax.transAxes,
+                fontsize=10,
+                fontweight='bold',
+                color='#174675',
+            )
+            modifier_text = text_ax.text(
+                0.5,
+                0.45,
+                fill(modifier, cfg['visualization']['wrap_width']),
+                ha='center',
+                va='center',
+                transform=text_ax.transAxes,
+                multialignment='center',
+                fontsize=9,
+                linespacing=1.4,
+            )
             modifier_text.set_in_layout(False)
             for rank, hit in enumerate(retrieval[condition][item['query_id']][:top_k], 1):
-                ax = axes[row, rank+2]
+                ax = axes[row, rank + 2]
                 ax.imshow(display_image(by_id[hit['image_id']], size))
                 relevant = hit['image_id'] in item['target_ids']
                 retrieval_caption(ax, rank, hit['score'])
@@ -76,17 +128,21 @@ def visualize(cfg, records, gallery, retrieval):
                         spine.set_visible(True)
                         spine.set_color('#20945d')
                         spine.set_linewidth(2.5)
-        fig.tight_layout(rect=(.005, .005, .995, .995), pad=.6, h_pad=2.0, w_pad=.6)
+        fig.tight_layout(rect=(0.005, 0.005, 0.995, 0.995), pad=0.6, h_pad=2.0, w_pad=0.6)
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
         for ax, (_, modifier) in zip(axes[:, 2], conditions):
             text = ax.texts[1]
             width = cfg['visualization']['wrap_width']
             # Fit long modifier text within the fixed-size panel.
-            while width > 1 and text.get_window_extent(renderer).width > .94 * ax.get_window_extent(renderer).width:
+            while (
+                width > 1
+                and text.get_window_extent(renderer).width
+                > 0.94 * ax.get_window_extent(renderer).width
+            ):
                 width -= 1
                 text.set_text(fill(modifier, width))
-        path = directory / f'query_{item["csv_row"]}.png'
+        path = output_path(cfg, f'figures/example_{item["csv_row"]}.png')
         fig.savefig(path, dpi=cfg['visualization']['dpi'], facecolor=fig.get_facecolor())
         plt.close(fig)
         print(f'Saved {path}', flush=True)
@@ -94,6 +150,7 @@ def visualize(cfg, records, gallery, retrieval):
 
 if __name__ == '__main__':
     from main import evaluate, load_data, load_modifiers
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
     parser.add_argument('--split', choices=SPLITS, required=True)

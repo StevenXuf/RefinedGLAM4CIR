@@ -1,4 +1,5 @@
 """Resolve the original GLAM CSV pipeline against existing local images only."""
+
 import logging
 from pathlib import Path
 
@@ -49,32 +50,50 @@ def process_df(cfg, logger):
     df = pd.read_csv(source, dtype=str).fillna('')
     required = {'id1', 'id2', 'query', 'partition'}
     if not required <= set(df.columns):
-        raise ValueError(f'{source} must contain triplet columns {sorted(required)}; image metadata cannot define query pairs')
+        raise ValueError(
+            f'{source} must contain triplet columns {sorted(required)}; image metadata cannot define query pairs'
+        )
     if not (df.partition == cfg['split']).any():
-        raise ValueError(f'No {cfg["split"]} triplets in {source}. Provide existing id1/id2/query/partition annotations. db_processed.txt only defines galleries.')
+        raise ValueError(
+            f'No {cfg["split"]} triplets in {source}. Provide existing id1/id2/query/partition annotations. db_processed.txt only defines galleries.'
+        )
     df['csv_row'] = df.index
     df = df[df.partition == cfg['split']].copy()
     initial = len(df)
     cache = {}
+
     def resolve(value):
         names = split_ids(value)
         for name in names:
             if name not in cache:
-                found = search_image_path([name], cfg['image_storage_folders'], cfg['paths']['glam_root'])
+                found = search_image_path(
+                    [name], cfg['image_storage_folders'], cfg['paths']['glam_root']
+                )
                 cache[name] = str(found[0]) if found else None
         return [name for name in names if cache[name]]
+
     declared_targets = df.id2.map(lambda value: len(split_ids(value))).sum()
     for column in ['id1', 'id2']:
         df[column] = df[column].map(resolve)
-    logger.info('Target annotations: declared links=%d available links=%d missing links=%d; partial target groups retained',
-                declared_targets, df.id2.map(len).sum(), declared_targets-df.id2.map(len).sum())
+    logger.info(
+        'Target annotations: declared links=%d available links=%d missing links=%d; partial target groups retained',
+        declared_targets,
+        df.id2.map(len).sum(),
+        declared_targets - df.id2.map(len).sum(),
+    )
     df = df[df.id1.map(bool) & df.id2.map(bool)]
     valid = len(df)
     if cfg['remove_duplicates']:
         keys = df.apply(lambda row: (tuple(sorted(row.id1)), tuple(sorted(row.id2))), axis=1)
         df = df.loc[~keys.duplicated()]
-    logger.info('Queries: split=%s initial=%d missing-image rows=%d duplicate rows=%d valid=%d',
-                cfg['split'], initial, initial - valid, valid - len(df), len(df))
+    logger.info(
+        'Queries: split=%s initial=%d missing-image rows=%d duplicate rows=%d valid=%d',
+        cfg['split'],
+        initial,
+        initial - valid,
+        valid - len(df),
+        len(df),
+    )
     logger.info('Missing image IDs: %d', sum(v is None for v in cache.values()))
     limit = cfg['subset'].get('query_limit')
     if limit is not None and len(df) > limit:
@@ -84,24 +103,34 @@ def process_df(cfg, logger):
 
 class GLAMQueryDataset(Dataset):
     """One query per CSV row, first valid reference, all existing relevant targets."""
+
     def __init__(self, cfg, logger=None):
         self.cfg = cfg
         logger = logger or logging.getLogger(__name__)
         self.df = process_df(cfg, logger)
         self.records = []
         for row in self.df.to_dict('records'):
-            reference = search_image_path(row['id1'][:1], cfg['image_storage_folders'], cfg['paths']['glam_root'])[0]
-            targets = search_image_path(row['id2'], cfg['image_storage_folders'], cfg['paths']['glam_root'])
+            reference = search_image_path(
+                row['id1'][:1], cfg['image_storage_folders'], cfg['paths']['glam_root']
+            )[0]
+            targets = search_image_path(
+                row['id2'], cfg['image_storage_folders'], cfg['paths']['glam_root']
+            )
             # A reference cannot be both masked and relevant in the same evaluation.
             targets = [p for p in targets if p.stem != reference.stem]
             if not targets:
-                raise ValueError(f"CSV row {row['csv_row']} has no non-reference targets")
-            self.records.append({
-                'query_id': f"{cfg['split']}:{row['csv_row']}", 'csv_row': row['csv_row'],
-                'reference_id': reference.stem, 'reference_path': str(reference),
-                'target_ids': [p.stem for p in targets], 'target_paths': [str(p) for p in targets],
-                'original_modifier': row['query'],
-            })
+                raise ValueError(f'CSV row {row["csv_row"]} has no non-reference targets')
+            self.records.append(
+                {
+                    'query_id': f'{cfg["split"]}:{row["csv_row"]}',
+                    'csv_row': row['csv_row'],
+                    'reference_id': reference.stem,
+                    'reference_path': str(reference),
+                    'target_ids': [p.stem for p in targets],
+                    'target_paths': [str(p) for p in targets],
+                    'original_modifier': row['query'],
+                }
+            )
         if not self.records:
             raise ValueError('No valid queries; check split and local image paths')
 
@@ -112,7 +141,6 @@ class GLAMQueryDataset(Dataset):
         record = dict(self.records[index])
         record['pil_image'] = load_image(record['reference_path'])
         return record
-
 
 
 class GLAMGalleryDataset(Dataset):
@@ -132,14 +160,27 @@ class GLAMGalleryDataset(Dataset):
         self.declared_size = len(names)
         self.missing_ids = absent
         if absent and cfg.get('missing_gallery_policy', 'available') == 'strict':
-            raise FileNotFoundError(f'Full {cfg["split"]} gallery has {len(absent)} missing images: {absent[:10]}')
+            raise FileNotFoundError(
+                f'Full {cfg["split"]} gallery has {len(absent)} missing images: {absent[:10]}'
+            )
         if absent:
-            logger.warning('Using ALL %d available %s gallery images; %d/%d declared files are missing. No sampling.', total, cfg['split'], len(absent), len(names))
+            logger.warning(
+                'Using ALL %d available %s gallery images; %d/%d declared files are missing. No sampling.',
+                total,
+                cfg['split'],
+                len(absent),
+                len(names),
+            )
         self.records = [{'image_id': name, 'path': path} for name, path in sorted(by_id.items())]
         if not self.records:
             raise ValueError('No gallery images available')
-        logger.info('Gallery: full available=%d selected=%d relevant=%d scope=%s', total, len(self),
-                    len(required), 'full')
+        logger.info(
+            'Gallery: full available=%d selected=%d relevant=%d scope=%s',
+            total,
+            len(self),
+            len(required),
+            'full',
+        )
 
     def __len__(self):
         return len(self.records)

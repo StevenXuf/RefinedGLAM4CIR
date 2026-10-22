@@ -3,6 +3,7 @@
 Recall follows the original torchmetrics RetrievalRecall definition: recovered
 relevant images / all relevant images, averaged over queries, reported in percent.
 """
+
 import logging
 
 import torch
@@ -15,7 +16,10 @@ def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude
         raise ValueError('Duplicate gallery IDs')
     if len(queries) != len(query_features) or len(gallery_ids) != len(gallery_features):
         raise ValueError('Feature/metadata length mismatch')
-    scores = F.normalize(query_features.float(), dim=-1) @ F.normalize(gallery_features.float(), dim=-1).T
+    scores = (
+        F.normalize(query_features.float(), dim=-1)
+        @ F.normalize(gallery_features.float(), dim=-1).T
+    )
     if not torch.isfinite(scores).all():
         raise ValueError('Non-finite retrieval scores')
     index = {name: i for i, name in enumerate(gallery_ids)}
@@ -28,8 +32,13 @@ def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude
     order = torch.argsort(scores, dim=1, descending=True, stable=True)
     rankings = []
     for row, query in enumerate(queries):
-        rankings.append([gallery_ids[i] for i in order[row].tolist()
-                         if not (exclude_reference and gallery_ids[i] == query['reference_id'])])
+        rankings.append(
+            [
+                gallery_ids[i]
+                for i in order[row].tolist()
+                if not (exclude_reference and gallery_ids[i] == query['reference_id'])
+            ]
+        )
     return rankings, scores
 
 
@@ -37,7 +46,11 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
     """Compute unmodified TorchMetrics module outputs, grouping candidates by query."""
     if not rankings or len(rankings) != len(queries):
         raise ValueError('Need aligned, nonempty rankings and queries')
-    if not top_ks or any(type(k) is not int or k < 1 for k in top_ks) or len(set(top_ks)) != len(top_ks):
+    if (
+        not top_ks
+        or any(type(k) is not int or k < 1 for k in top_ks)
+        or len(set(top_ks)) != len(top_ks)
+    ):
         raise ValueError('top_ks must contain positive integers')
     if len(set(gallery_ids)) != len(gallery_ids):
         raise ValueError('Duplicate gallery IDs')
@@ -48,10 +61,12 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
             raise ValueError('Rankings must contain unique image IDs')
         eligible = available - {query['reference_id']} if exclude_reference else available
         if set(ranking) != eligible:
-            raise ValueError(f"Need the complete available gallery ranking for {query['query_id']}")
+            raise ValueError(f'Need the complete available gallery ranking for {query["query_id"]}')
         relevant = set(query['target_ids']) & eligible
         if not relevant:
-            logging.getLogger(__name__).warning('Skipping %s: no available relevant targets', query['query_id'])
+            logging.getLogger(__name__).warning(
+                'Skipping %s: no available relevant targets', query['query_id']
+            )
             continue
         # All metrics depend on order, not score magnitudes. Positive unique rank
         # scores preserve stable cosine ordering (including ties) without TorchMetrics
@@ -63,8 +78,12 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
         raise ValueError('No queries have available relevant targets')
     preds, target, indexes = map(torch.cat, (predictions, targets, query_indexes))
     results = {}
-    for family, metric_class in (('Recall', RetrievalRecall), ('MRR', RetrievalMRR),
-                                 ('mAP', RetrievalMAP), ('HitRate', RetrievalHitRate)):
+    for family, metric_class in (
+        ('Recall', RetrievalRecall),
+        ('MRR', RetrievalMRR),
+        ('mAP', RetrievalMAP),
+        ('HitRate', RetrievalHitRate),
+    ):
         for k in top_ks:
             metric = metric_class(top_k=k, aggregation='mean', empty_target_action='error')
             results[f'{family}@{k}'] = 100 * metric(preds, target, indexes=indexes).item()

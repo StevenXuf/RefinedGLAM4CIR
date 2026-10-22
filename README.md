@@ -24,7 +24,7 @@ bash run_splits.sh
 PYTHON=/path/to/python bash run_splits.sh /path/to/config.yaml
 ```
 
-The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own baseline/unperturbed/perturbed tables for recall, MRR, mAP, and hit rate and saves the console output to that split's `run.log`. For an additional combined log, use `bash run_splits.sh > outputs/run.log 2>&1` after creating `outputs/`.
+The script runs `main.py` once per split and returns a nonzero exit status if either run fails. Each invocation prints its own baseline/unperturbed/perturbed tables for recall, MRR, mAP, and hit rate and saves the console output to that split's `run_qwen_openclip_seed_42.log` with the default models and seed. File suffixes always follow the configured models and seed.
 
 ## Data protocol
 
@@ -73,11 +73,11 @@ The application samples severity reproducibly from the seed, CSV query ID, clean
 To reuse previously inspected clean modifiers with a new corruption/retrieval configuration, use an empty output directory and explicitly import the old checkpoint once:
 
 ```bash
-python main.py --split test_ood --stage generate --reuse-clean /path/to/old/test_ood/modifiers.json
+python main.py --split test_ood --stage generate --reuse-clean /path/to/old/test_ood/modifiers_qwen_seed_42.json
 bash run_splits.sh
 ```
 
-Import the corresponding `test_id` checkpoint in the same way when reusing both splits. The import checks the generation model/revision, shared-target generation policy, split, original CSV metadata for each imported record, sampled target IDs, and modifier validity; it discards old corruptions and records the source checkpoint hash. Partial checkpoints are supported: the remaining queries are generated normally and evaluation still requires the whole cohort. Legacy checkpoints created before the shared-target policy must be regenerated. For evaluation-only changes, `--reuse-modifiers` imports compatible clean modifiers **and** individually validates saved corruptions against their seeded candidates. Without an import option, generation runs normally. Omit import options when resuming a populated output directory.
+Import the corresponding `test_id` checkpoint in the same way when reusing both splits. The import checks the generation model/revision, shared-target generation policy, split, original CSV metadata for each imported record, sampled target IDs, and modifier validity; it discards old corruptions and records the source checkpoint hash. Partial checkpoints are supported: the remaining queries are generated normally and evaluation still requires the whole cohort. Legacy checkpoints created before the shared-target policy must be regenerated. For evaluation-only changes, `--reuse-modifiers` imports compatible clean modifiers **and** individually validates saved corruptions against their seeded candidates. To rerun the full pipeline for both splits from validated saved modifiers in another output root, use `bash run_splits.sh config.yaml /path/to/old`. It accepts both the new suffixed filenames and legacy `modifiers.json` checkpoints, validates every retained corruption, and recomputes retrieval, metrics, and figures. Without an import option, generation runs normally. Omit import options when resuming a populated output directory.
 
 Current model families are configurable through `generation.model`:
 
@@ -91,7 +91,7 @@ The selected models are in the requested comparable 7–8B size range. They are 
 
 When a model proposes an overlong request, the application constructs complete concise reference-to-target clauses by omitting secondary clauses or replacing the source description with "it". The same MLLM selects a concise candidate, which must pass all word-count and corruption checks. This never cuts a request at an arbitrary word boundary. Alternative-target and negation tokens are retained during shortening; logical operators are protected during character edits. Main objects can still be misidentified, so inspect the generated modifiers and figures; length/format checks are not human visual validation.
 
-The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Choose a new output directory for each model comparison.
+The full split runs use the YAML-selected model, Qwen by default; changing `generation.model` selects another backend. Output filenames distinguish generation models, retrieval models, and seeds. Choose a new output directory when changing other experiment settings or model checkpoints.
 
 <!--
 Local verification notes; omitted from the rendered project documentation.
@@ -142,10 +142,12 @@ Real cosine scores determine rankings, with deterministic ties and the same refe
 
 Only these experiment outputs are saved per split under `outputs/current/<split>/`:
 
-- `modifiers.json`: original CSV identities/text, generated modifiers, and their perturbed versions; incrementally saved for resumption.
-- `metrics.json`: final aggregate scores, deltas, model settings, query count, gallery availability, and the metric implementation/version.
-- `run.log`: split execution messages and every printed metric table, written by `run_splits.sh`.
-- `figures/query_*.png`: three seeded examples with original, generated, and selected perturbed modifiers, reference/target images, and top-5 retrievals.
+- `modifiers_qwen_seed_42.json`: original CSV identities/text, generated modifiers, and their perturbed versions in one checkpoint; incrementally saved for resumption. Modifier filenames include the generation model and seed because generation does not depend on the retrieval model.
+- `metrics_qwen_openclip_seed_42.json`: all final recall, MRR, mAP, and hit-rate scores at each cutoff and AVG, deltas, model settings, query count, gallery availability, and the metric implementation/version.
+- `run_qwen_openclip_seed_42.log`: split execution messages and every printed metric table, written by `run_splits.sh`.
+- `figures/example_<csv_row>_qwen_openclip_seed_42.png`: three seeded examples with original, generated, and selected perturbed modifiers, reference/target images, and top-5 retrievals.
+
+The examples above use the default Qwen generator, OpenCLIP retriever, and seed 42. The filename suffix changes automatically with `generation.model`, `retrieval.model`, and `seed`. All metric families stay together in one JSON file, and clean and perturbed modifiers stay together in one checkpoint to preserve their pairing. Different seeds and model families do not overwrite each other.
 
 The first figure row is labeled **Original modifier**, followed by **Generated modifier** and the seven corruption conditions; every row retrieves using the reference image plus its modifier. Figures use equal 224×224 letterboxed images, equal square subplot axes (including text panels), wrapped centered text, tight layout, and green borders for **any available ground-truth target**, including targets outside the generation sample. Retrieval captions show `Top-1 (0.786)`, with the rank in black and cosine similarity in green. Sampling selects existing retained CSV triplets and uses the same triplets for every condition. `python figure.py --split test_ood` regenerates figures from saved modifiers; it recomputes retrieval against the entire gallery rather than storing intermediate rankings.
 

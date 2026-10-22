@@ -1,10 +1,10 @@
 """Shared prompts: observable appearance, reference-to-target direction, short requests."""
 
-DESCRIPTION = '''Describe the single image's main object, shape, visible colour and composition
+DESCRIPTION = """Describe the single image's main object, shape, visible colour and composition
 in at most 25 words. Report visible facts only. Do not infer provenance, age, purpose, or hidden
-materials. Say gold-coloured instead of assuming gold. Return only JSON: {"description":"..."}.'''
+materials. Say gold-coloured instead of assuming gold. Return only JSON: {"description":"..."}."""
 
-SHARED_FEATURES = '''Find the intersection of the visible features of ALL supplied target images.
+SHARED_FEATURES = """Find the intersection of the visible features of ALL supplied target images.
 Each entry describes ONE target or the shared traits of a subgroup. Keep every entry binding;
 the result must fit every individual target, never a scene assembled from different targets.
 Return a VERY SHORT noun phrase, ideally 3-10 words: one visible category and at most two
@@ -13,9 +13,9 @@ entirely whenever they vary; never summarize the different values.
 Use a broader visual category when individual subjects differ. Keep only colours, shapes,
 composition, and object properties supported for ALL targets, including minority examples.
 Do not list alternatives, use "or", merge objects, or invent shared details or provenance.
-Return only JSON: {"shared_features":"..."}.'''
+Return only JSON: {"shared_features":"..."}."""
 
-MODIFIER = '''Write an English composed-image search modification request.
+MODIFIER = """Write an English composed-image search modification request.
 BEFORE or REFERENCE IMAGE describes a reference image. COMMON FEATURES summarizes provided targets;
 INDIVIDUAL TARGET IMAGES, when supplied, lists their actual observations instead of a summary.
 The provided targets may be a random sample from a larger ground-truth group.
@@ -33,18 +33,18 @@ Include useful observable target traits where supported; invent nothing. Do not 
 anything stays unchanged unless supported. Do not infer precious metals or historical facts.
 Write ONE natural imperative, ideally 10-15 words and NEVER more than 15 words.
 Return only JSON: {"modifier":"..."}. No image IDs, explanations, captions, or alternatives list.
-Base every object and attribute on the supplied actual observations, not on a generic example.'''
+Base every object and attribute on the supplied actual observations, not on a generic example."""
 
-BROAD_MODIFIER = '''Write a broad image-search request that fits EVERY described target.
+BROAD_MODIFIER = """Write a broad image-search request that fits EVERY described target.
 Use only ONE common object category. Omit colour, shape, material, count, background,
 arrangement, and other properties. Never combine different objects into one scene.
 If a previous category was rejected, choose its broader parent category. An object need
 not depict a human to count as an artifact, and a tool is not necessarily machinery.
 When no narrow category includes all targets, use a broad category such as physical objects.
 Use the form "Find an image of ..." followed by the common category, in 5-15 words.
-Return only JSON: {"modifier":"..."}.'''
+Return only JSON: {"modifier":"..."}."""
 
-TARGET_REVIEW = '''Audit ONLY the explicit desired-result requirements of a search request
+TARGET_REVIEW = """Audit ONLY the explicit desired-result requirements of a search request
 against the ONE target observation supplied here. Output the single character Y if they fit
 this target, otherwise the single character N. For explicit replacement requests the source
 phrase has already been removed; judge the supplied desired result only.
@@ -59,21 +59,24 @@ Do not excuse a contradictory colour, object category, shape, or composition bec
 targets. Prefer rejecting an unsupported descriptor to assuming all targets share it.
 Return only JSON: {"coverage":"Y", "reason":""}.
 If rejected, give a short reason identifying the explicit unsupported requirement.
-Do not rewrite the modifier. The coverage value must be exactly Y or N, never YYY or NNN.'''
+Do not rewrite the modifier. The coverage value must be exactly Y or N, never YYY or NNN."""
 
-VISUAL_TARGET_REVIEW = TARGET_REVIEW.replace('observation', 'image') + '''
+VISUAL_TARGET_REVIEW = (
+    TARGET_REVIEW.replace('observation', 'image')
+    + """
 The attached target IMAGE is authoritative. Inspect its visible object category and properties
 directly. No text caption or source image is supplied. Do not reject a category because a caption
 failed to mention it; decide from the actual target image. Generic category plurals allow one
-or several instances. A generic category such as figurine includes abstract/stylized figures.'''
+or several instances. A generic category such as figurine includes abstract/stylized figures."""
+)
 
-CATEGORY_FALLBACK = '''Narrower descriptions failed compatibility checks. Select the most
+CATEGORY_FALLBACK = """Narrower descriptions failed compatibility checks. Select the most
 natural broad image-search request from the listed options. Do not add any attribute or
-rewrite the request. Return ONLY JSON: {"choice": 0}, with a listed zero-based integer index.'''
+rewrite the request. Return ONLY JSON: {"choice": 0}, with a listed zero-based integer index."""
 
-PERTURBATION = '''Select one provided corruption of a human image-search request.
+PERTURBATION = """Select one provided corruption of a human image-search request.
 The options use only the named edit type and the SAME sampled severity and edit count.
 Choose plausible real typing or editing mistakes while retaining the intended visual search.
 Do not soften severe examples: rare extreme corruptions are intentional. Do not rewrite the text,
 invent options, or change visual attributes. Return only JSON: {"choice": 0}, using a valid
-zero-based option index. The application applies and validates that exact option.'''
+zero-based option index. The application applies and validates that exact option."""

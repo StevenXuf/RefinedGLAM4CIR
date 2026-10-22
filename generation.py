@@ -1,4 +1,5 @@
 """Current multimodal model adapters and validated batched JSON generation."""
+
 import json
 import logging
 import re
@@ -15,7 +16,7 @@ def parse_json(text):
     start, end = text.find('{'), text.rfind('}')
     if start < 0 or end < start:
         raise ValueError('Expected a JSON object')
-    result = json.loads(text[start:end+1])
+    result = json.loads(text[start : end + 1])
     if not isinstance(result, dict):
         raise ValueError('Expected a JSON object')
     return result
@@ -27,45 +28,83 @@ def validate_modifier(result, cfg):
         raise ValueError('modifier must be a string')
     text = ' '.join(text.split())
     if not cfg['generation']['min_words'] <= len(text.split()) <= cfg['generation']['max_words']:
-        raise ValueError(f"Write {cfg['generation']['min_words']}-{cfg['generation']['max_words']} words; received {len(text.split())}")
+        raise ValueError(
+            f'Write {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words; received {len(text.split())}'
+        )
     if re.search(r'\b\w+_\d+\b', text):
         raise ValueError('Do not include image IDs')
     if re.search(r'\b(?:BEFORE|COMMON FEATURES|SINGLE TARGET)\b', text):
         raise ValueError('Use natural object words or it, not prompt labels such as BEFORE')
     if re.search(r'\bor\b', text, re.I):
-        raise ValueError('Describe features shared by every target; do not enumerate alternatives using or')
+        raise ValueError(
+            'Describe features shared by every target; do not enumerate alternatives using or'
+        )
     # Every configured corruption must be possible; never silently omit a condition.
     from perturbation import applicable
+
     if any(not applicable(text, kind) for kind in cfg['perturbation']['types']):
-        raise ValueError('Use a natural request containing a descriptive word of at least four letters')
+        raise ValueError(
+            'Use a natural request containing a descriptive word of at least four letters'
+        )
     return text
 
 
 def target_requirements(text):
     """Remove the source of an explicit replacement from target-only auditing."""
-    match = re.match(r'(?is)^(?:replace|change|swap|exchange|substitute|turn|transform)\s+.+?\s+(?:with|to|for|into)\s+(.+)$', text)
+    match = re.match(
+        r'(?is)^(?:replace|change|swap|exchange|substitute|turn|transform)\s+.+?\s+(?:with|to|for|into)\s+(.+)$',
+        text,
+    )
     return match.group(1) if match else text
 
 
-def generate_grounded_modifiers(generator, cfg, before, after, shared, full_counts=None, target_paths=None):
+def generate_grounded_modifiers(
+    generator, cfg, before, after, shared, full_counts=None, target_paths=None
+):
     """Generate, review every sampled target, and broaden rejected requirements."""
     import prompts
-    if not before or len(before) != len(after) or len(before) != len(shared) or any(not targets for targets in after):
-        raise ValueError('Need aligned nonempty reference, target-group, and shared-feature observations')
+
+    if (
+        not before
+        or len(before) != len(after)
+        or len(before) != len(shared)
+        or any(not targets for targets in after)
+    ):
+        raise ValueError(
+            'Need aligned nonempty reference, target-group, and shared-feature observations'
+        )
     full_counts = full_counts or [len(targets) for targets in after]
-    if len(full_counts) != len(before) or any(count < len(targets) for count, targets in zip(full_counts, after)):
+    if len(full_counts) != len(before) or any(
+        count < len(targets) for count, targets in zip(full_counts, after)
+    ):
         raise ValueError('Full target counts must align with and include the sampled targets')
-    if target_paths is not None and (len(target_paths) != len(after) or any(len(paths) != len(targets) for paths, targets in zip(target_paths, after))):
+    if target_paths is not None and (
+        len(target_paths) != len(after)
+        or any(len(paths) != len(targets) for paths, targets in zip(target_paths, after))
+    ):
         raise ValueError('Target image paths must align with all sampled observations')
-    tasks = [{'field': 'modifier', 'system': prompts.MODIFIER,
-              'prompt': f'BEFORE: {source}\nCOMMON FEATURES OF ALL {len(targets)} TARGETS: {common}' +
-                        f'\nThese observations cover {len(targets)} of {count} available targets. ' +
-                        ('Use broad object categories and stable structural traits; omit exact colour, count, material, pose, and layout requirements because unseen targets may differ.' if count > len(targets) else '') +
-                        f'\nUse {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words.'}
-             for source, targets, common, count in zip(before, after, shared, full_counts)]
+    tasks = [
+        {
+            'field': 'modifier',
+            'system': prompts.MODIFIER,
+            'prompt': f'BEFORE: {source}\nCOMMON FEATURES OF ALL {len(targets)} TARGETS: {common}'
+            + f'\nThese observations cover {len(targets)} of {count} available targets. '
+            + (
+                'Use broad object categories and stable structural traits; omit exact colour, count, material, pose, and layout requirements because unseen targets may differ.'
+                if count > len(targets)
+                else ''
+            )
+            + f'\nUse {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words.',
+        }
+        for source, targets, common, count in zip(before, after, shared, full_counts)
+    ]
     for i, common in enumerate(shared):
         if common is None:
-            tasks[i]['prompt'] = f'REFERENCE IMAGE: {before[i]}\nINDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i]) + f'\nWrite {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words using only features shared by all these targets.'
+            tasks[i]['prompt'] = (
+                f'REFERENCE IMAGE: {before[i]}\nINDIVIDUAL TARGET IMAGES: '
+                + json.dumps(after[i])
+                + f'\nWrite {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words using only features shared by all these targets.'
+            )
     results = [ValueError('All-target review not passed')] * len(tasks)
     pending = list(range(len(tasks)))
     feedback = [''] * len(tasks)
@@ -76,13 +115,21 @@ def generate_grounded_modifiers(generator, cfg, before, after, shared, full_coun
         validators = [lambda r: validate_modifier(r, cfg)] * len(pending)
         if attempt == cfg['generation']['target_review_attempts'] - 1 and attempt > 0:
             options = cfg['generation']['fallback_modifiers']
-            requests = [{'field': 'choice', 'system': prompts.CATEGORY_FALLBACK,
-                         'prompt': '\n'.join(f'{j}: {value}' for j, value in enumerate(options))} for i in pending]
+            requests = [
+                {
+                    'field': 'choice',
+                    'system': prompts.CATEGORY_FALLBACK,
+                    'prompt': '\n'.join(f'{j}: {value}' for j, value in enumerate(options)),
+                }
+                for i in pending
+            ]
+
             def choose(result):
                 index = result.get('choice')
                 if type(index) is not int or not 0 <= index < len(options):
                     raise ValueError('Choose one listed integer index')
                 return validate_modifier({'modifier': options[index]}, cfg)
+
             validators = [choose] * len(pending)
         outputs = generator.request_json_many(requests, validators)
         proposed = {i: text for i, text in zip(pending, outputs) if not isinstance(text, Exception)}
@@ -91,19 +138,30 @@ def generate_grounded_modifiers(generator, cfg, before, after, shared, full_coun
                 results[i] = text
                 tasks[i]['system'] = prompts.BROAD_MODIFIER
                 tasks[i]['prompt'] = 'INDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i])
-                feedback[i] = '\nPrevious validation error: ' + str(text) + '\nUse one broader common category and no alternatives.'
+                feedback[i] = (
+                    '\nPrevious validation error: '
+                    + str(text)
+                    + '\nUse one broader common category and no alternatives.'
+                )
         reviews, checks, owners = [], [], []
         for i, text in proposed.items():
             for j, observation in enumerate(after[i]):
-                task = {'field': 'coverage', 'system': prompts.TARGET_REVIEW,
-                        'prompt': f'DESIRED RESULT REQUIREMENTS: {target_requirements(text)}\nSINGLE TARGET: {observation}'}
+                task = {
+                    'field': 'coverage',
+                    'system': prompts.TARGET_REVIEW,
+                    'prompt': f'DESIRED RESULT REQUIREMENTS: {target_requirements(text)}\nSINGLE TARGET: {observation}',
+                }
                 if target_paths is not None:
                     from loading_data import load_image
-                    task.update(system=prompts.VISUAL_TARGET_REVIEW,
-                                prompt=f'DESIRED RESULT REQUIREMENTS: {target_requirements(text)}\nJudge only the attached target image.',
-                                images=[load_image(target_paths[i][j])])
+
+                    task.update(
+                        system=prompts.VISUAL_TARGET_REVIEW,
+                        prompt=f'DESIRED RESULT REQUIREMENTS: {target_requirements(text)}\nJudge only the attached target image.',
+                        images=[load_image(target_paths[i][j])],
+                    )
                 reviews.append(task)
-                owners.append((i, f'target {j+1}'))
+                owners.append((i, f'target {j + 1}'))
+
             def check(result):
                 coverage = result.get('coverage')
                 if coverage not in {'Y', 'N'}:
@@ -111,10 +169,14 @@ def generate_grounded_modifiers(generator, cfg, before, after, shared, full_coun
                 if coverage == 'N' and not result.get('reason'):
                     raise ValueError('Explain which desired-result requirement is unsupported')
                 return result
+
             checks.extend([check] * len(after[i]))
         if reviews:
             outcomes = []
-            for jobs, validators in zip(batches(reviews, cfg['generation']['batch_size']), batches(checks, cfg['generation']['batch_size'])):
+            for jobs, validators in zip(
+                batches(reviews, cfg['generation']['batch_size']),
+                batches(checks, cfg['generation']['batch_size']),
+            ):
                 outcomes.extend(generator.request_json_many(jobs, validators))
             if len(outcomes) != len(owners):
                 raise ValueError('Every supplied target must receive an individual review')
@@ -126,31 +188,59 @@ def generate_grounded_modifiers(generator, cfg, before, after, shared, full_coun
                 if i not in rejected:
                     results[i] = proposed[i]
                 else:
-                    logging.getLogger(__name__).warning('Modifier target review: candidate=%r failures=%s', proposed[i], rejected[i])
-                    results[i] = ValueError(f'Sampled-target compatibility review rejected {proposed[i]!r}: {rejected[i]}')
+                    logging.getLogger(__name__).warning(
+                        'Modifier target review: candidate=%r failures=%s', proposed[i], rejected[i]
+                    )
+                    results[i] = ValueError(
+                        f'Sampled-target compatibility review rejected {proposed[i]!r}: {rejected[i]}'
+                    )
                     # Discard the possibly incorrect shared summary on retry. Direct
                     # observations let the model recover without copying its mistake.
-                    tasks[i]['prompt'] = f'REFERENCE IMAGE: {before[i]}\nINDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i])
-                    feedback[i] = '\nFailed target reviews: ' + str(rejected[i]) + '\nFind a broader category true of ALL these targets. Omit conflicting shape, colour, count, material, and scene details. Use it for the reference and write one natural 5-15 word search request.'
+                    tasks[i]['prompt'] = (
+                        f'REFERENCE IMAGE: {before[i]}\nINDIVIDUAL TARGET IMAGES: '
+                        + json.dumps(after[i])
+                    )
+                    feedback[i] = (
+                        '\nFailed target reviews: '
+                        + str(rejected[i])
+                        + '\nFind a broader category true of ALL these targets. Omit conflicting shape, colour, count, material, and scene details. Use it for the reference and write one natural 5-15 word search request.'
+                    )
                     if attempt >= 1:
                         tasks[i]['system'] = prompts.BROAD_MODIFIER
                         tasks[i]['prompt'] = 'INDIVIDUAL TARGET IMAGES: ' + json.dumps(after[i])
-                        feedback[i] = '\nThe previous category was rejected: ' + str(rejected[i]) + '\nChoose a strictly broader category that includes the disputed target too. Use only this common category and no other details.'
+                        feedback[i] = (
+                            '\nThe previous category was rejected: '
+                            + str(rejected[i])
+                            + '\nChoose a strictly broader category that includes the disputed target too. Use only this common category and no other details.'
+                        )
         pending = [i for i in pending if isinstance(results[i], Exception)]
     return results
 
 
 def concise_candidates(text, maximum):
     """Complete reference-to-target clauses; never cut a sentence at an arbitrary word."""
-    match = re.match(r'(?is)^(replace|change|swap|exchange|substitute|turn|transform)\s+(.+?)\s+(with|to|for|into)\s+(.+?)[.!?]?$', text)
+    match = re.match(
+        r'(?is)^(replace|change|swap|exchange|substitute|turn|transform)\s+(.+?)\s+(with|to|for|into)\s+(.+?)[.!?]?$',
+        text,
+    )
     if not match:
         return []
     verb, source, connector, target = match.groups()
     target = target.rstrip('.!?')
     first_comma = target.find(',')
-    ends = [len(target)] + [m.start() for m in re.finditer(r',|\s+(?:with|wearing|standing|holding|on|in|against|mounted|featuring|serving)\s+', target, flags=re.I) if first_comma < 0 or m.start() <= first_comma]
+    ends = [len(target)] + [
+        m.start()
+        for m in re.finditer(
+            r',|\s+(?:with|wearing|standing|holding|on|in|against|mounted|featuring|serving)\s+',
+            target,
+            flags=re.I,
+        )
+        if first_comma < 0 or m.start() <= first_comma
+    ]
+
     def logical(phrase):
         return re.findall(r'\b(?:or|not|no|without)\b', phrase.lower())
+
     options = []
     for end in ends:
         phrase = target[:end].strip(' ,')
@@ -170,12 +260,22 @@ class TextGenerator:
         self.name = cfg['generation']['model']
         self.device = get_device(cfg)
         spec = cfg['generation']['models'][self.name]
-        common = dict(cache_dir=cfg['paths']['model_cache'], revision=spec['revision'],
-                      local_files_only=cfg['runtime']['local_files_only'],
-                      trust_remote_code=spec['trust_remote_code'])
+        common = dict(
+            cache_dir=cfg['paths']['model_cache'],
+            revision=spec['revision'],
+            local_files_only=cfg['runtime']['local_files_only'],
+            trust_remote_code=spec['trust_remote_code'],
+        )
         self.logger.info('Loading %s revision=%s', spec['id'], spec['revision'])
-        dtype = getattr(torch, cfg['runtime']['dtype']) if self.device.type == 'cuda' else torch.float32
-        from transformers import AutoModelForImageTextToText, AutoProcessor, JanusForConditionalGeneration
+        dtype = (
+            getattr(torch, cfg['runtime']['dtype']) if self.device.type == 'cuda' else torch.float32
+        )
+        from transformers import (
+            AutoModelForImageTextToText,
+            AutoProcessor,
+            JanusForConditionalGeneration,
+        )
+
         self.processor = AutoProcessor.from_pretrained(spec['id'], **common)
         self.processor.tokenizer.padding_side = 'left'
         if self.processor.tokenizer.pad_token_id is None:
@@ -183,17 +283,34 @@ class TextGenerator:
         if hasattr(self.processor, 'image_processor') and self.name in {'qwen', 'llava'}:
             self.processor.image_processor.max_pixels = cfg['generation']['max_pixels']
             if hasattr(self.processor.image_processor, 'size'):
-                self.processor.image_processor.size['longest_edge'] = cfg['generation']['max_pixels']
+                self.processor.image_processor.size['longest_edge'] = cfg['generation'][
+                    'max_pixels'
+                ]
         kwargs = dict(dtype=dtype, attn_implementation='sdpa')
         if self.name == 'qwen' and self.device.type == 'cuda':
-            kwargs.update(device_map='auto', max_memory={i: f"{cfg['generation']['max_memory_gib']}GiB"
-                          for i in cfg['generation']['gpu_ids']})
+            kwargs.update(
+                device_map='auto',
+                max_memory={
+                    i: f'{cfg["generation"]["max_memory_gib"]}GiB'
+                    for i in cfg['generation']['gpu_ids']
+                },
+            )
         else:
             kwargs['device_map'] = str(self.device)
-        cls = JanusForConditionalGeneration if self.name == 'deepseek' else AutoModelForImageTextToText
+        cls = (
+            JanusForConditionalGeneration
+            if self.name == 'deepseek'
+            else AutoModelForImageTextToText
+        )
         self.model = cls.from_pretrained(spec['id'], **common, **kwargs).eval()
         self.device = self.model.get_input_embeddings().weight.device
-        if any(str(value) in {'cpu', 'disk'} for value in getattr(self.model, 'hf_device_map', {}).values()) and cfg['runtime']['require_cuda']:
+        if (
+            any(
+                str(value) in {'cpu', 'disk'}
+                for value in getattr(self.model, 'hf_device_map', {}).values()
+            )
+            and cfg['runtime']['require_cuda']
+        ):
             raise RuntimeError('Model does not fit configured GPUs; refusing CPU/disk offload')
 
     @torch.inference_mode()
@@ -208,10 +325,23 @@ class TextGenerator:
                 images.append(image)
             content.append({'type': 'text', 'text': task['prompt']})
             messages.append([{'role': 'user', 'content': content}])
-        prefixes = ['{\"' + task.get('field', 'modifier') + '\": ' + ('' if task.get('field') == 'choice' else '\"') for task in tasks]
-        texts = [self.processor.apply_chat_template(m, tokenize=False, add_generation_prompt=True,
-                                                    enable_thinking=False) + prefix for m, prefix in zip(messages, prefixes)]
-        inputs = self.processor(text=texts, images=images or None, return_tensors='pt', padding=True).to(self.device)
+        prefixes = [
+            '{"'
+            + task.get('field', 'modifier')
+            + '": '
+            + ('' if task.get('field') == 'choice' else '"')
+            for task in tasks
+        ]
+        texts = [
+            self.processor.apply_chat_template(
+                m, tokenize=False, add_generation_prompt=True, enable_thinking=False
+            )
+            + prefix
+            for m, prefix in zip(messages, prefixes)
+        ]
+        inputs = self.processor(
+            text=texts, images=images or None, return_tensors='pt', padding=True
+        ).to(self.device)
         if 'pixel_values' in inputs:
             inputs['pixel_values'] = inputs['pixel_values'].to(self.model.dtype)
         options = dict(max_new_tokens=self.cfg['generation']['max_new_tokens'], do_sample=False)
@@ -250,10 +380,23 @@ class TextGenerator:
                     results[i] = validators[i](parsed)
                 except (ValueError, TypeError, KeyError) as error:
                     results[i] = error
-                    self.logger.warning('Retry item=%d attempt=%d reason=%s response=%r', i, attempt+1, error, raw[:400])
-                    if tasks[i].get('field') == 'modifier' and isinstance(parsed, dict) and isinstance(parsed.get('modifier'), str) and len(parsed['modifier'].split()) > self.cfg['generation']['max_words']:
+                    self.logger.warning(
+                        'Retry item=%d attempt=%d reason=%s response=%r',
+                        i,
+                        attempt + 1,
+                        error,
+                        raw[:400],
+                    )
+                    if (
+                        tasks[i].get('field') == 'modifier'
+                        and isinstance(parsed, dict)
+                        and isinstance(parsed.get('modifier'), str)
+                        and len(parsed['modifier'].split()) > self.cfg['generation']['max_words']
+                    ):
                         options = []
-                        for candidate in concise_candidates(parsed['modifier'], self.cfg['generation']['max_words']):
+                        for candidate in concise_candidates(
+                            parsed['modifier'], self.cfg['generation']['max_words']
+                        ):
                             try:
                                 validators[i]({'modifier': candidate})
                                 options.append(candidate)
@@ -263,19 +406,31 @@ class TextGenerator:
                             shortening[i] = options
                             continue
                     retry.append(i)
-                    requests[i]['prompt'] = tasks[i]['prompt'] + '\nThe previous response failed validation. Fix: ' + str(error)
+                    requests[i]['prompt'] = (
+                        tasks[i]['prompt']
+                        + '\nThe previous response failed validation. Fix: '
+                        + str(error)
+                    )
             pending = retry
         if shortening:
             jobs, checks, indices = [], [], list(shortening)
             for i in indices:
                 options = shortening[i]
-                jobs.append({'field': 'choice', 'system': 'Choose the most natural concise image-search request that retains the main target and direction. Return only JSON with an integer choice.',
-                    'prompt': 'Select a complete request, preferably retaining useful target attributes:\n' + '\n'.join(f'{j}: {value}' for j, value in enumerate(options))})
+                jobs.append(
+                    {
+                        'field': 'choice',
+                        'system': 'Choose the most natural concise image-search request that retains the main target and direction. Return only JSON with an integer choice.',
+                        'prompt': 'Select a complete request, preferably retaining useful target attributes:\n'
+                        + '\n'.join(f'{j}: {value}' for j, value in enumerate(options)),
+                    }
+                )
+
                 def choose(result, options=options, validator=validators[i]):
                     j = result.get('choice')
                     if type(j) is not int or not 0 <= j < len(options):
                         raise ValueError('Choose a listed integer index')
                     return validator({'modifier': options[j]})
+
                 checks.append(choose)
             for i, result in zip(indices, self.request_json_many(jobs, checks)):
                 results[i] = result
