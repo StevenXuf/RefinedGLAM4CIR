@@ -53,7 +53,7 @@ def visualize(cfg, records, gallery, retrieval):
 
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    from main import example_ids
+    from pipeline import example_ids
 
     by_id = {g['image_id']: g['path'] for g in gallery}
     selected = set(example_ids(cfg, records))
@@ -150,7 +150,7 @@ def visualize(cfg, records, gallery, retrieval):
 
 
 if __name__ == '__main__':
-    from main import evaluate, load_data, load_modifiers
+    from pipeline import evaluate, load_data, load_modifiers
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))

@@ -32,7 +32,7 @@ PY
         fi
         reuse=(--reuse-modifiers "$source_path")
     fi
-    if ! "$PYTHON" main.py --config "$CONFIG" --split "$split" "${reuse[@]}"; then
+    if ! "$PYTHON" pipeline.py --config "$CONFIG" --split "$split" "${reuse[@]}"; then
         printf 'Split failed: %s\n' "$split" >&2
         status=1
     fi

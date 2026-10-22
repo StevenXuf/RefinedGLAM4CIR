@@ -76,7 +76,7 @@ def signature(cfg, queries, gallery):
                     'prompts.py',
                     'perturbation.py',
                     'loading_data.py',
-                    'main.py',
+                    'pipeline.py',
                     'feature_extractor.py',
                     'metrics_computation.py',
                     'utils.py',

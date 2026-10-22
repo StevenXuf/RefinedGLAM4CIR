@@ -8,8 +8,8 @@ Install a CUDA-compatible PyTorch/torchvision build, then:
 
 ```bash
 python -m pip install -r requirements.txt
-python main.py --split test_ood
-python main.py --split test_id
+python pipeline.py --split test_ood
+python pipeline.py --split test_id
 # Or run both splits sequentially:
 bash run_splits.sh
 ```
@@ -52,6 +52,6 @@ Model/seed suffixes follow YAML automatically. Clean baselines are evaluated onc
 
 ## Components and resuming
 
-`main.py` assembles `loading_data.py`, `generation.py` / `prompts.py`, `perturbation.py`, `feature_extractor.py`, `metrics_computation.py`, and `figure.py`. Components can run through `--stage data|generate|perturb|evaluate|visualize`; all entry points accept `--config`.
+`pipeline.py` assembles `loading_data.py`, `generation.py` / `prompts.py`, `perturbation.py`, `feature_extractor.py`, `metrics_computation.py`, and `figure.py`. Components can run through `--stage data|generate|perturb|evaluate|visualize`; all entry points accept `--config`.
 
 Unchanged runs resume checkpoints. Configuration, source, or image-availability changes require an empty output directory. `--reuse-clean <file>` or `--reuse-modifiers <file>` explicitly import compatible checkpoints after validation; older generation policies are rejected. `bash run_splits.sh config.yaml /path/to/previous_outputs` imports compatible modifiers for both splits. To regenerate from scratch, use an empty output directory and omit reuse options.
