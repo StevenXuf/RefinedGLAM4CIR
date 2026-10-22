@@ -24,8 +24,7 @@ def retrieval_caption(ax, rank, score):
 
 def figure_conditions(cfg, item):
     return [('reference_original', item['original_modifier']), ('unperturbed', item['modifier'])] + [
-        (kind, item['perturbations'][kind]) for kind in cfg['perturbation']['types']
-        if kind not in cfg['visualization']['exclude_conditions']]
+        (kind, item['perturbations'][kind]) for kind in cfg['perturbation']['types']]
 
 
 def visualize(cfg, records, gallery, retrieval):
@@ -83,7 +82,7 @@ def visualize(cfg, records, gallery, retrieval):
         for ax, (_, modifier) in zip(axes[:, 2], conditions):
             text = ax.texts[1]
             width = cfg['visualization']['wrap_width']
-            # Uppercase corruptions need narrower wrapping at the same font size.
+            # Fit long modifier text within the fixed-size panel.
             while width > 1 and text.get_window_extent(renderer).width > .94 * ax.get_window_extent(renderer).width:
                 width -= 1
                 text.set_text(fill(modifier, width))

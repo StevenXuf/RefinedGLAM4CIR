@@ -72,7 +72,7 @@ natural broad image-search request from the listed options. Do not add any attri
 rewrite the request. Return ONLY JSON: {"choice": 0}, with a listed zero-based integer index.'''
 
 PERTURBATION = '''Select one provided corruption of a human image-search request.
-The options use only the named edit type and the SAME sampled severity or uppercase count.
+The options use only the named edit type and the SAME sampled severity and edit count.
 Choose plausible real typing or editing mistakes while retaining the intended visual search.
 Do not soften severe examples: rare extreme corruptions are intentional. Do not rewrite the text,
 invent options, or change visual attributes. Return only JSON: {"choice": 0}, using a valid

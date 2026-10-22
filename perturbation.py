@@ -15,7 +15,6 @@ KINDS = {
     'character_repetition': 'Repeat characters, simulating held or repeated keystrokes.',
     'space_insertion': 'Insert spaces inside words.',
     'space_deletion': 'Delete spaces between words.',
-    'capitalization': 'Change character case only, with the sampled uppercase fraction.',
 }
 PROTECTED = {'no', 'not', 'without', 'or', 'and', 'nor'}
 # Staggered QWERTY rows include horizontal, vertical and diagonal neighbours.
@@ -26,18 +25,13 @@ NEIGHBOURS = {char: ''.join(sorted(other for other, (u, v) in KEYS.items()
 
 
 def validate_settings(settings):
-    for probabilities in [settings['severity_probabilities'], settings['capitalization']['mode_probabilities']]:
-        if not probabilities or any(not math.isfinite(p) or p < 0 for p in probabilities.values()) or not math.isclose(sum(probabilities.values()), 1.):
-            raise ValueError('Perturbation probabilities must be finite, nonnegative, and sum to 1')
+    probabilities = settings['severity_probabilities']
+    if not probabilities or any(not math.isfinite(p) or p < 0 for p in probabilities.values()) or not math.isclose(sum(probabilities.values()), 1.):
+        raise ValueError('Perturbation probabilities must be finite, nonnegative, and sum to 1')
     if set(settings['severity_probabilities']) != set(settings['edit_fraction']):
         raise ValueError('Each severity needs an edit_fraction range')
     if any(len(bounds) != 2 or not 0 < bounds[0] <= bounds[1] <= 1 for bounds in settings['edit_fraction'].values()):
         raise ValueError('Edit fraction ranges must satisfy 0 < minimum <= maximum <= 1')
-    if set(settings['capitalization']['mode_probabilities']) != {'mixed', 'lowercase', 'uppercase'}:
-        raise ValueError('Capitalization modes must be mixed, lowercase, and uppercase')
-    beta = settings['capitalization']['uppercase_beta']
-    if len(beta) != 2 or any(not math.isfinite(v) or v <= 0 for v in beta):
-        raise ValueError('Capitalization beta distribution needs two positive finite parameters')
     if type(settings['candidate_count']) is not int or not 1 <= settings['candidate_count'] <= 64:
         raise ValueError('candidate_count must be an integer between 1 and 64')
     alphabet = settings['insertion_characters']
@@ -82,8 +76,6 @@ def edit_sites(original, kind, alphabet):
 def applicable(original, kind):
     if kind not in KINDS:
         raise ValueError(f'Unknown perturbation: {kind}')
-    if kind == 'capitalization':
-        return sum(c.isalpha() for c in original) >= 2
     return bool(edit_sites(original, kind, 'a'))
 
 
@@ -103,21 +95,6 @@ def sample_profile(original, kind, cfg, context=''):
     digest = hashlib.sha256(f'{cfg["seed"]}\0{context}\0{kind}\0{original}'.encode()).digest()
     seed = int.from_bytes(digest, 'big')
     rng = random.Random(seed)
-    if kind == 'capitalization':
-        modes = settings['capitalization']['mode_probabilities']
-        mode = rng.choices(list(modes), weights=list(modes.values()))[0]
-        letters = sum(c.isalpha() for c in original)
-        if mode == 'lowercase' and original.lower() == original:
-            mode = 'mixed'
-        if mode == 'uppercase' and original.upper() == original:
-            mode = 'mixed'
-        if mode == 'mixed':
-            alpha, beta = settings['capitalization']['uppercase_beta']
-            rate = rng.betavariate(alpha, beta)
-            count = min(letters-1, max(1, sum(rng.random() < rate for _ in range(letters))))
-        else:
-            rate, count = (0., 0) if mode == 'lowercase' else (1., letters)
-        return dict(seed=seed, severity=mode, rate=rate, edits=count)
     levels = settings['severity_probabilities']
     severity = rng.choices(list(levels), weights=list(levels.values()))[0]
     rate = rng.uniform(*settings['edit_fraction'][severity])
@@ -134,38 +111,29 @@ def candidates(original, kind, cfg, context=''):
     profile = sample_profile(original, kind, cfg, context)
     rng = random.Random(profile['seed'] ^ 0xCAFE)
     options = []
-    if kind == 'capitalization' and profile['severity'] != 'mixed':
-        return [original.lower() if profile['severity'] == 'lowercase' else original.upper()]
-    if kind == 'capitalization':
-        letters = [i for i, c in enumerate(original) if c.isalpha()]
-    else:
-        sites = edit_sites(original, kind, settings['insertion_characters'])
-        following, capacity = site_capacity(sites)
-        # Count feasible plans so edit locations are uniform across the whole text,
-        # rather than favouring the first few characters of the first word.
-        plans = [[1] + [0] * profile['edits'] for _ in range(len(sites)+1)]
-        for i in range(len(sites)-1, -1, -1):
-            for count in range(1, min(profile['edits'], capacity[i])+1):
-                plans[i][count] = plans[i+1][count] + plans[following[i]][count-1]
+    sites = edit_sites(original, kind, settings['insertion_characters'])
+    following, capacity = site_capacity(sites)
+    # Count feasible plans so edit locations are uniform across the whole text,
+    # rather than favouring the first few characters of the first word.
+    plans = [[1] + [0] * profile['edits'] for _ in range(len(sites)+1)]
+    for i in range(len(sites)-1, -1, -1):
+        for count in range(1, min(profile['edits'], capacity[i])+1):
+            plans[i][count] = plans[i+1][count] + plans[following[i]][count-1]
     for _ in range(settings['candidate_count'] * 24):
-        if kind == 'capitalization':
-            upper = set(rng.sample(letters, profile['edits']))
-            text = ''.join(c.upper() if i in upper else c.lower() for i, c in enumerate(original))
-        else:
-            plan, i, remaining = [], 0, profile['edits']
-            while remaining:
-                take = plans[following[i]][remaining-1]
-                skip = plans[i+1][remaining]
-                if rng.randrange(take + skip) < take:
-                    start, end, replacements = sites[i]
-                    plan.append((start, end, rng.choice(replacements)))
-                    remaining -= 1
-                    i = following[i]
-                else:
-                    i += 1
-            text = original
-            for start, end, replacement in reversed(plan):
-                text = text[:start] + replacement + text[end:]
+        plan, i, remaining = [], 0, profile['edits']
+        while remaining:
+            take = plans[following[i]][remaining-1]
+            skip = plans[i+1][remaining]
+            if rng.randrange(take + skip) < take:
+                start, end, replacements = sites[i]
+                plan.append((start, end, rng.choice(replacements)))
+                remaining -= 1
+                i = following[i]
+            else:
+                i += 1
+        text = original
+        for start, end, replacement in reversed(plan):
+            text = text[:start] + replacement + text[end:]
         if text != original and text not in options:
             options.append(text)
         if len(options) == settings['candidate_count']:
@@ -186,8 +154,7 @@ def request(original, kind, cfg, context=''):
     profile = sample_profile(original, kind, cfg, context)
     task = {'field': 'choice', 'system': PERTURBATION, 'prompt':
             f'Operation: {KINDS[kind]}\nSampled severity: {profile["severity"]}; '
-            f'{profile["edits"]} ' + ('uppercase characters' if kind == 'capitalization' else 'edit operations') +
-            f'. Do not reduce or change this severity.\nOriginal: {original}\nOptions:\n' +
+            f'{profile["edits"]} edit operations. Do not reduce or change this severity.\nOriginal: {original}\nOptions:\n' +
             '\n'.join(f'{i}: {text}' for i, text in enumerate(options))}
     def validate(result):
         index = result.get('choice')

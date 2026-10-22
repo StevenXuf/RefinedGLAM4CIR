@@ -66,7 +66,6 @@ perturbation:
     - character_repetition
     - space_insertion
     - space_deletion
-    - capitalization
 
   candidate_count: 8
   insertion_characters: abcdefghijklmnopqrstuvwxyz0123456789
@@ -84,13 +83,6 @@ perturbation:
     moderate: [0.04, 0.08]
     severe: [0.10, 0.20]
     extreme: [0.30, 1.00]
-
-  capitalization:
-    mode_probabilities:
-      mixed: 0.98
-      lowercase: 0.01
-      uppercase: 0.01
-    uppercase_beta: [2.0, 18.0]  # Mean uppercase probability 10%; most letters stay lowercase.
 
 retrieval:
   model: openclip  # clip, openclip, blip, siglip, siglip2, coca, openvision
@@ -119,4 +111,3 @@ visualization:
   image_size: 224
   wrap_width: 29
   dpi: 120
-  exclude_conditions: [capitalization]  # Still evaluated and saved in the metrics.
