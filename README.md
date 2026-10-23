@@ -1,4 +1,4 @@
-# PerturbedGLAM4CIR
+# RefinedGLAM4CIR
 
 This inference-only project studies how textual mistakes affect composed image retrieval on GLAM. A multimodal language model turns a reference image and its annotated targets into a short, concrete search request. Retrieval is evaluated before and after seven controlled text corruptions. The code derives from [CIR4DH](https://github.com/StevenXuf/CIR4DH) under the MIT license.
 
