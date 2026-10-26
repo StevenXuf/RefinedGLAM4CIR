@@ -446,7 +446,7 @@ def evaluate(
 def print_metrics(cfg, metrics, count, gallery):
     available = set(next(iter(metrics.values())))
     lines = [
-        f'\n{cfg["split"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.'
+        f'\n{cfg["split"]}, seed {cfg["seed"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.'
     ]
     for family in ('Recall', 'MRR', 'mAP'):
         columns = [f'{family}@{k}' for k in cfg['evaluation']['top_ks']] + [f'{family}_AVG']
@@ -498,6 +498,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
     parser.add_argument('--split', choices=SPLITS, required=True)
+    parser.add_argument('--seed', type=int, help='Override the configured random seed')
+    parser.add_argument('--gpu', type=int, help='Use this GPU for both generation and retrieval')
     parser.add_argument(
         '--stage',
         choices=['all', 'data', 'generate', 'perturb', 'evaluate', 'visualize'],
@@ -516,7 +518,17 @@ def main():
     )
     args = parser.parse_args()
     cfg = get_config(args.config, args.split)
+    if args.seed is not None:
+        if not 0 <= args.seed < 2**32:
+            parser.error('--seed must be between 0 and 2**32 - 1')
+        cfg['seed'] = args.seed
+    if args.gpu is not None:
+        if args.gpu < 0:
+            parser.error('--gpu must be nonnegative')
+        cfg['runtime']['gpu_id'] = args.gpu
+        cfg['generation']['gpu_ids'] = [args.gpu]
     logger = setup_logging(cfg)
+    logger.info('Starting %s, seed %d, GPU %d', cfg['split'], cfg['seed'], cfg['runtime']['gpu_id'])
     seed_everything(cfg)
 
     queries, gallery = load_data(cfg, logger)

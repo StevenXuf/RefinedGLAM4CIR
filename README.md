@@ -12,6 +12,10 @@ python pipeline.py --split test_ood
 python pipeline.py --split test_id
 # Or run both splits sequentially:
 bash run_splits.sh
+
+# Additional seeds (GPU override is optional):
+python pipeline.py --split test_id --seed 43 --gpu 0
+python report_seeds.py --seeds 42 43 44
 ```
 
 The server's project interpreter is `.venv/bin/python`. All paths, models, GPU settings, seeds, generation limits, and evaluation cutoffs are in `config.yaml`. Defaults are **Qwen3-VL-8B-Instruct**, **OpenCLIP ViT-B-16 / laion2b_s34b_b88k**, GPU 1, and seed 42. Set `generation.model` to `qwen`, `llava`, or `deepseek` for the configured 7–8B backends; retrieval alternatives are listed in YAML.
@@ -45,10 +49,12 @@ Each `outputs/<split>/` contains only:
 
 - `modifiers_qwen_seed_42.json`: clean and perturbed requests, triplets, and sampled generation targets; updated as a resumable checkpoint.
 - `metrics_qwen_openclip_seed_42.json`: final scores, deltas, coverage, and experiment settings.
-- `run_qwen_openclip_seed_42.log`: the latest invocation's messages and final tables, also printed on screen. Only one run log is retained per split.
+- `run_qwen_openclip_seed_42.log`: the latest invocation's messages and final tables, also printed on screen. One log is retained per split, model pair, and seed.
 - `figures/example_<csv_row>_qwen_openclip_seed_42.png`: three random triplets showing original, generated, and corrupted requests with top-5 results. Any annotated target receives a green border.
 
 Model/seed suffixes follow YAML automatically. Clean baselines are evaluated once and reused; final metrics are saved once. Features, full rankings, image observations, and review responses are not exported. Outputs, model caches, and local checks are ignored by Git.
+
+`--seed` and `--gpu` override YAML for independent runs. `report_seeds.py` prints every run and the mean ± sample standard deviation at each cutoff and AVG, saving a summary in each split's output directory. AVG is computed within each run before aggregation.
 
 ## Components and resuming
 

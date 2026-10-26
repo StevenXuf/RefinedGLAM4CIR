@@ -66,7 +66,7 @@ def get_config(path=None, split=None):
 
 
 def setup_logging(cfg):
-    """Write console messages and one fresh log for the selected split."""
+    """Write console messages and one fresh log per split, model pair, and seed."""
     path = output_path(cfg, 'run.log')
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
@@ -75,9 +75,6 @@ def setup_logging(cfg):
         handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(path, mode='w')],
         force=True,
     )
-    for previous in path.parent.glob('run*.log'):
-        if previous != path:
-            previous.unlink()
     logging.captureWarnings(True)
     return logging.getLogger('glam')
 
