@@ -3,7 +3,6 @@
 import hashlib
 import json
 import logging
-import random
 import sys
 from pathlib import Path
 
@@ -13,42 +12,38 @@ ROOT = Path(__file__).resolve().parent
 
 
 def get_config(path=None, split=None):
+    """Load YAML, resolve paths, and reject settings that change the evaluation protocol."""
     path = Path(path or ROOT / 'config.yaml').resolve()
     cfg = yaml.safe_load(path.read_text())
     cfg['split'] = split or cfg['split']
     from loading_data import validate_split
 
     validate_split(cfg)
-    for key, value in cfg['paths'].items():
-        cfg['paths'][key] = str((path.parent / Path(value).expanduser()).resolve())
+    cfg['paths'] = {
+        key: str((path.parent / Path(value).expanduser()).resolve())
+        for key, value in cfg['paths'].items()
+    }
     cfg['paths']['output_dir'] = str(Path(cfg['paths']['output_dir']) / cfg['split'])
-    if not 1 <= cfg['generation']['min_words'] <= cfg['generation']['max_words'] <= 15:
+    generation = cfg['generation']
+    if not 1 <= generation['min_words'] <= generation['max_words'] <= 15:
         raise ValueError('Generation requires 1 <= min_words <= max_words <= 15')
-    if (
-        min(
-            cfg['generation']['batch_size'],
-            cfg['generation']['image_batch_size'],
-            cfg['retrieval']['batch_size'],
-        )
-        < 1
-    ):
+    sizes = [
+        generation['batch_size'],
+        generation['image_batch_size'],
+        cfg['retrieval']['batch_size'],
+    ]
+    if min(sizes) < 1:
         raise ValueError('Batch sizes must be positive')
-    if (
-        cfg['generation']['target_review_attempts'] < 1
-        or cfg['generation']['shared_features_max_words'] < 1
-    ):
+    if generation['target_review_attempts'] < 1 or generation['shared_features_max_words'] < 1:
         raise ValueError('Target review attempts and shared-feature word limit must be positive')
-    if (
-        type(cfg['generation']['max_target_images']) is not int
-        or cfg['generation']['max_target_images'] < 1
-    ):
+    if type(generation['max_target_images']) is not int or generation['max_target_images'] < 1:
         raise ValueError(
             'max_target_images must be a positive integer; it never limits metric ground truths'
         )
-    fallback = cfg['generation']['fallback_modifiers']
+    fallback = generation['fallback_modifiers']
     if not fallback or any(
         not isinstance(text, str)
-        or not cfg['generation']['min_words'] <= len(text.split()) <= cfg['generation']['max_words']
+        or not generation['min_words'] <= word_count(text) <= generation['max_words']
         for text in fallback
     ):
         raise ValueError('Fallback requests must respect the configured word limits')
@@ -80,15 +75,25 @@ def setup_logging(cfg):
 
 
 def seed_everything(cfg):
-    import numpy as np
+    """Seed Python, NumPy, and PyTorch through Transformers' shared helper."""
     import torch
+    from transformers import set_seed
 
-    random.seed(cfg['seed'])
-    np.random.seed(cfg['seed'])
-    torch.manual_seed(cfg['seed'])
+    set_seed(cfg['seed'])
     torch.set_num_threads(cfg['runtime']['cpu_threads'])
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(cfg['seed'])
+
+
+def word_count(text):
+    """Count whitespace-separated words, matching the generation limits."""
+    return len(text.split())
+
+
+def select_option(result, options, error='Choose one listed integer index'):
+    """Resolve an MLLM's integer choice without accepting booleans or invalid indices."""
+    index = result.get('choice')
+    if type(index) is not int or not 0 <= index < len(options):
+        raise ValueError(error)
+    return options[index]
 
 
 def get_device(cfg):

@@ -5,8 +5,10 @@ import hashlib
 import math
 import random
 import re
+from functools import partial
 
 from prompts import PERTURBATION
+from utils import select_option
 
 KINDS = {
     'character_deletion': 'Delete characters inside words, simulating missed keystrokes.',
@@ -182,7 +184,14 @@ def validate_perturbation(text, original, kind, cfg, context=''):
     return text
 
 
+def choose_perturbation(result, options, original, kind, cfg, context):
+    """Resolve a model choice and enforce the original seeded corruption budget."""
+    text = select_option(result, options, f'choice must be an integer in 0..{len(options) - 1}')
+    return validate_perturbation(text, original, kind, cfg, context)
+
+
 def request(original, kind, cfg, context=''):
+    """Build the candidate-choice prompt and its reusable, seeded validator."""
     options = candidates(original, kind, cfg, context)
     if not options:
         raise ValueError(f'No {kind} operation possible for this modifier')
@@ -195,10 +204,6 @@ def request(original, kind, cfg, context=''):
         + '\n'.join(f'{i}: {text}' for i, text in enumerate(options)),
     }
 
-    def validate(result):
-        index = result.get('choice')
-        if type(index) is not int or not 0 <= index < len(options):
-            raise ValueError(f'choice must be an integer in 0..{len(options) - 1}')
-        return validate_perturbation(options[index], original, kind, cfg, context)
-
-    return task, validate
+    return task, partial(
+        choose_perturbation, options=options, original=original, kind=kind, cfg=cfg, context=context
+    )

@@ -53,6 +53,7 @@ def visualize(cfg, records, gallery, retrieval):
 
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
+
     from pipeline import example_ids
 
     by_id = {g['image_id']: g['path'] for g in gallery}
@@ -74,12 +75,8 @@ def visualize(cfg, records, gallery, retrieval):
         fig.set_facecolor('#edf1f6')
         for row, (condition, modifier) in enumerate(conditions):
             for ax in axes[row]:
-                ax.set_box_aspect(1)
-                ax.set_facecolor('white')
-                ax.set_xticks([])
-                ax.set_yticks([])
-                for spine in ax.spines.values():
-                    spine.set_visible(False)
+                ax.set(box_aspect=1, facecolor='white', xticks=[], yticks=[])
+                ax.spines[:].set_visible(False)
             cards = [
                 (axes[row, 0], item['reference_path'], 'Reference'),
                 (
@@ -125,10 +122,7 @@ def visualize(cfg, records, gallery, retrieval):
                 relevant = hit['image_id'] in item['target_ids']
                 retrieval_caption(ax, rank, hit['score'])
                 if relevant:
-                    for spine in ax.spines.values():
-                        spine.set_visible(True)
-                        spine.set_color('#20945d')
-                        spine.set_linewidth(2.5)
+                    ax.spines[:].set(visible=True, color='#20945d', linewidth=2.5)
         fig.tight_layout(rect=(0.005, 0.005, 0.995, 0.995), pad=0.6, h_pad=2.0, w_pad=0.6)
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()

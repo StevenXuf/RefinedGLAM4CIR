@@ -3,15 +3,17 @@
 import json
 import logging
 import re
+from functools import partial
 
 import torch
 
-from utils import batches, get_device
+from utils import batches, get_device, select_option, word_count
 
 GENERATION_POLICY = 'sampled_concrete_requests_v2'
 
 
 def parse_json(text):
+    """Extract a JSON object after optional model reasoning and surrounding prose."""
     text = re.sub(r'<think>.*?</think>', '', text, flags=re.S).strip()
     start, end = text.find('{'), text.rfind('}')
     if start < 0 or end < start:
@@ -23,13 +25,14 @@ def parse_json(text):
 
 
 def validate_modifier(result, cfg):
+    """Enforce request length, shared-target wording, and corruption applicability."""
     text = result.get('modifier')
     if not isinstance(text, str):
         raise ValueError('modifier must be a string')
     text = ' '.join(text.split())
-    if not cfg['generation']['min_words'] <= len(text.split()) <= cfg['generation']['max_words']:
+    if not cfg['generation']['min_words'] <= word_count(text) <= cfg['generation']['max_words']:
         raise ValueError(
-            f'Write {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words; received {len(text.split())}'
+            f'Write {cfg["generation"]["min_words"]}-{cfg["generation"]["max_words"]} words; received {word_count(text)}'
         )
     if re.search(r'\b\w+_\d+\b', text):
         raise ValueError('Do not include image IDs')
@@ -47,6 +50,45 @@ def validate_modifier(result, cfg):
             'Use a natural request containing a descriptive word of at least four letters'
         )
     return text
+
+
+def validate_description(result):
+    """Read one nonempty image observation from the model's JSON response."""
+    text = result.get('description')
+    if not isinstance(text, str) or not text.strip() or word_count(text) > 80:
+        raise ValueError('description must be a nonempty sentence of at most 80 words')
+    return text.strip()
+
+
+def validate_shared_features(result, cfg):
+    """Accept a short common-feature description without alternative categories."""
+    text = result.get('shared_features')
+    if (
+        not isinstance(text, str)
+        or not text.strip()
+        or word_count(text) > cfg['generation']['shared_features_max_words']
+    ):
+        raise ValueError('shared_features must be a short nonempty phrase')
+    if re.search(r'\bor\b', text, re.I):
+        raise ValueError(
+            'Keep the most specific shared object name and supported details. Drop only differing attributes; no or alternatives.'
+        )
+    return text.strip()
+
+
+def validate_target_review(result):
+    """Require an explicit per-target decision and an explanation for rejection."""
+    coverage = result.get('coverage')
+    if coverage not in {'Y', 'N'}:
+        raise ValueError('coverage must be Y or N for the single target under review')
+    if coverage == 'N' and not result.get('reason'):
+        raise ValueError('Explain which desired-result requirement is unsupported')
+    return result
+
+
+def choose_modifier(result, options, validator, error='Choose one listed integer index'):
+    """Validate a selected category or shortened request using its original validator."""
+    return validator({'modifier': select_option(result, options, error)})
 
 
 def target_requirements(text):
@@ -114,11 +156,12 @@ def generate_grounded_modifiers(
     rejected_categories = [set() for _ in tasks]
     category_start = cfg['generation']['target_review_attempts'] - 1
     attempts = category_start + len(cfg['generation']['fallback_modifiers'])
+    modifier_validator = partial(validate_modifier, cfg=cfg)
     for attempt in range(attempts):
         if not pending:
             break
         requests = [dict(tasks[i], prompt=tasks[i]['prompt'] + feedback[i]) for i in pending]
-        validators = [lambda r: validate_modifier(r, cfg)] * len(pending)
+        validators = [modifier_validator] * len(pending)
         if attempt >= category_start:
             requests, validators = [], []
             for i in pending:
@@ -138,13 +181,9 @@ def generate_grounded_modifiers(
                     }
                 )
 
-                def choose(result, options=options):
-                    index = result.get('choice')
-                    if type(index) is not int or not 0 <= index < len(options):
-                        raise ValueError('Choose one listed integer index')
-                    return validate_modifier({'modifier': options[index]}, cfg)
-
-                validators.append(choose)
+                validators.append(
+                    partial(choose_modifier, options=options, validator=modifier_validator)
+                )
         outputs = generator.request_json_many(requests, validators)
         proposed = {i: text for i, text in zip(pending, outputs) if not isinstance(text, Exception)}
         for i, text in zip(pending, outputs):
@@ -160,7 +199,7 @@ def generate_grounded_modifiers(
                     + str(text)
                     + '\nFix the format while keeping the most specific shared object name and supported details. No alternatives.'
                 )
-        reviews, checks, owners = [], [], []
+        reviews, owners = [], []
         for i, text in proposed.items():
             for j, observation in enumerate(after[i]):
                 task = {
@@ -179,20 +218,11 @@ def generate_grounded_modifiers(
                 reviews.append(task)
                 owners.append((i, j))
 
-            def check(result):
-                coverage = result.get('coverage')
-                if coverage not in {'Y', 'N'}:
-                    raise ValueError('coverage must be Y or N for the single target under review')
-                if coverage == 'N' and not result.get('reason'):
-                    raise ValueError('Explain which desired-result requirement is unsupported')
-                return result
-
-            checks.extend([check] * len(after[i]))
         if reviews:
             outcomes = []
             for jobs, validators in zip(
                 batches(reviews, cfg['generation']['batch_size']),
-                batches(checks, cfg['generation']['batch_size']),
+                batches([validate_target_review] * len(reviews), cfg['generation']['batch_size']),
             ):
                 outcomes.extend(generator.request_json_many(jobs, validators))
             if len(outcomes) != len(owners):
@@ -250,19 +280,21 @@ def concise_candidates(text, maximum):
         if first_comma < 0 or m.start() <= first_comma
     ]
 
-    def logical(phrase):
-        return re.findall(r'\b(?:or|not|no|without)\b', phrase.lower())
-
     options = []
     for end in ends:
         phrase = target[:end].strip(' ,')
-        if len(phrase.split()) < 2 or logical(phrase) != logical(target):
+        if word_count(phrase) < 2 or logical_words(phrase) != logical_words(target):
             continue
         for before in [source, 'it']:
             candidate = f'{verb} {before} {connector} {phrase}.'
-            if len(candidate.split()) <= maximum:
+            if word_count(candidate) <= maximum:
                 options.append(candidate)
-    return sorted(dict.fromkeys(options), key=lambda value: -len(value.split()))
+    return sorted(dict.fromkeys(options), key=word_count, reverse=True)
+
+
+def logical_words(text):
+    """Keep negation and alternatives intact when shortening a request."""
+    return re.findall(r'\b(?:or|not|no|without)\b', text.lower())
 
 
 class TextGenerator:
@@ -327,6 +359,7 @@ class TextGenerator:
 
     @torch.inference_mode()
     def generate_many(self, tasks):
+        """Run greedy model inference, splitting batches if GPU memory is insufficient."""
         if self.name != 'qwen' and len(tasks) > 1:
             return [self.generate_many([task])[0] for task in tasks]
         messages, images = [], []
@@ -374,6 +407,7 @@ class TextGenerator:
         return [prefix + text for prefix, text in zip(prefixes, outputs)]
 
     def request_json_many(self, tasks, validators):
+        """Retry invalid JSON items while retaining successes and returning final errors."""
         results = [None] * len(tasks)
         shortening = {}
         pending = list(range(len(tasks)))
@@ -403,7 +437,7 @@ class TextGenerator:
                         tasks[i].get('field') == 'modifier'
                         and isinstance(parsed, dict)
                         and isinstance(parsed.get('modifier'), str)
-                        and len(parsed['modifier'].split()) > self.cfg['generation']['max_words']
+                        and word_count(parsed['modifier']) > self.cfg['generation']['max_words']
                     ):
                         options = []
                         for candidate in concise_candidates(
@@ -437,13 +471,14 @@ class TextGenerator:
                     }
                 )
 
-                def choose(result, options=options, validator=validators[i]):
-                    j = result.get('choice')
-                    if type(j) is not int or not 0 <= j < len(options):
-                        raise ValueError('Choose a listed integer index')
-                    return validator({'modifier': options[j]})
-
-                checks.append(choose)
+                checks.append(
+                    partial(
+                        choose_modifier,
+                        options=options,
+                        validator=validators[i],
+                        error='Choose a listed integer index',
+                    )
+                )
             for i, result in zip(indices, self.request_json_many(jobs, checks)):
                 results[i] = result
         return results

@@ -1,6 +1,7 @@
 """Resolve the original GLAM CSV pipeline against existing local images only."""
 
 import logging
+from functools import partial
 from pathlib import Path
 
 import pandas as pd
@@ -14,6 +15,7 @@ def load_image(path):
 
 
 def search_image_path(image_names, gallery_folders, glam_root):
+    """Find the first available local PNG for each ID in configured folder order."""
     paths = []
     for name in image_names:
         for folder in gallery_folders:
@@ -26,6 +28,11 @@ def search_image_path(image_names, gallery_folders, glam_root):
 
 def split_ids(value):
     return list(dict.fromkeys(x.strip() for x in str(value).split(',') if x.strip()))
+
+
+def available_ids(names, available):
+    """Keep locally available image IDs in their original annotation order."""
+    return [name for name in names if name in available]
 
 
 SPLITS = ('test_id', 'test_ood')
@@ -45,6 +52,7 @@ def validate_split(cfg):
 
 
 def process_df(cfg, logger):
+    """Filter the split's triplets by availability, deduplicate, and optionally sample queries."""
     validate_split(cfg)
     source = cfg['paths']['cir_file']
     df = pd.read_csv(source, dtype=str).fillna('')
@@ -60,21 +68,12 @@ def process_df(cfg, logger):
     df['csv_row'] = df.index
     df = df[df.partition == cfg['split']].copy()
     initial = len(df)
-    cache = {}
-
-    def resolve(value):
-        names = split_ids(value)
-        for name in names:
-            if name not in cache:
-                found = search_image_path(
-                    [name], cfg['image_storage_folders'], cfg['paths']['glam_root']
-                )
-                cache[name] = str(found[0]) if found else None
-        return [name for name in names if cache[name]]
-
-    declared_targets = df.id2.map(lambda value: len(split_ids(value))).sum()
-    for column in ['id1', 'id2']:
-        df[column] = df[column].map(resolve)
+    pairs = df[['id1', 'id2']].map(split_ids)
+    names = pairs.stack().explode().dropna().unique()
+    paths = search_image_path(names, cfg['image_storage_folders'], cfg['paths']['glam_root'])
+    available = {path.stem for path in paths}
+    declared_targets = pairs.id2.map(len).sum()
+    df[['id1', 'id2']] = pairs.map(partial(available_ids, available=available))
     logger.info(
         'Target annotations: declared links=%d available links=%d missing links=%d; partial target groups retained',
         declared_targets,
@@ -84,8 +83,8 @@ def process_df(cfg, logger):
     df = df[df.id1.map(bool) & df.id2.map(bool)]
     valid = len(df)
     if cfg['remove_duplicates']:
-        keys = df.apply(lambda row: (tuple(sorted(row.id1)), tuple(sorted(row.id2))), axis=1)
-        df = df.loc[~keys.duplicated()]
+        pairs = df[['id1', 'id2']].map(sorted).map(tuple)
+        df = df.loc[~pairs.duplicated()]
     logger.info(
         'Queries: split=%s initial=%d missing-image rows=%d duplicate rows=%d valid=%d',
         cfg['split'],
@@ -94,21 +93,35 @@ def process_df(cfg, logger):
         valid - len(df),
         len(df),
     )
-    logger.info('Missing image IDs: %d', sum(v is None for v in cache.values()))
+    logger.info('Missing image IDs: %d', len(set(names) - available))
     limit = cfg['subset'].get('query_limit')
     if limit is not None and len(df) > limit:
         df = df.sample(n=limit, random_state=cfg['seed'])
     return df.sort_values('csv_row').reset_index(drop=True)
 
 
-class GLAMQueryDataset(Dataset):
+class ImageDataset(Dataset):
+    """Load RGB images from a named path field while retaining record metadata."""
+
+    def __init__(self, records, path_key='path'):
+        self.records, self.path_key = records, path_key
+
+    def __len__(self):
+        return len(self.records)
+
+    def __getitem__(self, index):
+        record = self.records[index]
+        return record | {'pil_image': load_image(record[self.path_key])}
+
+
+class GLAMQueryDataset(ImageDataset):
     """One query per CSV row, first valid reference, all existing relevant targets."""
 
     def __init__(self, cfg, logger=None):
         self.cfg = cfg
         logger = logger or logging.getLogger(__name__)
         self.df = process_df(cfg, logger)
-        self.records = []
+        super().__init__([], 'reference_path')
         for row in self.df.to_dict('records'):
             reference = search_image_path(
                 row['id1'][:1], cfg['image_storage_folders'], cfg['paths']['glam_root']
@@ -134,16 +147,10 @@ class GLAMQueryDataset(Dataset):
         if not self.records:
             raise ValueError('No valid queries; check split and local image paths')
 
-    def __len__(self):
-        return len(self.records)
 
-    def __getitem__(self, index):
-        record = dict(self.records[index])
-        record['pil_image'] = load_image(record['reference_path'])
-        return record
+class GLAMGalleryDataset(ImageDataset):
+    """Every available gallery image in the selected partition, without subsampling."""
 
-
-class GLAMGalleryDataset(Dataset):
     def __init__(self, cfg, logger=None, queries=None):
         logger = logger or logging.getLogger(__name__)
         validate_split(cfg)
@@ -171,7 +178,7 @@ class GLAMGalleryDataset(Dataset):
                 len(absent),
                 len(names),
             )
-        self.records = [{'image_id': name, 'path': path} for name, path in sorted(by_id.items())]
+        super().__init__([{'image_id': name, 'path': path} for name, path in sorted(by_id.items())])
         if not self.records:
             raise ValueError('No gallery images available')
         logger.info(
@@ -182,14 +189,7 @@ class GLAMGalleryDataset(Dataset):
             'full',
         )
 
-    def __len__(self):
-        return len(self.records)
-
-    def __getitem__(self, index):
-        record = dict(self.records[index])
-        record['pil_image'] = load_image(record['path'])
-        return record
-
 
 def collate_samples(batch):
+    """Retain PIL images and variable-length target groups as Python lists."""
     return {key: [item[key] for item in batch] for key in batch[0]}

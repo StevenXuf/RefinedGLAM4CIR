@@ -1,13 +1,15 @@
 """Print independent-seed results and their mean ± sample standard deviation."""
 
 import argparse
-from copy import deepcopy
 import math
+from copy import deepcopy
 from pathlib import Path
-from statistics import mean, stdev
+from statistics import mean
+
+import pandas as pd
 
 from loading_data import SPLITS
-from pipeline import generation_targets
+from pipeline import BASELINES, generation_targets
 from utils import ROOT, get_config, output_path, read_json
 
 
@@ -15,20 +17,9 @@ def load_runs(cfg, seeds):
     """Reject incomplete runs or changes to the cohort and scientific settings."""
     runs, triplets = [], None
     fields = (
-        'split',
-        'queries',
-        'query_limit',
-        'gallery_size',
-        'declared_gallery_size',
-        'missing_gallery_count',
-        'units',
-        'generation_model',
-        'retrieval',
-        'generation_policy',
-        'generation_settings',
-        'evaluation',
-        'perturbation',
-    )
+        'split queries query_limit gallery_size declared_gallery_size missing_gallery_count units '
+        'generation_model retrieval generation_policy generation_settings evaluation perturbation'
+    ).split()
     expected_settings = None
     for seed in seeds:
         settings = deepcopy(cfg)
@@ -42,9 +33,7 @@ def load_runs(cfg, seeds):
         if expected_settings is None:
             expected_settings = scientific_settings
         elif scientific_settings != expected_settings:
-            raise ValueError(
-                f'Incompatible experiment settings or coverage for seed {seed}'
-            )
+            raise ValueError(f'Incompatible experiment settings or coverage for seed {seed}')
 
         current_triplets = {}
         for record in modifiers['records']:
@@ -68,45 +57,44 @@ def load_runs(cfg, seeds):
             raise ValueError(f'Query cohort or ground truths changed for seed {seed}')
         runs.append(run)
 
-    conditions = set(runs[0]['metrics'])
-    expected_conditions = {
-        'reference_only',
-        'original_text_only',
-        'generated_text_only',
-        'reference_original',
-        'unperturbed',
-        *cfg['perturbation']['types'],
-    }
+    expected_conditions = {*BASELINES, 'unperturbed', *cfg['perturbation']['types']}
     columns = {
         f'{family}{suffix}'
         for family in ('Recall', 'MRR', 'mAP')
         for suffix in [*(f'@{k}' for k in cfg['evaluation']['top_ks']), '_AVG']
     }
     for run in runs:
-        if set(run['metrics']) != conditions or conditions != expected_conditions:
+        if set(run['metrics']) != expected_conditions:
             raise ValueError('Missing or unexpected retrieval conditions')
         for scores in run['metrics'].values():
             if set(scores) != columns or any(
-                not math.isfinite(value) or not 0 <= value <= 100
-                for value in scores.values()
+                not math.isfinite(value) or not 0 <= value <= 100 for value in scores.values()
             ):
                 raise ValueError('Incomplete or invalid metric values')
             for family in ('Recall', 'MRR', 'mAP'):
-                expected = mean(
-                    scores[f'{family}@{k}'] for k in cfg['evaluation']['top_ks']
-                )
+                expected = mean(scores[f'{family}@{k}'] for k in cfg['evaluation']['top_ks'])
                 if not math.isclose(expected, scores[f'{family}_AVG'], abs_tol=1e-10):
-                    raise ValueError(
-                        'AVG must be computed within each seed before aggregation'
-                    )
+                    raise ValueError('AVG must be computed within each seed before aggregation')
     return runs
 
 
 def render_report(runs, top_ks):
+    """Use pandas for ordered tables and per-condition mean/sample SD across seeds."""
     run = runs[0]
-    seeds = ', '.join(str(item['seed']) for item in runs)
+    seeds = [item['seed'] for item in runs]
+    scores = pd.concat(
+        {
+            item['seed']: pd.DataFrame.from_dict(item['metrics'], orient='index', dtype=float)
+            for item in runs
+        },
+        names=['Seed', 'Condition'],
+    )
+    order = pd.MultiIndex.from_product([run['metrics'], seeds], names=['Condition', 'Seed'])
+    individual = scores.swaplevel().reindex(order).reset_index()
+    groups = scores.groupby(level='Condition', sort=False)
+    summary = groups.mean().map('{:.2f}'.format) + ' ± ' + groups.std(ddof=1).map('{:.2f}'.format)
     lines = [
-        f'# {run["split"]}: seeds {seeds}',
+        f'# {run["split"]}: seeds {", ".join(map(str, seeds))}',
         '',
         f'{run["queries"]} queries; {run["gallery_size"]}/{run["declared_gallery_size"]} '
         'available gallery images, without gallery sampling.',
@@ -116,42 +104,21 @@ def render_report(runs, top_ks):
     ]
     for family in ('Recall', 'MRR', 'mAP'):
         columns = [f'{family}@{k}' for k in top_ks] + [f'{family}_AVG']
+        labels = dict(zip(columns, [*(f'@{k}' for k in top_ks), 'AVG']))
         lines.extend(
             [
                 '',
                 f'## {family}: individual seeds',
                 '',
-                '| Condition | Seed | '
-                + ' | '.join([*(f'@{k}' for k in top_ks), 'AVG'])
-                + ' |',
-                '|---|---:|' + '---:|' * len(columns),
-            ]
-        )
-        for condition in run['metrics']:
-            for item in runs:
-                values = item['metrics'][condition]
-                lines.append(
-                    f'| {condition} | {item["seed"]} | '
-                    + ' | '.join(f'{values[key]:.2f}' for key in columns)
-                    + ' |'
-                )
-        lines.extend(
-            [
+                individual[['Condition', 'Seed', *columns]]
+                .rename(columns=labels)
+                .to_markdown(index=False, floatfmt='.2f'),
                 '',
                 f'## {family}: mean ± SD',
                 '',
-                '| Condition | '
-                + ' | '.join([*(f'@{k}' for k in top_ks), 'AVG'])
-                + ' |',
-                '|---|' + '---:|' * len(columns),
+                summary[columns].rename(columns=labels).to_markdown(disable_numparse=True),
             ]
         )
-        for condition in run['metrics']:
-            cells = []
-            for key in columns:
-                values = [item['metrics'][condition][key] for item in runs]
-                cells.append(f'{mean(values):.2f} ± {stdev(values):.2f}')
-            lines.append('| ' + condition + ' | ' + ' | '.join(cells) + ' |')
     return '\n'.join(lines) + '\n'
 
 

@@ -1,13 +1,15 @@
 """Split-wise end-to-end inference, with independently callable pipeline stages."""
 
 import argparse
-from collections import Counter
 import gc
 import json
 import logging
 import random
+from collections import Counter
+from functools import partial
 from pathlib import Path
 
+import pandas as pd
 import torch
 import torchmetrics
 from torch.utils.data import DataLoader
@@ -18,11 +20,21 @@ from generation import (
     GENERATION_POLICY,
     TextGenerator,
     generate_grounded_modifiers,
+    validate_description,
     validate_modifier,
+    validate_shared_features,
 )
-from loading_data import GLAMGalleryDataset, GLAMQueryDataset, SPLITS, collate_samples, load_image
+from loading_data import (
+    SPLITS,
+    GLAMGalleryDataset,
+    GLAMQueryDataset,
+    ImageDataset,
+    collate_samples,
+    load_image,
+)
 from metrics_computation import compute_metrics, metric_deltas, rank_queries
-from perturbation import request as perturbation_request, sample_profile, validate_perturbation
+from perturbation import request as perturbation_request
+from perturbation import sample_profile, validate_perturbation
 from utils import (
     ROOT,
     batches,
@@ -39,6 +51,7 @@ BASELINES = ('reference_only', 'original_text_only', 'generated_text_only', 'ref
 
 
 def load_data(cfg, logger=None):
+    """Load valid CSV triplets and their complete available partition gallery."""
     queries = GLAMQueryDataset(cfg, logger).records
     gallery = GLAMGalleryDataset(cfg, logger, queries)
     return queries, gallery
@@ -58,30 +71,22 @@ def generation_targets(cfg, query):
 
 
 def signature(cfg, queries, gallery):
+    """Fingerprint the exact data, settings, image files, and inference implementation."""
+    paths = {g['path'] for g in gallery.records} | {q['reference_path'] for q in queries}
+    image_stats = {path: Path(path).stat() for path in sorted(paths)}
+    files = (
+        'generation.py prompts.py perturbation.py loading_data.py pipeline.py '
+        'feature_extractor.py metrics_computation.py utils.py'
+    ).split()
     return fingerprint(
         {
             'queries': queries,
             'gallery': gallery.records,
             'config': cfg,
             'images': [
-                (p, Path(p).stat().st_size, Path(p).stat().st_mtime_ns)
-                for p in sorted(
-                    {g['path'] for g in gallery.records} | {q['reference_path'] for q in queries}
-                )
+                (path, stat.st_size, stat.st_mtime_ns) for path, stat in image_stats.items()
             ],
-            'sources': {
-                name: (ROOT / name).read_text()
-                for name in [
-                    'generation.py',
-                    'prompts.py',
-                    'perturbation.py',
-                    'loading_data.py',
-                    'pipeline.py',
-                    'feature_extractor.py',
-                    'metrics_computation.py',
-                    'utils.py',
-                ]
-            },
+            'sources': {name: (ROOT / name).read_text() for name in files},
         }
     )
 
@@ -207,12 +212,6 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
         )
     observations = {}
 
-    def description(result):
-        text = result.get('description')
-        if not isinstance(text, str) or not text.strip() or len(text.split()) > 80:
-            raise ValueError('description must be a nonempty sentence of at most 80 words')
-        return text.strip()
-
     for batch in batches(sorted(paths.items()), cfg['generation']['image_batch_size']):
         tasks = [
             {
@@ -223,28 +222,12 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
             }
             for _, path in batch
         ]
-        outputs = generator.request_json_many(tasks, [description] * len(tasks))
+        outputs = generator.request_json_many(tasks, [validate_description] * len(tasks))
         require_success(outputs)
         observations.update((name, text) for (name, _), text in zip(batch, outputs))
         logger.info('%s: observed %d/%d CSV images', cfg['split'], len(observations), len(paths))
     groups = {tuple(sorted(selected_targets[q['query_id']])) for q in pending}
     shared = {ids: observations[ids[0]] for ids in groups if len(ids) == 1}
-
-    def common_features(result):
-        text = result.get('shared_features')
-        if (
-            not isinstance(text, str)
-            or not text.strip()
-            or len(text.split()) > cfg['generation']['shared_features_max_words']
-        ):
-            raise ValueError('shared_features must be a short nonempty phrase')
-        import re
-
-        if re.search(r'\bor\b', text, re.I):
-            raise ValueError(
-                'Keep the most specific shared object name and supported details. Drop only differing attributes; no or alternatives.'
-            )
-        return text.strip()
 
     for group_batch in batches(
         sorted(ids for ids in groups if len(ids) > 1), cfg['generation']['batch_size']
@@ -259,7 +242,9 @@ def generate_modifiers(cfg, queries, data, generator=None, logger=None):
             }
             for ids in group_batch
         ]
-        outputs = generator.request_json_many(tasks, [common_features] * len(tasks))
+        outputs = generator.request_json_many(
+            tasks, [partial(validate_shared_features, cfg=cfg)] * len(tasks)
+        )
         for ids, text in zip(group_batch, outputs):
             if isinstance(text, Exception):
                 logger.warning(
@@ -339,23 +324,15 @@ def perturb_modifiers(cfg, queries, data, generator=None, logger=None):
 
 
 def encode_images(records, key, extractor, cfg):
-    class Images(torch.utils.data.Dataset):
-        def __len__(self):
-            return len(records)
-
-        def __getitem__(self, index):
-            return {'image': load_image(records[index][key])}
-
+    """Encode records in order using the shared RGB dataset and PyTorch DataLoader."""
     loader = DataLoader(
-        Images(),
+        ImageDataset(records, key),
         batch_size=cfg['retrieval']['batch_size'],
         shuffle=False,
         num_workers=cfg['runtime']['num_workers'],
         collate_fn=collate_samples,
     )
-    features = []
-    for batch in loader:
-        features.append(extractor.get_image_features(batch['image']).cpu())
+    features = [extractor.get_image_features(batch['pil_image']).cpu() for batch in loader]
     return torch.cat(features).to(extractor.device)
 
 
@@ -444,20 +421,19 @@ def evaluate(
 
 
 def print_metrics(cfg, metrics, count, gallery):
-    available = set(next(iter(metrics.values())))
+    """Print one pandas-formatted table per metric with identical condition columns."""
+    table = pd.DataFrame.from_dict(metrics, orient='index', dtype=float).rename_axis('Condition')
+    available = set(table.columns)
+    if any(set(values) != available for values in metrics.values()):
+        raise ValueError('All conditions must report the same cutoff metrics and averages')
     lines = [
         f'\n{cfg["split"]}, seed {cfg["seed"]}: {count} queries; {len(gallery)}/{gallery.declared_size} available gallery images (no sampling). Scores: %.'
     ]
     for family in ('Recall', 'MRR', 'mAP'):
         columns = [f'{family}@{k}' for k in cfg['evaluation']['top_ks']] + [f'{family}_AVG']
-        lines.append('\n| Condition | ' + ' | '.join(columns) + ' |')
-        lines.append('|---|' + '---:|' * len(columns))
-        for condition, values in metrics.items():
-            if set(values) != available or not set(columns) <= available:
-                raise ValueError('All conditions must report the same cutoff metrics and averages')
-            lines.append(
-                '| ' + condition + ' | ' + ' | '.join(f'{values[c]:.2f}' for c in columns) + ' |'
-            )
+        if not set(columns) <= available:
+            raise ValueError('All conditions must report the same cutoff metrics and averages')
+        lines.append('\n' + table[columns].to_markdown(floatfmt='.2f'))
     logging.getLogger('glam').info('\n'.join(lines))
 
 
@@ -545,6 +521,7 @@ def main():
         )
 
     generator, extractor, features = None, None, None
+    metrics, examples = {}, {}
     if args.stage in {'all', 'generate'}:
         generator = generate_modifiers(cfg, queries, data, logger=logger)
     if args.stage == 'all':
@@ -573,11 +550,8 @@ def main():
             conditions=cfg['perturbation']['types'] if args.stage == 'all' else None,
             examples_only=args.stage == 'visualize',
         )
-        if args.stage == 'all':
-            metrics.update(final_metrics)
-            examples.update(final_examples)
-        else:
-            metrics, examples = final_metrics, final_examples
+        metrics.update(final_metrics)
+        examples.update(final_examples)
         if args.stage != 'visualize':
             save_metrics(cfg, metrics, queries, gallery)
         if args.stage in {'all', 'visualize'}:
