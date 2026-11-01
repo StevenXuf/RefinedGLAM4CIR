@@ -26,7 +26,6 @@ generation:
   model_id: Qwen/Qwen3-VL-8B-Instruct
   revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
   batch_size: 8
-  text_batch_size: 48
   max_new_tokens: 128
   max_pixels: 200704
   max_target_images: 3
@@ -34,15 +33,17 @@ generation:
   max_words: 15
 
 perturbation:
+  keyboard_language: en
+  insertion_characters: abcdefghijklmnopqrstuvwxyz0123456789
+
   operations:
-    character_deletion: 'Delete characters inside words: blue -> bue.'
-    character_insertion: 'Insert extra letters or digits inside words: blue -> blxue.'
-    character_substitution: 'Replace characters with adjacent English QWERTY keys: blue -> blie.'
-    adjacent_character_transposition: 'Exchange adjacent characters inside a word, not words: blue ->
-      bule.'
-    character_repetition: 'Repeat characters inside words: blue -> bllue.'
-    space_insertion: 'Insert spaces inside words: blue -> bl ue.'
-    space_deletion: 'Remove spaces between words: blue vase -> bluevase.'
+    - character_deletion
+    - character_insertion
+    - character_substitution
+    - adjacent_character_transposition
+    - character_repetition
+    - space_insertion
+    - space_deletion
 
   severity_probabilities:
     mild: 0.75

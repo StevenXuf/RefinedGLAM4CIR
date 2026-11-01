@@ -1,9 +1,10 @@
-"""Direct visual modifier generation, reviewed corruptions, and full-gallery retrieval."""
+"""Direct visual modifier generation, Python corruptions, and full-gallery retrieval."""
 
 import argparse
 import gc
 import logging
 import random
+from collections import Counter
 
 import pandas as pd
 import torch
@@ -14,7 +15,7 @@ from feature_extractor import FeatureExtractor
 from generation import DirectQwen
 from loading_data import GLAMGalleryDataset, GLAMQueryDataset, ImageDataset, SPLITS, collate_samples
 from metrics_computation import compute_metrics, metric_deltas, rank_queries
-from perturbation import perturb_modifiers, review_summary
+from perturbation import perturb_modifiers, perturbation_summary
 from utils import (
     ROOT,
     batches,
@@ -174,8 +175,8 @@ def print_metrics(cfg, metrics, count, gallery):
 
 
 def save_metrics(cfg, records, gallery, metrics):
-    """Store scores, coverage, settings, and final review counts without exporting features."""
-    reviews = {kind: review_summary(records, kind) for kind in cfg['perturbation']['operations']}
+    """Store scores, coverage, settings, and applied corruption statistics."""
+    statistics = perturbation_summary(records, cfg['perturbation']['operations'])
     save_json(
         output_path(cfg, 'metrics.json'),
         dict(
@@ -190,15 +191,11 @@ def save_metrics(cfg, records, gallery, metrics):
             retrieval=cfg['retrieval'],
             evaluation=cfg['evaluation'],
             perturbation=cfg['perturbation'],
-            prompts=dict(
-                modifier=prompts.MODIFIER,
-                perturbation=prompts.PERTURBATION,
-                review=prompts.REVIEW,
-                repair=prompts.REPAIR,
-            ),
+            prompts=dict(modifier=prompts.MODIFIER),
             composition='L2-normalize(unit image embedding + unit text embedding)',
-            review_policy='Qwen judges each pair; regenerate rejections once and judge again; retain all queries.',
-            reviews=reviews,
+            perturbation_engine='NLPAug 1.1.11 and Python standard library; one output per type, no model-based corruption or verification.',
+            severity_counts=dict(Counter(record['severity'] for record in records)),
+            perturbation_statistics=statistics,
             metrics=metrics,
             delta_vs_unperturbed={
                 kind: metric_deltas(metrics['unperturbed'], metrics[kind])
@@ -207,10 +204,9 @@ def save_metrics(cfg, records, gallery, metrics):
         ),
     )
     print_metrics(cfg, metrics, len(records), gallery)
-    table = pd.DataFrame.from_dict(reviews, orient='index').rename_axis('Perturbation')
-    table['success_percent'] = table['success_percent'].map('{:.2f}'.format)
+    table = pd.DataFrame.from_dict(statistics, orient='index').rename_axis('Perturbation')
     logging.getLogger('glam').info(
-        'Qwen review counts (model judgments):\n%s', table.to_markdown(disable_numparse=True)
+        'Python corruption statistics:\n%s', table.to_markdown(floatfmt='.2f')
     )
 
 
@@ -236,18 +232,16 @@ def main():
     queries, gallery = load_data(cfg, logger)
     if args.stage == 'data':
         return
-    model = None
-    if args.stage in {'all', 'generate', 'perturb'}:
-        model = DirectQwen(cfg)
     if args.stage in {'all', 'generate'}:
+        model = DirectQwen(cfg)
         generate_modifiers(cfg, queries, model, logger)
+        del model
+        gc.collect()
+        torch.cuda.empty_cache()
     if args.stage in {'all', 'perturb'}:
         records = read_json(output_path(cfg, 'modifiers.json', retrieval=False))
-        records = perturb_modifiers(model, cfg, records, logger)
+        records = perturb_modifiers(cfg, records, logger)
         save_json(output_path(cfg, 'perturbations.json', retrieval=False), records)
-    del model
-    gc.collect()
-    torch.cuda.empty_cache()
     if args.stage in {'all', 'evaluate', 'visualize'}:
         records = read_json(output_path(cfg, 'perturbations.json', retrieval=False))
         metrics, examples = evaluate(

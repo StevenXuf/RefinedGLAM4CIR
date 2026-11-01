@@ -1,113 +1,142 @@
-"""Direct Qwen corruptions, pairwise review, and one revision after rejection."""
+"""One seeded Python corruption per request and type, with fixed severity quotas."""
 
+import math
 import random
 from collections import Counter
 
-import prompts
-from utils import batches, fingerprint
+import nlpaug.augmenter.char as nac
+import numpy as np
+
+from utils import fingerprint
+
+LIBRARY_ACTIONS = {'character_deletion': 'delete', 'character_insertion': 'insert'}
 
 
-def severity_profile(cfg, record, kind):
-    """Draw a categorical severity and then a uniform fraction within that level."""
-    rng = random.Random(
-        int(fingerprint([cfg['seed'], record['query_id'], kind, record['modifier']]), 16)
+def assign_severities(cfg, count):
+    """Round quotas by largest remainder, then shuffle their assignment to queries."""
+    probabilities = cfg['perturbation']['severity_probabilities']
+    expected = count * np.array(list(probabilities.values()))
+    quotas = np.floor(expected).astype(int)
+    order = np.argsort(-(expected - quotas), kind='stable')
+    quotas[order[: count - quotas.sum()]] += 1
+    levels = np.repeat(list(probabilities), quotas).tolist()
+    random.Random(fingerprint([cfg['seed'], cfg['split'], 'severity'])).shuffle(levels)
+    return levels
+
+
+def edit_count(fraction, capacity):
+    return min(capacity, max(1, math.ceil(fraction * capacity)))
+
+
+def library_corruption(text, kind, fraction, rng, settings):
+    """Use character tokens so NLPAug applies an exact whole-request edit budget."""
+    options = dict(
+        tokenizer=list,
+        reverse_tokenizer=''.join,
+        min_char=1,
+        aug_word_p=0,
+        aug_char_min=1,
+        aug_char_max=1,
+        aug_char_p=0,
     )
-    settings = cfg['perturbation']
-    probabilities = settings['severity_probabilities']
-    severity = rng.choices(list(probabilities), weights=list(probabilities.values()))[0]
-    return dict(
-        severity=severity, requested_fraction=rng.uniform(*settings['edit_fraction'][severity])
-    )
+    if kind == 'character_substitution':
+        augmenter = nac.KeyboardAug(
+            **options,
+            lang=settings['keyboard_language'],
+            include_special_char=False,
+            include_upper_case=False,
+            include_numeric=True,
+        )
+        excluded = [char for char in set(text) if char not in augmenter.model.model]
+    else:
+        augmenter = nac.RandomCharAug(
+            action=LIBRARY_ACTIONS[kind],
+            **options,
+            candidates=list(settings['insertion_characters']),
+        )
+        excluded = [char for char in set(text) if char.isspace()]
+    capacity = sum(char not in excluded for char in text)
+    count = edit_count(fraction, capacity)
+    augmenter.stopwords = excluded
+    augmenter.aug_word_min = augmenter.aug_word_max = count
+    augmenter.sample = rng.sample  # Inject the query's RNG instead of a global sampler.
+    return augmenter.augment(text, n=1)[0], capacity, count
 
 
-def prompt_fields(cfg, record, kind):
-    """Use the same sampled severity and operation for generation, review, and revision."""
-    profile = record['severity_profiles'][kind]
-    return dict(
-        operation=cfg['perturbation']['operations'][kind],
-        modifier=record['modifier'],
-        severity=profile['severity'],
-        percent=100 * profile['requested_fraction'],
-    )
-
-
-def review_pairs(model, cfg, records, kind):
-    """Give Qwen both the clean and perturbed modifier and request PASS/FAIL with a reason."""
-    return model.generate(
-        [
-            prompts.REVIEW.format(
-                **prompt_fields(cfg, record, kind), perturbed=record['perturbations'][kind]
-            )
-            for record in records
-        ]
-    )
-
-
-def passed(judgment):
-    return judgment.upper().startswith('PASS')
-
-
-def perturb_modifiers(model, cfg, records, logger):
-    """Generate once, judge every pair, revise each rejection once, then judge it again."""
-    records = [
-        dict(record, perturbations={}, severity_profiles={}, reviews={}) for record in records
+def swap_sites(text, rng):
+    """Choose disjoint adjacent, unequal letter/digit pairs within words."""
+    candidates = [
+        i for i in range(len(text) - 1) if text[i : i + 2].isalnum() and text[i] != text[i + 1]
     ]
-    for kind in cfg['perturbation']['operations']:
-        for batch in batches(records, cfg['generation']['text_batch_size']):
-            for record in batch:
-                record['severity_profiles'][kind] = severity_profile(cfg, record, kind)
-            outputs = model.generate(
-                [
-                    prompts.PERTURBATION.format(**prompt_fields(cfg, record, kind))
-                    for record in batch
-                ]
+    rng.shuffle(candidates)
+    sites, occupied = [], set()
+    for index in candidates:
+        if occupied.isdisjoint([index, index + 1]):
+            sites.append(index)
+            occupied.update([index, index + 1])
+    return sites
+
+
+def simple_corruption(text, kind, fraction, rng):
+    """Apply swaps, repetition, or spaces once using standard-library operations."""
+    if kind == 'adjacent_character_transposition':
+        sites = swap_sites(text, rng)
+    elif kind == 'space_insertion':
+        sites = [i for i in range(1, len(text)) if text[i - 1 : i + 1].isalnum()]
+    elif kind == 'space_deletion':
+        sites = [i for i, char in enumerate(text) if char == ' ']
+    else:
+        sites = [i for i, char in enumerate(text) if char.isalnum()]
+    count = edit_count(fraction, len(sites))
+    selected = set(rng.sample(sites, count))
+    if kind == 'adjacent_character_transposition':
+        chars = list(text)
+        for index in selected:
+            chars[index], chars[index + 1] = chars[index + 1], chars[index]
+        return ''.join(chars), len(sites), count
+    if kind == 'space_deletion':
+        replacements = dict.fromkeys(selected, '')
+    elif kind == 'space_insertion':
+        replacements = {i: ' ' + text[i] for i in selected}
+    else:
+        replacements = {i: text[i] * 2 for i in selected}
+    return ''.join(replacements.get(i, char) for i, char in enumerate(text)), len(sites), count
+
+
+def perturb_modifiers(cfg, records, logger):
+    """Keep clean requests and targets; create one independently seeded error per type."""
+    levels = assign_severities(cfg, len(records))
+    records = [
+        dict(record, severity=level, perturbations={}, perturbation_details={})
+        for record, level in zip(records, levels)
+    ]
+    settings = cfg['perturbation']
+    for record in records:
+        for kind in settings['operations']:
+            rng = random.Random(
+                fingerprint([cfg['seed'], record['query_id'], kind, record['modifier']])
             )
-            for record, text in zip(batch, outputs):
-                record['perturbations'][kind] = text
-            judgments = review_pairs(model, cfg, batch, kind)
-            rejected = []
-            for record, judgment in zip(batch, judgments):
-                record['reviews'][kind] = dict(judgment=judgment)
-                if not passed(judgment):
-                    record['reviews'][kind]['first_attempt'] = dict(
-                        modifier=record['perturbations'][kind], judgment=judgment
-                    )
-                    rejected.append(record)
-            if rejected:
-                revisions = model.generate(
-                    [
-                        prompts.PERTURBATION.format(**prompt_fields(cfg, record, kind))
-                        + prompts.REPAIR.format(
-                            perturbed=record['perturbations'][kind],
-                            judgment=record['reviews'][kind]['judgment'],
-                        )
-                        for record in rejected
-                    ]
+            fraction = rng.uniform(*settings['edit_fraction'][record['severity']])
+            if kind in LIBRARY_ACTIONS or kind == 'character_substitution':
+                text, capacity, count = library_corruption(
+                    record['modifier'], kind, fraction, rng, settings
                 )
-                for record, text in zip(rejected, revisions):
-                    record['perturbations'][kind] = text
-                for record, judgment in zip(rejected, review_pairs(model, cfg, rejected, kind)):
-                    record['reviews'][kind]['judgment'] = judgment
-        counts = Counter(record['severity_profiles'][kind]['severity'] for record in records)
-        logger.info('%s severity=%s; review=%s', kind, dict(counts), review_summary(records, kind))
+            else:
+                text, capacity, count = simple_corruption(record['modifier'], kind, fraction, rng)
+            record['perturbations'][kind] = text
+            record['perturbation_details'][kind] = dict(
+                requested_fraction=fraction, eligible_positions=capacity, edits=count
+            )
+    logger.info('Severity quotas: %s', dict(Counter(levels)))
     return records
 
 
-def review_summary(records, kind):
-    """Report final judgments without removing failed pairs from evaluation."""
-    regenerated = sum('first_attempt' in record['reviews'][kind] for record in records)
-    successes = sum(passed(record['reviews'][kind]['judgment']) for record in records)
-    return dict(
-        initial_passed=len(records) - regenerated,
-        initial_failed=regenerated,
-        recovered=sum(
-            'first_attempt' in record['reviews'][kind]
-            and passed(record['reviews'][kind]['judgment'])
-            for record in records
-        ),
-        passed=successes,
-        failed=len(records) - successes,
-        success_percent=100 * successes / len(records),
-        regenerated=regenerated,
-        unchanged=sum(record['modifier'] == record['perturbations'][kind] for record in records),
-    )
+def perturbation_summary(records, operations):
+    statistics = {}
+    for kind in operations:
+        changed = sum(record['modifier'] != record['perturbations'][kind] for record in records)
+        edits = [record['perturbation_details'][kind]['edits'] for record in records]
+        statistics[kind] = dict(
+            changed=changed, unchanged=len(records) - changed, mean_edits=float(np.mean(edits))
+        )
+    return statistics

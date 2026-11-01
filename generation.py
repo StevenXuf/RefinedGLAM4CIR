@@ -7,7 +7,7 @@ from loading_data import load_image
 
 
 class DirectQwen:
-    """Send image groups or text-only corruption prompts directly to Qwen once."""
+    """Compare each reference/target image group directly in one Qwen request."""
 
     def __init__(self, cfg):
         spec = cfg['generation']
@@ -25,9 +25,9 @@ class DirectQwen:
         self.max_tokens = spec['max_new_tokens']
 
     @torch.inference_mode()
-    def generate(self, prompts, image_groups=None):
+    def generate(self, prompts, image_groups):
         messages, images = [], []
-        for prompt, paths in zip(prompts, image_groups or [[] for _ in prompts]):
+        for prompt, paths in zip(prompts, image_groups):
             content = [{'type': 'text', 'text': prompt}]
             for index, path in enumerate(paths):
                 label = 'Reference image' if index == 0 else f'Target image {index}'
@@ -38,9 +38,9 @@ class DirectQwen:
             self.processor.apply_chat_template(message, tokenize=False, add_generation_prompt=True)
             for message in messages
         ]
-        inputs = self.processor(
-            text=texts, images=images or None, return_tensors='pt', padding=True
-        ).to(self.model.device)
+        inputs = self.processor(text=texts, images=images, return_tensors='pt', padding=True).to(
+            self.model.device
+        )
         if 'pixel_values' in inputs:
             inputs['pixel_values'] = inputs['pixel_values'].to(self.model.dtype)
         tokens = self.model.generate(**inputs, max_new_tokens=self.max_tokens, do_sample=False)
