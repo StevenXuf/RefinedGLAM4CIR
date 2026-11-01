@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 import prompts
 from feature_extractor import FeatureExtractor
-from generation import DirectQwen
+from generation import DirectQwen, verify_modifiers
 from loading_data import GLAMGalleryDataset, GLAMQueryDataset, ImageDataset, SPLITS, collate_samples
 from metrics_computation import compute_metrics, metric_deltas, rank_queries
 from perturbation import perturb_modifiers, perturbation_summary
@@ -51,7 +51,7 @@ def generation_targets(cfg, query):
 
 
 def generate_modifiers(cfg, queries, model, logger):
-    """Show Qwen the reference and up to three target images together, without descriptions."""
+    """Generate English change requests and visually review only screened outliers."""
     records = []
     for batch in batches(queries, cfg['generation']['batch_size']):
         selected = [generation_targets(cfg, query) for query in batch]
@@ -67,9 +67,15 @@ def generate_modifiers(cfg, queries, model, logger):
         modifiers = model.generate(
             [prompts.MODIFIER.format(**cfg['generation'])] * len(batch), groups
         )
+        modifiers, reviewed = verify_modifiers(model, cfg, modifiers, groups, logger)
         records.extend(
-            dict(query, generation_target_ids=target_ids, modifier=text)
-            for query, target_ids, text in zip(batch, selected, modifiers)
+            dict(
+                query,
+                generation_target_ids=target_ids,
+                modifier=text,
+                modifier_reviewed=i in reviewed,
+            )
+            for i, (query, target_ids, text) in enumerate(zip(batch, selected, modifiers))
         )
         logger.info('Direct visual generation: %d/%d queries', len(records), len(queries))
     save_json(output_path(cfg, 'modifiers.json', retrieval=False), records)
@@ -191,7 +197,7 @@ def save_metrics(cfg, records, gallery, metrics):
             retrieval=cfg['retrieval'],
             evaluation=cfg['evaluation'],
             perturbation=cfg['perturbation'],
-            prompts=dict(modifier=prompts.MODIFIER),
+            prompts=dict(modifier=prompts.MODIFIER, modifier_review=prompts.MODIFIER_REVIEW),
             composition='L2-normalize(unit image embedding + unit text embedding)',
             perturbation_engine='NLPAug 1.1.11 and Python standard library; one output per type, no model-based corruption or verification.',
             severity_counts=dict(Counter(record['severity'] for record in records)),

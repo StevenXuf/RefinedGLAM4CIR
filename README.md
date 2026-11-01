@@ -21,8 +21,13 @@ queries are sampled. Current coverage is 1,429 queries / 2,363 gallery images fo
 test_id (268 declared images missing) and 81 / 22,373 for test_ood.
 
 Qwen3-VL-8B-Instruct directly compares each reference with up to three seeded
-targets and writes a concrete 5–15-word modifier using `prompts.py`. Every
-available annotated target remains relevant during evaluation.
+targets. The initial prompt asks for a concrete 5–15-word change instruction in
+everyday English. Language identification (`langid`), word count, and the opening
+action flag outliers; ordinary outputs need no extra Qwen call. Only outliers are
+reviewed and corrected against the same images in one extra Qwen call. A correction
+that still fails the local checks stops generation.
+Saved records indicate whether Qwen review was needed. Every available annotated
+target remains relevant during evaluation.
 
 Python then produces **one corruption per query and type**: character deletion,
 insertion, keyboard-neighbour substitution, adjacent-character transposition,

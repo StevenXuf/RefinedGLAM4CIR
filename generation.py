@@ -1,8 +1,10 @@
-"""Direct visual comparison with Qwen3-VL; one response per request."""
+"""Direct visual comparison and image-grounded review with Qwen3-VL."""
 
+import langid
 import torch
 from transformers import AutoModelForImageTextToText, AutoProcessor
 
+import prompts
 from loading_data import load_image
 
 
@@ -48,3 +50,33 @@ class DirectQwen:
             tokens[:, inputs['input_ids'].shape[1] :], skip_special_tokens=True
         )
         return [text.strip() for text in outputs]
+
+
+def modifier_is_outlier(text, settings, check_action=True):
+    """Screen language, length, and instruction form without an MLLM call."""
+    words = text.split()
+    return (
+        not settings['min_words'] <= len(words) <= settings['max_words']
+        or (check_action and words[0].lower() not in settings['modifier_actions'])
+        or langid.classify(text)[0] != 'en'
+    )
+
+
+def verify_modifiers(model, cfg, modifiers, image_groups, logger):
+    """Use one image-grounded review/correction call for outliers only."""
+    settings = cfg['generation']
+    modifiers = list(modifiers)
+    outliers = [i for i, text in enumerate(modifiers) if modifier_is_outlier(text, settings)]
+    logger.info('Qwen modifier review: %d/%d outliers', len(outliers), len(modifiers))
+    if outliers:
+        corrected = model.generate(
+            [prompts.MODIFIER_REVIEW.format(modifier=modifiers[i], **settings) for i in outliers],
+            [image_groups[i] for i in outliers],
+        )
+        for i, text in zip(outliers, corrected):
+            if modifier_is_outlier(text, settings, check_action=False):
+                raise ValueError(
+                    f'Modifier still fails English/length checks at batch position {i}: {text}'
+                )
+            modifiers[i] = text
+    return modifiers, set(outliers)
