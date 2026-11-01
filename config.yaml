@@ -6,7 +6,7 @@ image_storage_folders: [train, val, test_id, test_ood]
 
 paths:
   glam_root: /data/data_fxu/GLAM/raw
-  cir_file: cir_db.csv  # Existing annotations; db_cir.csv is not provided.
+  cir_file: cir_db.csv
   db_processed_name: db_processed.txt
   output_dir: outputs
   model_cache: .model_cache
@@ -17,86 +17,39 @@ runtime:
   dtype: bfloat16
   num_workers: 4
   cpu_threads: 4
-  local_files_only: false
 
 subset:
-  query_limit: null  # Query-only diagnostic subset; gallery is ALWAYS complete.
+  query_limit: null
 
 generation:
-  model: qwen  # qwen, llava, deepseek
-  min_words: 5
-  max_words: 15
-  batch_size: 16
-  image_batch_size: 8
-  max_attempts: 6
+  model: qwen
+  model_id: Qwen/Qwen3-VL-8B-Instruct
+  revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
+  batch_size: 8
+  text_batch_size: 48
   max_new_tokens: 128
   max_pixels: 200704
-  target_review_attempts: 6  # Final attempt starts category search; rejected choices are excluded.
-  shared_features_max_words: 40
-  max_target_images: 3  # Generation only; evaluation retains ALL available ground truths.
-  fallback_modifiers:  # Last repair only; still reviewed against every sampled target.
-    - Show me tools with metal parts.
-    - Show me some tools, please.
-    - Show me some clothing, please.
-    - Show me some jewelry, please.
-    - Show me some sculptures, please.
-    - Show me some clay objects.
-    - Show me some drawings, please.
-    - Show me some printed pictures.
-    - Show me some coins, please.
-    - Show me some containers, please.
-    - Show me some textiles, please.
-    - Show me some furniture, please.
-    - Show me buildings in a picture.
-    - Show me objects with wooden parts.
-    - Show me a carved mask.
-    - Show me bones with visible surface detail.
-    - Show me some musical instruments.
-    - Show me some vehicles, please.
-    - Show me some people, please.
-    - Show me drawings of body parts.
-    - Show me some stone objects.
-    - Show me some objects, please.
-  gpu_ids: [1]
-  max_memory_gib: 40
-
-  models:
-    qwen:
-      id: Qwen/Qwen3-VL-8B-Instruct
-      revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
-      trust_remote_code: false
-
-    llava:
-      id: lmms-lab-encoder/LLaVA-OneVision-2-8B-Instruct
-      revision: 878cde7e04fd962a6082951d8f83083a73fea588
-      trust_remote_code: true
-
-    deepseek:
-      id: deepseek-community/Janus-Pro-7B
-      revision: 8f23139ed8d37346501091b3690291cb7b16f9fc
-      trust_remote_code: false
+  max_target_images: 3
+  min_words: 5
+  max_words: 15
 
 perturbation:
-  types:
-    - character_deletion
-    - character_insertion
-    - character_substitution
-    - adjacent_character_transposition
-    - character_repetition
-    - space_insertion
-    - space_deletion
+  operations:
+    character_deletion: 'Delete characters inside words: blue -> bue.'
+    character_insertion: 'Insert extra letters or digits inside words: blue -> blxue.'
+    character_substitution: 'Replace characters with adjacent English QWERTY keys: blue -> blie.'
+    adjacent_character_transposition: 'Exchange adjacent characters inside a word, not words: blue ->
+      bule.'
+    character_repetition: 'Repeat characters inside words: blue -> bllue.'
+    space_insertion: 'Insert spaces inside words: blue -> bl ue.'
+    space_deletion: 'Remove spaces between words: blue vase -> bluevase.'
 
-  candidate_count: 8
-  insertion_characters: abcdefghijklmnopqrstuvwxyz0123456789
-
-  # Simulation assumptions: mostly small edit budgets; extremes remain possible.
   severity_probabilities:
     mild: 0.75
     moderate: 0.20
     severe: 0.04
     extreme: 0.01
 
-  # Fraction of eligible original-string edit sites; at least one operation.
   edit_fraction:
     mild: [0.01, 0.03]
     moderate: [0.04, 0.08]
@@ -104,25 +57,14 @@ perturbation:
     extreme: [0.30, 1.00]
 
 retrieval:
-  model: openclip  # clip, openclip, blip, siglip, siglip2, coca, openvision
+  model: openclip
+  architecture: ViT-B-16
+  pretrained: laion2b_s34b_b88k
   batch_size: 64
-  image_weight: 0.5
-
-  models:
-    clip: openai/clip-vit-base-patch16
-    openclip: ViT-B-16
-    openclip_pretrained: laion2b_s34b_b88k
-    blip: Salesforce/blip-itm-base-coco
-    siglip: google/siglip-base-patch16-224
-    siglip2: google/siglip2-base-patch16-224
-    coca: coca_ViT-B-32
-    coca_pretrained: mscoco_finetuned_laion2b_s13b_b90k
-    openvision: hf-hub:UCSC-VLAA/openvision-vit-base-patch16-224
 
 evaluation:
   top_ks: [1, 5, 10, 50]
   exclude_reference: true
-  query_batch_size: 16
 
 visualization:
   num_examples: 3

@@ -45,7 +45,7 @@ def figure_conditions(cfg, item):
     return [
         ('reference_original', item['original_modifier']),
         ('unperturbed', item['modifier']),
-    ] + [(kind, item['perturbations'][kind]) for kind in cfg['perturbation']['types']]
+    ] + [(kind, item['perturbations'][kind]) for kind in cfg['perturbation']['operations']]
 
 
 def visualize(cfg, records, gallery, retrieval):
@@ -144,7 +144,8 @@ def visualize(cfg, records, gallery, retrieval):
 
 
 if __name__ == '__main__':
-    from pipeline import evaluate, load_data, load_modifiers
+    from pipeline import evaluate, load_data
+    from utils import read_json
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
@@ -153,6 +154,6 @@ if __name__ == '__main__':
     cfg = get_config(args.config, args.split)
     setup_logging(cfg)
     queries, gallery = load_data(cfg)
-    data = load_modifiers(cfg, queries, gallery)
-    _, examples, _, _ = evaluate(cfg, data['records'], gallery, examples_only=True)
-    visualize(cfg, data['records'], gallery.records, examples)
+    records = read_json(output_path(cfg, 'perturbations.json', retrieval=False))
+    _, examples = evaluate(cfg, records, gallery, examples_only=True)
+    visualize(cfg, records, gallery.records, examples)

@@ -1,63 +1,75 @@
 # RefinedGLAM4CIR
 
-This inference-only project studies how textual mistakes affect composed image retrieval on GLAM. A multimodal language model turns a reference image and its annotated targets into a short, concrete search request. Retrieval is evaluated before and after seven controlled text corruptions. The code derives from [CIR4DH](https://github.com/StevenXuf/CIR4DH) under the MIT license.
+Inference-only experiments on refining cultural-heritage image-search modifiers and
+measuring their robustness to typing errors. Derived from
+[CIR4DH](https://github.com/StevenXuf/CIR4DH) under the MIT license.
 
 ## Run
 
-Install a CUDA-compatible PyTorch/torchvision build, then:
+Install CUDA-compatible PyTorch/torchvision, then:
 
 ```bash
 python -m pip install -r requirements.txt
-python pipeline.py --split test_ood
-python pipeline.py --split test_id
+python pipeline.py --split test_id --seed 42 --gpu 0
+python pipeline.py --split test_ood --seed 42 --gpu 1
 # Or run both splits sequentially:
 bash run_splits.sh
-
-# Additional seeds (GPU override is optional):
-python pipeline.py --split test_id --seed 43 --gpu 0
-python report_seeds.py --seeds 42 43 44
 ```
 
-The server's project interpreter is `.venv/bin/python`. All paths, models, GPU settings, seeds, generation limits, and evaluation cutoffs are in `config.yaml`. Defaults are **Qwen3-VL-8B-Instruct**, **OpenCLIP ViT-B-16 / laion2b_s34b_b88k**, GPU 1, and seed 42. Set `generation.model` to `qwen`, `llava`, or `deepseek` for the configured 7–8B backends; retrieval alternatives are listed in YAML.
+Paths, model versions, seeds, batches, severity distributions, and cutoffs are in
+`config.yaml`; prompts are in `prompts.py`. Defaults are Qwen3-VL-8B-Instruct and
+OpenCLIP ViT-B-16 pretrained on `laion2b_s34b_b88k`.
 
-## Data and generation
+## Pipeline
 
-- `cir_db.csv` supplies the existing reference–target triplets and original modifiers. Only `test_id` and `test_ood` have CIR annotations. `db_processed.txt` defines their galleries.
-- Images are read locally from `/data/data_fxu/GLAM/raw`; nothing is downloaded. Every query uses the **complete available split gallery**, including when testing a query subset.
-- Missing targets are removed individually; all remaining targets are retained for evaluation. Duplicate pairs are filtered. Current coverage is **1,429 queries / 2,363 available gallery images** for test_id and **81 / 22,373** for test_ood. Another 268 declared test_id gallery files are missing locally.
-- Generation observes up to **three seeded target images** per query. Requests use plain language, a specific shared object name, and supported visible details, in **5–15 words**. The model checks each sampled target and repairs unsupported claims. After free-form repairs, the model can choose a specific category request from YAML; rejected choices are excluded and every choice requires review. Heterogeneous targets can still require a broad request. Generation is target-conditioned and model review does not guarantee semantic correctness.
+1. Read existing reference–target triplets from `cir_db.csv`. Qwen jointly sees
+   the reference and up to three seeded targets and writes a concrete 5–15-word
+   search request. Generation uses the images directly, without intermediate
+   descriptions or predefined fallback requests.
+2. For each clean request, Qwen directly generates character deletion, insertion,
+   keyboard-neighbour substitution, adjacent-character transposition, repetition,
+   space insertion, and space deletion. Each type starts from the clean text.
+3. Qwen receives both the clean and perturbed text and judges operation, actual
+   change, approximate severity, and preservation of the intended search. Each
+   rejection is regenerated once using the reason, then judged again. Final
+   failures are retained and marked, preserving the evaluation cohort. Model
+   judgments are not human verification.
+4. Rank the complete available gallery using cosine similarity. Image and text
+   embeddings are individually L2-normalized; composed features use
+   `normalize(image_embedding + text_embedding)`.
 
-The corruptions are character deletion, insertion, keyboard-neighbour substitution, adjacent character transposition, repetition, space insertion, and space deletion. Each starts from the clean request. Severity is sampled as mild/moderate/severe/extreme with probabilities 75/20/4/1%; edit ranges and protected-word rules are configurable or defined in `perturbation.py`. The MLLM selects among validated candidates at the fixed sampled budget.
+Severity is sampled categorically: mild/moderate/severe/extreme have probabilities
+75/20/4/1%. A uniform fraction within that level's configured edit range is given
+to Qwen. These are sampling probabilities, not exact quotas. There are no
+Python-generated corruption candidates or enforced character-edit budgets.
 
-## Retrieval and metrics
+Baselines are image only, original modifier only, generated modifier only, and
+image + original modifier. They are compared with image + generated modifier and
+all seven corruptions. Native TorchMetrics `RetrievalRecall`, `RetrievalMRR`, and
+`RetrievalMAP` report percentages at K=1,5,10,50 and their arithmetic average.
+Multiple targets are retained; missing targets are removed individually. The
+reference is excluded from retrieval, with deterministic tie handling.
 
-Image and text encoders produce normalized shared-space features. Composed queries use:
+Images are loaded locally from `/data/data_fxu/GLAM/raw`; nothing is downloaded.
+Only `test_id` and `test_ood` have CIR triplets. `db_processed.txt` defines the
+full galleries, which are never sampled. Current available coverage is
+1,429 queries / 2,363 images for test_id and 81 / 22,373 for test_ood; 268 declared
+test_id gallery files are missing locally.
 
-```text
-normalize(w * normalize(reference) + (1-w) * normalize(text))
-```
+## Components and results
 
-`w=0.5` by default. Candidates are ranked by cosine similarity, excluding the reference with deterministic ties. BLIP uses its contrastive retrieval projections, not its classification or language-model heads.
+`--stage data|generate|perturb|evaluate|visualize` runs a component separately.
+Generation writes `modifiers_qwen_seed_42.json`; perturbation/review writes
+`perturbations_qwen_seed_42.json`. Later stages read these files. The default
+`all` stage regenerates the experiment from the beginning.
 
-Baselines use the image alone, original text alone, generated text alone, and image + original text. They are compared with image + generated text and each corruption on the same queries and gallery.
+Each `outputs/<split>/` also contains final
+`metrics_qwen_openclip_seed_42.json`, one `run_qwen_openclip_seed_42.log`, and
+three example figures under `figures/`. Metrics include initial/final success and failure counts, recovery counts, and success rates;
+corruption records retain failed first attempts and final judgments. Figures show
+original, generated, and corrupted modifiers with top-5 results; every annotated
+retrieved target is highlighted. All filenames include their models and seed.
+Outputs, model caches, and local tests are ignored by Git.
 
-Native TorchMetrics **RetrievalRecall, RetrievalMRR, and RetrievalMAP** compute macro scores at **K=1,5,10,50**. AVG is the mean across these cutoffs. Scores are percentages; deltas compare against clean generated-text composition. TorchMetrics 1.8.0 AP@K averages precision over positives retrieved within K, with no custom rescaling. Positive rank-equivalent metric inputs preserve cosine ordering for candidates with nonpositive scores; figures display actual cosine similarities.
-
-## Outputs
-
-Each `outputs/<split>/` contains only:
-
-- `modifiers_qwen_seed_42.json`: clean and perturbed requests, triplets, and sampled generation targets; updated as a resumable checkpoint.
-- `metrics_qwen_openclip_seed_42.json`: final scores, deltas, coverage, and experiment settings.
-- `run_qwen_openclip_seed_42.log`: the latest invocation's messages and final tables, also printed on screen. One log is retained per split, model pair, and seed.
-- `figures/example_<csv_row>_qwen_openclip_seed_42.png`: three random triplets showing original, generated, and corrupted requests with top-5 results. Any annotated target receives a green border.
-
-Model/seed suffixes follow YAML automatically. Clean baselines are evaluated once and reused; final metrics are saved once. Features, full rankings, image observations, and review responses are not exported. Outputs, model caches, and local checks are ignored by Git.
-
-`--seed` and `--gpu` override YAML for independent runs. `report_seeds.py` prints every run and the mean ± sample standard deviation at each cutoff and AVG, saving a summary in each split's output directory. AVG is computed within each run before aggregation.
-
-## Components and resuming
-
-`pipeline.py` assembles `loading_data.py`, `generation.py` / `prompts.py`, `perturbation.py`, `feature_extractor.py`, `metrics_computation.py`, and `figure.py`. Components can run through `--stage data|generate|perturb|evaluate|visualize`; all entry points accept `--config`.
-
-Unchanged runs resume checkpoints. Configuration, source, or image-availability changes require an empty output directory. `--reuse-clean <file>` or `--reuse-modifiers <file>` explicitly import compatible checkpoints after validation; older generation policies are rejected. `bash run_splits.sh config.yaml /path/to/previous_outputs` imports compatible modifiers for both splits. To regenerate from scratch, use an empty output directory and omit reuse options.
+For completed independent seeds, `python report_seeds.py --seeds 42 43 44` prints
+per-seed tables and mean ± sample standard deviation without writing extra reports.
