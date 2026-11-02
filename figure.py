@@ -82,7 +82,7 @@ def visualize(cfg, records, gallery, retrieval):
                 (
                     axes[row, 1],
                     item['target_paths'][0],
-                    f'Target example ({len(item["target_ids"])} relevant)',
+                    f'Target (out of {len(item["target_ids"])})',
                 ),
             ]
             for ax, path, title in cards:
