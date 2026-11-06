@@ -52,12 +52,12 @@ class DirectQwen:
         return [text.strip() for text in outputs]
 
 
-def modifier_is_outlier(text, settings, check_action=True):
+def modifier_is_outlier(text, settings):
     """Screen language, length, and instruction form without an MLLM call."""
     words = text.split()
     return (
         not settings['min_words'] <= len(words) <= settings['max_words']
-        or (check_action and words[0].lower() not in settings['modifier_actions'])
+        or words[0].lower() not in settings['modifier_actions']
         or langid.classify(text)[0] != 'en'
     )
 
@@ -74,9 +74,9 @@ def verify_modifiers(model, cfg, modifiers, image_groups, logger):
             [image_groups[i] for i in outliers],
         )
         for i, text in zip(outliers, corrected):
-            if modifier_is_outlier(text, settings, check_action=False):
+            if not settings['min_words'] <= len(text.split()) <= settings['max_words']:
                 raise ValueError(
-                    f'Modifier still fails English/length checks at batch position {i}: {text}'
+                    f'Modifier still fails length checks at batch position {i}: {text}'
                 )
             modifiers[i] = text
     return modifiers, set(outliers)

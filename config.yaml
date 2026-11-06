@@ -29,9 +29,9 @@ generation:
   max_new_tokens: 128
   max_pixels: 200704
   max_target_images: 3
-  min_words: 5
+  min_words: 3
   max_words: 15
-  target_words: 8
+  target_words: 6
   modifier_actions: [change, make, replace, find]
 
 perturbation:

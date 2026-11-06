@@ -21,11 +21,13 @@ queries are sampled. Current coverage is 1,429 queries / 2,363 gallery images fo
 test_id (268 declared images missing) and 81 / 22,373 for test_ood.
 
 Qwen3-VL-8B-Instruct directly compares each reference with up to three seeded
-targets. The initial prompt asks for a concrete 5–15-word change instruction in
-everyday English. Language identification (`langid`), word count, and the opening
-action flag outliers; ordinary outputs need no extra Qwen call. Only outliers are
-reviewed and corrected against the same images in one extra Qwen call. A correction
-that still fails the local checks stops generation.
+targets. The prompt asks for the smallest clear shared difference, leaving unchanged
+reference features implicit: 3–15 everyday English words, aiming for six. Language
+identification (`langid`), word count, and the opening action flag outliers;
+ordinary outputs need no extra Qwen call. Only outliers are
+reviewed and corrected against the same images in one extra Qwen call. Corrections
+must satisfy the word limit; short English phrases can confuse language detection,
+so language screening is not repeated after Qwen's review.
 Saved records indicate whether Qwen review was needed. Every available annotated
 target remains relevant during evaluation.
 
