@@ -72,7 +72,6 @@ def visualize(cfg, records, gallery, retrieval):
             squeeze=False,
             figsize=(2.35 * (top_k + 3), 2.85 * len(conditions)),
         )
-        fig.set_facecolor('#edf1f6')
         for row, (condition, modifier) in enumerate(conditions):
             for ax in axes[row]:
                 ax.set(box_aspect=1, facecolor='white', xticks=[], yticks=[])
@@ -138,7 +137,7 @@ def visualize(cfg, records, gallery, retrieval):
                 width -= 1
                 text.set_text(fill(modifier, width))
         path = output_path(cfg, f'figures/example_{item["csv_row"]}.png')
-        fig.savefig(path, dpi=cfg['visualization']['dpi'], facecolor=fig.get_facecolor())
+        fig.savefig(path, dpi=cfg['visualization']['dpi'], transparent=True)
         plt.close(fig)
         logging.getLogger('glam').info('Saved %s', path)
 
