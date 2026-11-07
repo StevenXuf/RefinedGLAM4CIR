@@ -75,3 +75,14 @@ visualization:
   image_size: 224
   wrap_width: 29
   dpi: 120
+
+modifier_analysis:
+  seeds: [42, 43, 44]
+
+  wordcloud:
+    width: 1200
+    height: 600
+    max_words: 150
+    background_color: white
+    collocations: false
+    normalize_plurals: false

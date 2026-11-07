@@ -137,7 +137,7 @@ def visualize(cfg, records, gallery, retrieval):
                 width -= 1
                 text.set_text(fill(modifier, width))
         path = output_path(cfg, f'figures/example_{item["csv_row"]}.png')
-        fig.savefig(path, dpi=cfg['visualization']['dpi'], transparent=True)
+        fig.savefig(path, dpi=cfg['visualization']['dpi'], facecolor='white', transparent=False)
         plt.close(fig)
         logging.getLogger('glam').info('Saved %s', path)
 

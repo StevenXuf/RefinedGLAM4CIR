@@ -1,4 +1,4 @@
-"""Configuration, atomic output, reproducibility, and GPU selection."""
+"""Shared configuration, output, reproducibility, and modifier analysis."""
 
 import hashlib
 import json
@@ -95,3 +95,21 @@ def fingerprint(value):
 def batches(items, size):
     for start in range(0, len(items), size):
         yield items[start : start + size]
+
+
+def modifier_length_statistics(modifiers):
+    """Describe whitespace-separated word counts and characters including spaces."""
+    import pandas as pd
+
+    texts = pd.Series(modifiers, dtype='string')
+    lengths = pd.DataFrame({'words': texts.str.split().str.len(), 'characters': texts.str.len()})
+    return dict(count=len(texts), **lengths.agg(['mean', 'median', 'min', 'max']).to_dict())
+
+
+def plot_wordcloud(modifiers, path, seed, settings):
+    """Save a reproducible unigram cloud using WordCloud's English stopwords."""
+    from wordcloud import WordCloud
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    WordCloud(random_state=seed, **settings).generate(' '.join(modifiers)).to_file(str(path))

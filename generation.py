@@ -1,11 +1,12 @@
-"""Direct visual comparison and image-grounded review with Qwen3-VL."""
+"""Qwen3-VL generation, outlier review, and saved-modifier analysis."""
 
 import langid
 import torch
 from transformers import AutoModelForImageTextToText, AutoProcessor
 
 import prompts
-from loading_data import load_image
+import utils
+from loading_data import GLAMQueryDataset, SPLITS, load_image
 
 
 class DirectQwen:
@@ -80,3 +81,56 @@ def verify_modifiers(model, cfg, modifiers, image_groups, logger):
                 )
             modifiers[i] = text
     return modifiers, set(outliers)
+
+
+def analyze_modifiers(cfg, seeds):
+    """Describe valid original and saved generated modifiers; plot their word clouds."""
+    from itertools import chain
+    from pathlib import Path
+
+    import pandas as pd
+
+    directory, model = Path(cfg['paths']['output_dir']), cfg['generation']['model']
+    corpora = {
+        f'original_{model}_seed_{cfg["seed"]}': [
+            q['original_modifier'] for q in GLAMQueryDataset(cfg).records
+        ]
+    }
+    for seed in seeds:
+        records = utils.read_json(
+            utils.output_path(dict(cfg, seed=seed), 'modifiers.json', retrieval=False)
+        )
+        corpora[f'generated_{model}_seed_{seed}'] = [r['modifier'] for r in records]
+    stats = {name: utils.modifier_length_statistics(texts) for name, texts in corpora.items()}
+    table = pd.json_normalize(stats.values()).set_axis(stats)
+    averages = table.iloc[1:][['words.mean', 'characters.mean']].agg(['mean', 'std'])
+    summary = dict(
+        split=cfg['split'],
+        seeds=seeds,
+        modifiers=stats,
+        across_seeds=averages.replace({float('nan'): None}).to_dict(),
+    )
+    tag = f'{model}_seeds_' + '_'.join(map(str, seeds))
+    utils.save_json(directory / f'modifier_lengths_{tag}.json', summary)
+    settings = cfg['modifier_analysis']['wordcloud']
+    for name, texts in corpora.items():
+        utils.plot_wordcloud(
+            texts, directory / f'wordcloud_{name}.png', int(name.rsplit('_', 1)[1]), settings
+        )
+    pooled = list(chain.from_iterable(list(corpora.values())[1:]))
+    utils.plot_wordcloud(pooled, directory / f'wordcloud_generated_{tag}.png', seeds[0], settings)
+    print(cfg['split'], table.to_markdown(floatfmt='.4f'), sep='\n')
+    print('Across seeds (mean and sample SD):', averages.to_markdown(floatfmt='.4f'), sep='\n')
+    return summary
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Analyze saved modifiers; no model inference.')
+    parser.add_argument('--split', choices=SPLITS)
+    parser.add_argument('--seeds', nargs='+', type=int)
+    args = parser.parse_args()
+    for split in [args.split] if args.split else SPLITS:
+        cfg = utils.get_config(split=split)
+        analyze_modifiers(cfg, args.seeds or cfg['modifier_analysis']['seeds'])
