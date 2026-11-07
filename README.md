@@ -66,4 +66,6 @@ Run `python generation.py --seeds 42 43 44` to analyze saved modifiers for both
 splits. It reports word/character lengths, averages across seeds, and saves word
 clouds for the valid originals and each generated seed.
 Words use whitespace splitting; characters include spaces and punctuation.
-Clouds use WordCloud's English stopwords. All figures have opaque white backgrounds.
+Clouds use WordCloud's English stopwords. All figures are saved as PDFs with white
+backgrounds, for example `wordcloud_generated_qwen_seed_42.pdf` and
+`example_514_qwen_openclip_seed_42.pdf`.

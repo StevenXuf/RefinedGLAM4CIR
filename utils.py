@@ -107,9 +107,10 @@ def modifier_length_statistics(modifiers):
 
 
 def plot_wordcloud(modifiers, path, seed, settings):
-    """Save a reproducible unigram cloud using WordCloud's English stopwords."""
+    """Save a reproducible PDF word cloud using WordCloud's English stopwords."""
     from wordcloud import WordCloud
 
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    WordCloud(random_state=seed, **settings).generate(' '.join(modifiers)).to_file(str(path))
+    cloud = WordCloud(random_state=seed, **settings).generate(' '.join(modifiers))
+    cloud.to_image().save(path, format='PDF', resolution=100, quality=100, subsampling=0)

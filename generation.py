@@ -114,7 +114,7 @@ def analyze_modifiers(cfg, seeds):
     settings = cfg['modifier_analysis']['wordcloud']
     for name, texts in corpora.items():
         utils.plot_wordcloud(
-            texts, directory / f'wordcloud_{name}.png', int(name.rsplit('_', 1)[1]), settings
+            texts, directory / f'wordcloud_{name}.pdf', int(name.rsplit('_', 1)[1]), settings
         )
     print(cfg['split'], table.to_markdown(floatfmt='.4f'), sep='\n')
     print('Across seeds (mean and sample SD):', averages.to_markdown(floatfmt='.4f'), sep='\n')
