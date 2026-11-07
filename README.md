@@ -64,6 +64,6 @@ by Git. `report_seeds.py --seeds 42 43 44` summarizes completed independent runs
 
 Run `python generation.py --seeds 42 43 44` to analyze saved modifiers for both
 splits. It reports word/character lengths, averages across seeds, and saves word
-clouds for the valid originals, each generated seed, and the pooled generations.
+clouds for the valid originals and each generated seed.
 Words use whitespace splitting; characters include spaces and punctuation.
 Clouds use WordCloud's English stopwords. All figures have opaque white backgrounds.

@@ -85,7 +85,6 @@ def verify_modifiers(model, cfg, modifiers, image_groups, logger):
 
 def analyze_modifiers(cfg, seeds):
     """Describe valid original and saved generated modifiers; plot their word clouds."""
-    from itertools import chain
     from pathlib import Path
 
     import pandas as pd
@@ -117,8 +116,6 @@ def analyze_modifiers(cfg, seeds):
         utils.plot_wordcloud(
             texts, directory / f'wordcloud_{name}.png', int(name.rsplit('_', 1)[1]), settings
         )
-    pooled = list(chain.from_iterable(list(corpora.values())[1:]))
-    utils.plot_wordcloud(pooled, directory / f'wordcloud_generated_{tag}.png', seeds[0], settings)
     print(cfg['split'], table.to_markdown(floatfmt='.4f'), sep='\n')
     print('Across seeds (mean and sample SD):', averages.to_markdown(floatfmt='.4f'), sep='\n')
     return summary
