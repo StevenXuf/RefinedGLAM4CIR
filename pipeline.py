@@ -222,13 +222,14 @@ def main():
     parser.add_argument('--split', choices=SPLITS, required=True)
     parser.add_argument('--seed', type=int)
     parser.add_argument('--gpu', type=int)
+    parser.add_argument('--extractor', help='openclip, clip, siglip, or siglip2')
     parser.add_argument(
         '--stage',
         choices=['all', 'data', 'generate', 'perturb', 'evaluate', 'visualize'],
         default='all',
     )
     args = parser.parse_args()
-    cfg = get_config(args.config, args.split)
+    cfg = get_config(args.config, args.split, args.extractor)
     if args.seed is not None:
         cfg['seed'] = args.seed
     if args.gpu is not None:

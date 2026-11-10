@@ -16,3 +16,4 @@ wordcloud==1.9.4
 nlpaug==1.1.11
 langid==1.1.6
 safetensors>=0.8
+sentencepiece>=0.2

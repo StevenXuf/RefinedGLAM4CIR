@@ -7,5 +7,5 @@ if [[ -x .venv/bin/python && -z "${PYTHON:-}" ]]; then
     PYTHON_BIN=.venv/bin/python
 fi
 for split in test_id test_ood; do
-    "$PYTHON_BIN" pipeline.py --config "${1:-config.yaml}" --split "$split"
+    "$PYTHON_BIN" pipeline.py --config "${1:-config.yaml}" --split "$split" "${@:2}"
 done

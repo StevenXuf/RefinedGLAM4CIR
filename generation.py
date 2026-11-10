@@ -135,7 +135,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Analyze saved modifiers; no model inference.')
     parser.add_argument('--split', choices=SPLITS)
     parser.add_argument('--seeds', nargs='+', type=int)
+    parser.add_argument('--extractor', help='openclip, clip, siglip, or siglip2')
     args = parser.parse_args()
     for split in [args.split] if args.split else SPLITS:
-        cfg = utils.get_config(split=split)
+        cfg = utils.get_config(split=split, extractor=args.extractor)
         analyze_modifiers(cfg, args.seeds or cfg['modifier_analysis']['seeds'])

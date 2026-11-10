@@ -11,6 +11,8 @@ python pipeline.py --split test_id --seed 42 --gpu 0
 python pipeline.py --split test_ood --seed 42 --gpu 1
 # Or run both splits sequentially:
 bash run_splits.sh
+# CLIP ViT-B/32, both splits, one complete run:
+bash run_splits.sh config.yaml --extractor clip --seed 42 --gpu 0
 ```
 
 Set paths, model versions, batches, severity proportions, edit ranges, and metric
@@ -46,7 +48,12 @@ eligible boundaries. Short strings can give identical edit counts for different
 severity levels. Per-query RNGs make the perturbations reproducible.
 If a request has no eligible positions, it is retained with zero edits.
 
-OpenCLIP ViT-B-16 (`laion2b_s34b_b88k`) encodes images/text. Composition is
+Choose `--extractor openclip|clip|siglip|siglip2`, or set `retrieval.model` in
+`config.yaml`. Checkpoints and revisions are listed under `retrieval.models`:
+OpenCLIP ViT-B-16 (`laion2b_s34b_b88k`), Transformers CLIP ViT-B/32
+(`openai/clip-vit-base-patch32`), and Google's SigLIP/SigLIP2 base patch-16 models
+at 224 pixels. Each uses its native processor and projected/pooled retrieval
+embeddings; SigLIP text is padded to the model's maximum length. Composition is
 `L2_normalize(unit_image + unit_text)`, followed by cosine ranking with the
 reference excluded. Baselines include image only, original/generated text only,
 and image + original text. Native TorchMetrics `RetrievalRecall`, `RetrievalMRR`,
@@ -61,6 +68,10 @@ Filenames include the models and experiment seed, such as
 Figures compare original, generated, and corrupted modifiers with top-5 results;
 any annotated target is highlighted. Outputs, caches, and local tests are ignored
 by Git. `report_seeds.py --seeds 42 43 44` summarizes completed independent runs.
+Other extractors save under `outputs/<extractor>/<split>/`; OpenCLIP retains
+`outputs/<split>/`. Pass `--extractor clip` to `report_seeds.py` or `generation.py`
+to analyze the CLIP runs. Every `pipeline.py --stage all` call regenerates modifiers
+and corruptions before retrieval.
 
 Run `python generation.py --seeds 42 43 44` to analyze saved modifiers for both
 splits. It reports word/character lengths and vocabulary counts per seed, their

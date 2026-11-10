@@ -11,11 +11,12 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 
 
-def get_config(path=None, split=None):
-    """Load YAML, resolve local paths, and select the requested inference split."""
+def get_config(path=None, split=None, extractor=None):
+    """Load YAML, resolve paths, and select the inference split and extractor."""
     path = Path(path or ROOT / 'config.yaml').resolve()
     cfg = yaml.safe_load(path.read_text())
     cfg['split'] = split or cfg['split']
+    cfg['retrieval']['model'] = extractor or cfg['retrieval']['model']
     from loading_data import validate_split
 
     validate_split(cfg)
@@ -23,7 +24,10 @@ def get_config(path=None, split=None):
         key: str((path.parent / Path(value).expanduser()).resolve())
         for key, value in cfg['paths'].items()
     }
-    cfg['paths']['output_dir'] = str(Path(cfg['paths']['output_dir']) / cfg['split'])
+    directory = Path(cfg['paths']['output_dir'])
+    if cfg['retrieval']['model'] != 'openclip':
+        directory /= cfg['retrieval']['model']
+    cfg['paths']['output_dir'] = str(directory / cfg['split'])
     return cfg
 
 

@@ -17,7 +17,10 @@ def render_report(runs, top_ks):
     )
     groups = scores.groupby(level='Condition', sort=False)
     summary = groups.mean().map('{:.2f}'.format) + ' ± ' + groups.std(ddof=1).map('{:.2f}'.format)
-    lines = [f'{runs[0]["split"]}: seeds {", ".join(str(run["seed"]) for run in runs)}; scores: %.']
+    lines = [
+        f'{runs[0]["split"]}, {runs[0]["retrieval"]["model"]}: '
+        f'seeds {", ".join(str(run["seed"]) for run in runs)}; scores: %.'
+    ]
     for family in ['Recall', 'MRR', 'mAP']:
         columns = [f'{family}@{k}' for k in top_ks] + [f'{family}_AVG']
         lines.extend(
@@ -36,9 +39,10 @@ def main():
     parser.add_argument('--config', default=str(ROOT / 'config.yaml'))
     parser.add_argument('--split', choices=SPLITS)
     parser.add_argument('--seeds', type=int, nargs='+', required=True)
+    parser.add_argument('--extractor', help='openclip, clip, siglip, or siglip2')
     args = parser.parse_args()
     for split in [args.split] if args.split else SPLITS:
-        cfg = get_config(args.config, split)
+        cfg = get_config(args.config, split, args.extractor)
         runs = []
         for seed in args.seeds:
             settings = deepcopy(cfg)
