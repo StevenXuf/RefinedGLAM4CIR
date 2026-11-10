@@ -106,6 +106,14 @@ def modifier_length_statistics(modifiers):
     return dict(count=len(texts), **lengths.agg(['mean', 'median', 'min', 'max']).to_dict())
 
 
+def count_unique_words(modifiers):
+    """Count case-insensitive alphabetic words, retaining contractions and stopwords."""
+    import pandas as pd
+
+    texts = pd.Series(modifiers, dtype='string').str.casefold().str.replace('’', "'", regex=False)
+    return int(texts.str.findall(r"\b[^\W\d_]+(?:'[^\W\d_]+)*\b").explode().nunique())
+
+
 def plot_wordcloud(modifiers, path, seed, settings):
     """Save a reproducible PDF word cloud using WordCloud's English stopwords."""
     from wordcloud import WordCloud

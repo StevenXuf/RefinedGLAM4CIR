@@ -84,7 +84,7 @@ def verify_modifiers(model, cfg, modifiers, image_groups, logger):
 
 
 def analyze_modifiers(cfg, seeds):
-    """Describe valid original and saved generated modifiers; plot their word clouds."""
+    """Report lengths and vocabulary for saved modifiers; plot per-corpus word clouds."""
     from pathlib import Path
 
     import pandas as pd
@@ -100,14 +100,21 @@ def analyze_modifiers(cfg, seeds):
             utils.output_path(dict(cfg, seed=seed), 'modifiers.json', retrieval=False)
         )
         corpora[f'generated_{model}_seed_{seed}'] = [r['modifier'] for r in records]
-    stats = {name: utils.modifier_length_statistics(texts) for name, texts in corpora.items()}
+    stats = {
+        name: dict(utils.modifier_length_statistics(texts), unique_words=utils.count_unique_words(texts))
+        for name, texts in corpora.items()
+    }
     table = pd.json_normalize(stats.values()).set_axis(stats)
-    averages = table.iloc[1:][['words.mean', 'characters.mean']].agg(['mean', 'std'])
+    averages = table.iloc[1:][['words.mean', 'characters.mean', 'unique_words']].agg(['mean', 'std'])
+    pooled_unique_words = utils.count_unique_words(
+        text for texts in list(corpora.values())[1:] for text in texts
+    )
     summary = dict(
         split=cfg['split'],
         seeds=seeds,
         modifiers=stats,
         across_seeds=averages.replace({float('nan'): None}).to_dict(),
+        generated_unique_words_all_seeds=pooled_unique_words,
     )
     tag = f'{model}_seeds_' + '_'.join(map(str, seeds))
     utils.save_json(directory / f'modifier_lengths_{tag}.json', summary)
@@ -118,6 +125,7 @@ def analyze_modifiers(cfg, seeds):
         )
     print(cfg['split'], table.to_markdown(floatfmt='.4f'), sep='\n')
     print('Across seeds (mean and sample SD):', averages.to_markdown(floatfmt='.4f'), sep='\n')
+    print('Generated unique words across all seeds:', pooled_unique_words)
     return summary
 
 
