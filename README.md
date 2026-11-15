@@ -31,8 +31,7 @@ gallery and all available annotated targets.
   including image-only, text-only, and image+text baselines.
 
 Use `--stage data|generate|perturb|evaluate|visualize` for individual components;
-`all` regenerates modifiers and runs everything. Model/seed-named JSONs, logs,
-and PDF figures are saved in `outputs/<split>/`, ignored by Git.
+`all` regenerates modifiers and runs everything.
 
 ```bash
 python report_seeds.py --seeds 42 43 44  # Metrics: per-seed and mean/sample SD
