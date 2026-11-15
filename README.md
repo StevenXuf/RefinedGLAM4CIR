@@ -2,6 +2,11 @@
 
 Inference-only refinement and robustness evaluation for cultural-heritage image retrieval.
 
+[Pipeline overview (PDF)](docs/overview.pdf)
+
+*Qwen refines modifiers from a reference and up to three targets. Retrieval compares
+clean modifiers with seven character/spacing corruptions.*
+
 Install CUDA-compatible PyTorch/torchvision and configure paths and models in
 [config.yaml](config.yaml):
 
