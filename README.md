@@ -2,7 +2,7 @@
 
 Inference-only refinement and robustness evaluation for cultural-heritage image retrieval.
 
-[Pipeline overview (PDF)](docs/overview.pdf)
+![Pipeline overview](docs/overview.png)
 
 *Qwen refines modifiers from a reference and up to three targets. Retrieval compares
 clean modifiers with seven character/spacing corruptions.*
