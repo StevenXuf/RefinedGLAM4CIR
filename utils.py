@@ -24,10 +24,7 @@ def get_config(path=None, split=None, extractor=None):
         key: str((path.parent / Path(value).expanduser()).resolve())
         for key, value in cfg['paths'].items()
     }
-    directory = Path(cfg['paths']['output_dir'])
-    if cfg['retrieval']['model'] != 'openclip':
-        directory /= cfg['retrieval']['model']
-    cfg['paths']['output_dir'] = str(directory / cfg['split'])
+    cfg['paths']['output_dir'] = str(Path(cfg['paths']['output_dir']) / cfg['split'])
     return cfg
 
 

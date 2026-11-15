@@ -58,7 +58,7 @@ def visualize(cfg, records, gallery, retrieval):
 
     by_id = {g['image_id']: g['path'] for g in gallery}
     selected = set(example_ids(cfg, records))
-    directory = output_path(cfg, 'figures')
+    directory = output_path(cfg, '')
     directory.mkdir(parents=True, exist_ok=True)
     size, top_k = cfg['visualization']['image_size'], cfg['visualization']['top_k']
     plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 9})
@@ -136,7 +136,7 @@ def visualize(cfg, records, gallery, retrieval):
             ):
                 width -= 1
                 text.set_text(fill(modifier, width))
-        path = output_path(cfg, f'figures/example_{item["csv_row"]}.pdf')
+        path = output_path(cfg, f'example_{item["csv_row"]}.pdf')
         fig.savefig(path, dpi=cfg['visualization']['dpi'], facecolor='white', transparent=False)
         plt.close(fig)
         logging.getLogger('glam').info('Saved %s', path)

@@ -34,13 +34,15 @@ The pipeline:
    TorchMetrics `RetrievalRecall`, `RetrievalMRR`, and `RetrievalMAP` report
    percentages at K=1,5,10,50 and their arithmetic average.
 
-Select `--extractor openclip|clip|siglip|siglip2`; checkpoints are configured in YAML.
+Select `--extractor openclip|clip|siglip2` for ViT-B/32 retrieval; checkpoints are
+configured in YAML. SigLIP is also supported via `--extractor siglip`.
 Use `--stage data|generate|perturb|evaluate|visualize` for individual components.
 The default `--stage all` regenerates modifiers and corruptions before retrieval.
 
 Outputs include modifiers, corruptions, metrics, one log per run, and three example
-PDFs, with model/seed filenames. OpenCLIP saves under `outputs/<split>/`; other
-extractors use `outputs/<extractor>/<split>/`. Outputs and caches are ignored by Git.
+PDFs, with model/seed filenames, all under `outputs/test_id/` or `outputs/test_ood/`.
+Modifiers and corruptions are shared across extractors for each seed. Outputs and
+caches are ignored by Git.
 
 Analyze completed runs:
 

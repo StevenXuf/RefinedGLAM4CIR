@@ -25,7 +25,7 @@ generation:
   model: qwen
   model_id: Qwen/Qwen3-VL-8B-Instruct
   revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
-  batch_size: 8
+  batch_size: 16
   max_new_tokens: 128
   max_pixels: 200704
   max_target_images: 3
@@ -54,9 +54,9 @@ perturbation:
     extreme: 0.01
 
   edit_fraction:
-    mild: [0.01, 0.03]
-    moderate: [0.04, 0.08]
-    severe: [0.10, 0.20]
+    mild: [0.01, 0.04]
+    moderate: [0.04, 0.10]
+    severe: [0.10, 0.30]
     extreme: [0.30, 1.00]
 
 retrieval:
@@ -65,8 +65,8 @@ retrieval:
 
   models:
     openclip:
-      architecture: ViT-B-16
-      pretrained: laion2b_s34b_b88k
+      architecture: ViT-B-32
+      pretrained: laion2b_s34b_b79k
 
     clip:
       model_id: openai/clip-vit-base-patch32
@@ -77,8 +77,8 @@ retrieval:
       revision: 7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed
 
     siglip2:
-      model_id: google/siglip2-base-patch16-224
-      revision: 75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2
+      model_id: google/siglip2-base-patch32-256
+      revision: 94dffa8cb1179de3e03f091dbc3917e5d5a9ae84
 
 evaluation:
   top_ks: [1, 5, 10, 50]
