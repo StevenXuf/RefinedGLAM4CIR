@@ -1,4 +1,4 @@
-# RefinedGLAM4CIR
+# Refining Noisy Textual Modifiers for Cultural Heritage Composed Image Retrieval with MLLMs
 
 Inference-only refinement and robustness evaluation for cultural heritage image retrieval.
 
