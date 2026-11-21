@@ -1,0 +1,2451 @@
+[
+  {
+    "query_id": "test_ood:382",
+    "csv_row": 382,
+    "reference_id": "art_077940",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_077940.png",
+    "target_ids": [
+      "art_077996",
+      "art_078030",
+      "art_078073",
+      "art_078050",
+      "art_078117",
+      "art_078149",
+      "art_078151",
+      "art_078174",
+      "art_078222",
+      "art_078244",
+      "art_078268",
+      "art_078280",
+      "art_078349",
+      "art_078399",
+      "art_078404",
+      "art_078501",
+      "art_078515",
+      "art_078534",
+      "art_078548",
+      "art_078577",
+      "art_078619",
+      "art_078624",
+      "art_078645",
+      "art_078693",
+      "art_078697",
+      "art_078755",
+      "art_078788",
+      "art_078789",
+      "art_078838",
+      "art_078840",
+      "art_078848",
+      "art_078853",
+      "art_078894",
+      "art_078952",
+      "art_079004",
+      "art_079021",
+      "art_079058",
+      "art_079073",
+      "art_079087",
+      "art_079156",
+      "art_079210",
+      "art_079293",
+      "art_079318",
+      "art_079335",
+      "art_079392",
+      "art_079412",
+      "art_079440",
+      "art_079501",
+      "art_079515",
+      "art_079548"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/art_077996.png",
+      "/data/data_fxu/GLAM/raw/train/art_078030.png",
+      "/data/data_fxu/GLAM/raw/train/art_078073.png",
+      "/data/data_fxu/GLAM/raw/train/art_078050.png",
+      "/data/data_fxu/GLAM/raw/val/art_078117.png",
+      "/data/data_fxu/GLAM/raw/train/art_078149.png",
+      "/data/data_fxu/GLAM/raw/train/art_078151.png",
+      "/data/data_fxu/GLAM/raw/train/art_078174.png",
+      "/data/data_fxu/GLAM/raw/val/art_078222.png",
+      "/data/data_fxu/GLAM/raw/train/art_078244.png",
+      "/data/data_fxu/GLAM/raw/train/art_078268.png",
+      "/data/data_fxu/GLAM/raw/train/art_078280.png",
+      "/data/data_fxu/GLAM/raw/train/art_078349.png",
+      "/data/data_fxu/GLAM/raw/train/art_078399.png",
+      "/data/data_fxu/GLAM/raw/train/art_078404.png",
+      "/data/data_fxu/GLAM/raw/train/art_078501.png",
+      "/data/data_fxu/GLAM/raw/train/art_078515.png",
+      "/data/data_fxu/GLAM/raw/train/art_078534.png",
+      "/data/data_fxu/GLAM/raw/train/art_078548.png",
+      "/data/data_fxu/GLAM/raw/train/art_078577.png",
+      "/data/data_fxu/GLAM/raw/train/art_078619.png",
+      "/data/data_fxu/GLAM/raw/train/art_078624.png",
+      "/data/data_fxu/GLAM/raw/train/art_078645.png",
+      "/data/data_fxu/GLAM/raw/train/art_078693.png",
+      "/data/data_fxu/GLAM/raw/train/art_078697.png",
+      "/data/data_fxu/GLAM/raw/train/art_078755.png",
+      "/data/data_fxu/GLAM/raw/train/art_078788.png",
+      "/data/data_fxu/GLAM/raw/train/art_078789.png",
+      "/data/data_fxu/GLAM/raw/train/art_078838.png",
+      "/data/data_fxu/GLAM/raw/train/art_078840.png",
+      "/data/data_fxu/GLAM/raw/train/art_078848.png",
+      "/data/data_fxu/GLAM/raw/train/art_078853.png",
+      "/data/data_fxu/GLAM/raw/val/art_078894.png",
+      "/data/data_fxu/GLAM/raw/train/art_078952.png",
+      "/data/data_fxu/GLAM/raw/train/art_079004.png",
+      "/data/data_fxu/GLAM/raw/train/art_079021.png",
+      "/data/data_fxu/GLAM/raw/train/art_079058.png",
+      "/data/data_fxu/GLAM/raw/train/art_079073.png",
+      "/data/data_fxu/GLAM/raw/val/art_079087.png",
+      "/data/data_fxu/GLAM/raw/train/art_079156.png",
+      "/data/data_fxu/GLAM/raw/train/art_079210.png",
+      "/data/data_fxu/GLAM/raw/train/art_079293.png",
+      "/data/data_fxu/GLAM/raw/train/art_079318.png",
+      "/data/data_fxu/GLAM/raw/train/art_079335.png",
+      "/data/data_fxu/GLAM/raw/train/art_079392.png",
+      "/data/data_fxu/GLAM/raw/train/art_079412.png",
+      "/data/data_fxu/GLAM/raw/val/art_079440.png",
+      "/data/data_fxu/GLAM/raw/train/art_079501.png",
+      "/data/data_fxu/GLAM/raw/train/art_079515.png",
+      "/data/data_fxu/GLAM/raw/train/art_079548.png"
+    ],
+    "original_modifier": "change church for cathedral.",
+    "generation_target_ids": [
+      "art_078151",
+      "art_078645",
+      "art_079392"
+    ],
+    "modifier": "Replace the angel with a standing woman.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:383",
+    "csv_row": 383,
+    "reference_id": "art_078194",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_078194.png",
+    "target_ids": [
+      "art_079655",
+      "art_080699"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/art_079655.png",
+      "/data/data_fxu/GLAM/raw/train/art_080699.png"
+    ],
+    "original_modifier": "change palace for royal palace.",
+    "generation_target_ids": [
+      "art_079655",
+      "art_080699"
+    ],
+    "modifier": "Replace the spout with a ring knocker.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:384",
+    "csv_row": 384,
+    "reference_id": "art_079655",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/art_079655.png",
+    "target_ids": [
+      "art_080699"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/art_080699.png"
+    ],
+    "original_modifier": "change palace for royal palace.",
+    "generation_target_ids": [
+      "art_080699"
+    ],
+    "modifier": "Replace the spout with a ring knocker.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:398",
+    "csv_row": 398,
+    "reference_id": "art_103098",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_103098.png",
+    "target_ids": [
+      "tool_018494",
+      "tool_018495",
+      "tool_018496",
+      "tool_018498",
+      "tool_018499",
+      "tool_018504",
+      "tool_018505",
+      "tool_018506",
+      "tool_018507",
+      "tool_018508",
+      "tool_018509",
+      "tool_018510",
+      "tool_018511",
+      "tool_018512",
+      "tool_018513",
+      "tool_022436",
+      "tool_022437",
+      "tool_022438",
+      "tool_022439",
+      "tool_022440",
+      "tool_022441",
+      "tool_022442",
+      "tool_022443",
+      "tool_022444"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/tool_018494.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018495.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018496.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018498.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018499.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018504.png",
+      "/data/data_fxu/GLAM/raw/val/tool_018505.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018506.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018507.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018508.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018509.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018510.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018511.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018512.png",
+      "/data/data_fxu/GLAM/raw/train/tool_018513.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022436.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022437.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022438.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022439.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022440.png",
+      "/data/data_fxu/GLAM/raw/val/tool_022441.png",
+      "/data/data_fxu/GLAM/raw/val/tool_022442.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022443.png",
+      "/data/data_fxu/GLAM/raw/train/tool_022444.png"
+    ],
+    "original_modifier": "change mill for tool.",
+    "generation_target_ids": [
+      "tool_018509",
+      "tool_018499",
+      "tool_022441"
+    ],
+    "modifier": "Replace the collage with a black-and-white photo of men working.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:403",
+    "csv_row": 403,
+    "reference_id": "art_105668",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_105668.png",
+    "target_ids": [
+      "jewelry_014739"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_014739.png"
+    ],
+    "original_modifier": "change footwear for scarf.",
+    "generation_target_ids": [
+      "jewelry_014739"
+    ],
+    "modifier": "Replace the pillows with a person wearing a hat.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:404",
+    "csv_row": 404,
+    "reference_id": "art_105734",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_105734.png",
+    "target_ids": [
+      "jewelry_014739"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_014739.png"
+    ],
+    "original_modifier": "change footwear for scarf.",
+    "generation_target_ids": [
+      "jewelry_014739"
+    ],
+    "modifier": "Replace the boots with a woman in a patterned outfit.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:405",
+    "csv_row": 405,
+    "reference_id": "art_105743",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_105743.png",
+    "target_ids": [
+      "jewelry_014739"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_014739.png"
+    ],
+    "original_modifier": "change footwear for scarf.",
+    "generation_target_ids": [
+      "jewelry_014739"
+    ],
+    "modifier": "Replace the boot with a person wearing a hat.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:406",
+    "csv_row": 406,
+    "reference_id": "art_105800",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_105800.png",
+    "target_ids": [
+      "jewelry_014739"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_014739.png"
+    ],
+    "original_modifier": "change footwear for scarf.",
+    "generation_target_ids": [
+      "jewelry_014739"
+    ],
+    "modifier": "Replace the boots with a woman in a patterned outfit.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:407",
+    "csv_row": 407,
+    "reference_id": "art_105841",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/art_105841.png",
+    "target_ids": [
+      "jewelry_014739"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_014739.png"
+    ],
+    "original_modifier": "change footwear for scarf.",
+    "generation_target_ids": [
+      "jewelry_014739"
+    ],
+    "modifier": "Replace the boots with a woman in a patterned outfit.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:675",
+    "csv_row": 675,
+    "reference_id": "ceramic_058858",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/ceramic_058858.png",
+    "target_ids": [
+      "art_of_sculpture_023250",
+      "art_of_sculpture_023260",
+      "art_of_sculpture_023319",
+      "art_of_sculpture_023438",
+      "art_of_sculpture_023583"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/art_of_sculpture_023250.png",
+      "/data/data_fxu/GLAM/raw/train/art_of_sculpture_023260.png",
+      "/data/data_fxu/GLAM/raw/val/art_of_sculpture_023319.png",
+      "/data/data_fxu/GLAM/raw/train/art_of_sculpture_023438.png",
+      "/data/data_fxu/GLAM/raw/train/art_of_sculpture_023583.png"
+    ],
+    "original_modifier": "change ceramic tile for terracotta.",
+    "generation_target_ids": [
+      "art_of_sculpture_023319",
+      "art_of_sculpture_023438",
+      "art_of_sculpture_023260"
+    ],
+    "modifier": "Replace the painted panel with a sculpture.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:676",
+    "csv_row": 676,
+    "reference_id": "ceramic_063544",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/ceramic_063544.png",
+    "target_ids": [
+      "ceramic_063633",
+      "ceramic_064094",
+      "ceramic_064183",
+      "ceramic_064389",
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/ceramic_063633.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064094.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064183.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064389.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_066667.png"
+    ],
+    "original_modifier": "change figurine for figurine.",
+    "generation_target_ids": [
+      "ceramic_063633",
+      "ceramic_066486",
+      "ceramic_066079"
+    ],
+    "modifier": "Change the shape to a cross with arms.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:678",
+    "csv_row": 678,
+    "reference_id": "ceramic_063633",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/ceramic_063633.png",
+    "target_ids": [
+      "ceramic_064094",
+      "ceramic_064183",
+      "ceramic_064389",
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/ceramic_064094.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064183.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064389.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_066667.png"
+    ],
+    "original_modifier": "change figurine for figurine.",
+    "generation_target_ids": [
+      "ceramic_066667",
+      "ceramic_066627",
+      "ceramic_066328"
+    ],
+    "modifier": "Replace the cross with a standing human figure.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:680",
+    "csv_row": 680,
+    "reference_id": "ceramic_064094",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/ceramic_064094.png",
+    "target_ids": [
+      "ceramic_064183",
+      "ceramic_064389",
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/ceramic_064183.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064389.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_066667.png"
+    ],
+    "original_modifier": "change figurine for figurine.",
+    "generation_target_ids": [
+      "ceramic_064551",
+      "ceramic_064389",
+      "ceramic_064770"
+    ],
+    "modifier": "Make it taller and thinner.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:682",
+    "csv_row": 682,
+    "reference_id": "ceramic_064183",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/ceramic_064183.png",
+    "target_ids": [
+      "ceramic_064389",
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/ceramic_064389.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_066667.png"
+    ],
+    "original_modifier": "change figurine for figurine.",
+    "generation_target_ids": [
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066627"
+    ],
+    "modifier": "Make it a single figure, not two.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:684",
+    "csv_row": 684,
+    "reference_id": "ceramic_064389",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/ceramic_064389.png",
+    "target_ids": [
+      "ceramic_064551",
+      "ceramic_064770",
+      "ceramic_065776",
+      "ceramic_066079",
+      "ceramic_066328",
+      "ceramic_066486",
+      "ceramic_066627",
+      "ceramic_066667"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/ceramic_064551.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_064770.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_065776.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066079.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066328.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066486.png",
+      "/data/data_fxu/GLAM/raw/train/ceramic_066627.png",
+      "/data/data_fxu/GLAM/raw/val/ceramic_066667.png"
+    ],
+    "original_modifier": "change figurine for figurine.",
+    "generation_target_ids": [
+      "ceramic_066079",
+      "ceramic_066667",
+      "ceramic_064770"
+    ],
+    "modifier": "Make it shorter and wider with arms and a flat top.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1500",
+    "csv_row": 1500,
+    "reference_id": "costume_036565",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_036565.png",
+    "target_ids": [
+      "costume_039631",
+      "art_105419"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/costume_039631.png",
+      "/data/data_fxu/GLAM/raw/train/art_105419.png"
+    ],
+    "original_modifier": "change arched horse for show jumper.",
+    "generation_target_ids": [
+      "costume_039631",
+      "art_105419"
+    ],
+    "modifier": "Replace the people and buildings with a painted soldier and horse.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1556",
+    "csv_row": 1556,
+    "reference_id": "costume_039405",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/costume_039405.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1557",
+    "csv_row": 1557,
+    "reference_id": "costume_039411",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039411.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the metal mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1558",
+    "csv_row": 1558,
+    "reference_id": "costume_039425",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039425.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1559",
+    "csv_row": 1559,
+    "reference_id": "costume_039428",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039428.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the carving with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1560",
+    "csv_row": 1560,
+    "reference_id": "costume_039432",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039432.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1561",
+    "csv_row": 1561,
+    "reference_id": "costume_039438",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039438.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a full-color illustration of a vaccination scene.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1562",
+    "csv_row": 1562,
+    "reference_id": "costume_039438",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039438.png",
+    "target_ids": [
+      "costume_039620"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/costume_039620.png"
+    ],
+    "original_modifier": "change glasses for DELETE.",
+    "generation_target_ids": [
+      "costume_039620"
+    ],
+    "modifier": "Make the man wear a single eye patch.",
+    "modifier_reviewed": true
+  },
+  {
+    "query_id": "test_ood:1563",
+    "csv_row": 1563,
+    "reference_id": "costume_039439",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039439.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1564",
+    "csv_row": 1564,
+    "reference_id": "costume_039441",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039441.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1565",
+    "csv_row": 1565,
+    "reference_id": "costume_039442",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039442.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1566",
+    "csv_row": 1566,
+    "reference_id": "costume_039443",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039443.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1567",
+    "csv_row": 1567,
+    "reference_id": "costume_039445",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039445.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the metal mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1568",
+    "csv_row": 1568,
+    "reference_id": "costume_039446",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039446.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1569",
+    "csv_row": 1569,
+    "reference_id": "costume_039449",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039449.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the sculpture with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1570",
+    "csv_row": 1570,
+    "reference_id": "costume_039451",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039451.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1571",
+    "csv_row": 1571,
+    "reference_id": "costume_039466",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039466.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1572",
+    "csv_row": 1572,
+    "reference_id": "costume_039471",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/costume_039471.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1573",
+    "csv_row": 1573,
+    "reference_id": "costume_039477",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039477.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1574",
+    "csv_row": 1574,
+    "reference_id": "costume_039485",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039485.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1575",
+    "csv_row": 1575,
+    "reference_id": "costume_039488",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039488.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1576",
+    "csv_row": 1576,
+    "reference_id": "costume_039497",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039497.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the metal muzzle with a printed illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1577",
+    "csv_row": 1577,
+    "reference_id": "costume_039502",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039502.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the helmet with a drawing of people.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1578",
+    "csv_row": 1578,
+    "reference_id": "costume_039514",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039514.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1579",
+    "csv_row": 1579,
+    "reference_id": "costume_039515",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039515.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1580",
+    "csv_row": 1580,
+    "reference_id": "costume_039520",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039520.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1581",
+    "csv_row": 1581,
+    "reference_id": "costume_039521",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039521.png",
+    "target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039628.png"
+    ],
+    "original_modifier": "change mask for men's clothing.",
+    "generation_target_ids": [
+      "costume_039548",
+      "costume_039628"
+    ],
+    "modifier": "Replace the mask with a historical illustration.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1582",
+    "csv_row": 1582,
+    "reference_id": "costume_039548",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/costume_039548.png",
+    "target_ids": [
+      "costume_039549",
+      "costume_039551",
+      "costume_039552",
+      "costume_039568",
+      "costume_039573",
+      "costume_039577",
+      "costume_039584",
+      "costume_039589",
+      "costume_039595",
+      "costume_039597",
+      "costume_039600",
+      "costume_039603",
+      "costume_039620",
+      "costume_039633",
+      "costume_039642",
+      "costume_041321"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/costume_039549.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039551.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039552.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039568.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039573.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039577.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039584.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039589.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039595.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039597.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039600.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039603.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039620.png",
+      "/data/data_fxu/GLAM/raw/val/costume_039633.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039642.png",
+      "/data/data_fxu/GLAM/raw/train/costume_041321.png"
+    ],
+    "original_modifier": "change men's clothing for mask.",
+    "generation_target_ids": [
+      "costume_039595",
+      "costume_039589",
+      "costume_039642"
+    ],
+    "modifier": "Replace the scene with a single ornate mask.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1583",
+    "csv_row": 1583,
+    "reference_id": "costume_039628",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/costume_039628.png",
+    "target_ids": [
+      "costume_039633",
+      "costume_039642",
+      "costume_041321"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/val/costume_039633.png",
+      "/data/data_fxu/GLAM/raw/train/costume_039642.png",
+      "/data/data_fxu/GLAM/raw/train/costume_041321.png"
+    ],
+    "original_modifier": "change men's clothing for mask.",
+    "generation_target_ids": [
+      "costume_039633",
+      "costume_039642",
+      "costume_041321"
+    ],
+    "modifier": "Replace the scene with a carved wooden mask.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1584",
+    "csv_row": 1584,
+    "reference_id": "costume_039631",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/costume_039631.png",
+    "target_ids": [
+      "art_105419"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/art_105419.png"
+    ],
+    "original_modifier": "change arched horse for show jumper.",
+    "generation_target_ids": [
+      "art_105419"
+    ],
+    "modifier": "Replace the man with a child.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1893",
+    "csv_row": 1893,
+    "reference_id": "jewelry_018720",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/jewelry_018720.png",
+    "target_ids": [
+      "jewelry_018721",
+      "jewelry_018726"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_018721.png",
+      "/data/data_fxu/GLAM/raw/train/jewelry_018726.png"
+    ],
+    "original_modifier": "change ring for bracelet.",
+    "generation_target_ids": [
+      "jewelry_018721",
+      "jewelry_018726"
+    ],
+    "modifier": "Replace the jewelry with a gold floral box.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1894",
+    "csv_row": 1894,
+    "reference_id": "jewelry_018721",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/jewelry_018721.png",
+    "target_ids": [
+      "jewelry_018722",
+      "jewelry_018723",
+      "jewelry_018724",
+      "jewelry_018731",
+      "jewelry_018732"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_018722.png",
+      "/data/data_fxu/GLAM/raw/train/jewelry_018723.png",
+      "/data/data_fxu/GLAM/raw/train/jewelry_018724.png",
+      "/data/data_fxu/GLAM/raw/train/jewelry_018731.png",
+      "/data/data_fxu/GLAM/raw/train/jewelry_018732.png"
+    ],
+    "original_modifier": "change bracelet for ring.",
+    "generation_target_ids": [
+      "jewelry_018732",
+      "jewelry_018723",
+      "jewelry_018724"
+    ],
+    "modifier": "Replace the gold box with a gold ring.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1895",
+    "csv_row": 1895,
+    "reference_id": "jewelry_018722",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/jewelry_018722.png",
+    "target_ids": [
+      "jewelry_018726"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_018726.png"
+    ],
+    "original_modifier": "change ring for bracelet.",
+    "generation_target_ids": [
+      "jewelry_018726"
+    ],
+    "modifier": "Replace the ring with a silver bangle.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1896",
+    "csv_row": 1896,
+    "reference_id": "jewelry_018723",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/jewelry_018723.png",
+    "target_ids": [
+      "jewelry_018726"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_018726.png"
+    ],
+    "original_modifier": "change ring for bracelet.",
+    "generation_target_ids": [
+      "jewelry_018726"
+    ],
+    "modifier": "Replace the ring with a silver bangle.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1897",
+    "csv_row": 1897,
+    "reference_id": "jewelry_018724",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/jewelry_018724.png",
+    "target_ids": [
+      "jewelry_018726"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_018726.png"
+    ],
+    "original_modifier": "change ring for bracelet.",
+    "generation_target_ids": [
+      "jewelry_018726"
+    ],
+    "modifier": "Replace the ring with a silver bangle.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1898",
+    "csv_row": 1898,
+    "reference_id": "jewelry_018726",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/jewelry_018726.png",
+    "target_ids": [
+      "jewelry_018731",
+      "jewelry_018732"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/jewelry_018731.png",
+      "/data/data_fxu/GLAM/raw/train/jewelry_018732.png"
+    ],
+    "original_modifier": "change bracelet for ring.",
+    "generation_target_ids": [
+      "jewelry_018731",
+      "jewelry_018732"
+    ],
+    "modifier": "Replace the bangle with a ring.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1943",
+    "csv_row": 1943,
+    "reference_id": "numismatics_024570",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+    "target_ids": [
+      "numismatics_024569",
+      "numismatics_024568",
+      "numismatics_024567",
+      "numismatics_024566",
+      "numismatics_024564",
+      "numismatics_024563",
+      "numismatics_024562",
+      "numismatics_024561",
+      "numismatics_024559",
+      "numismatics_024558",
+      "numismatics_024555",
+      "numismatics_024552",
+      "numismatics_024551",
+      "numismatics_024544",
+      "numismatics_024542",
+      "numismatics_024541",
+      "numismatics_024540",
+      "numismatics_024539",
+      "numismatics_024538",
+      "numismatics_024536",
+      "numismatics_024535",
+      "numismatics_024533",
+      "numismatics_024532",
+      "numismatics_024531",
+      "numismatics_024530",
+      "numismatics_024528",
+      "numismatics_024527",
+      "numismatics_024526",
+      "numismatics_024523",
+      "numismatics_024522",
+      "numismatics_024517",
+      "numismatics_024516",
+      "numismatics_024513",
+      "numismatics_024512",
+      "numismatics_024508",
+      "numismatics_024506",
+      "numismatics_024505",
+      "numismatics_024503",
+      "numismatics_024499",
+      "numismatics_024497",
+      "numismatics_024496",
+      "numismatics_024495",
+      "numismatics_024494",
+      "numismatics_024490",
+      "numismatics_024489",
+      "numismatics_024488",
+      "numismatics_024486",
+      "numismatics_024485",
+      "numismatics_024484",
+      "numismatics_024481"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024569.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024568.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024567.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024566.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024564.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024563.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024562.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024561.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024559.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024558.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024555.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024552.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024551.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024544.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024542.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024541.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024540.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024539.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024538.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024536.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024535.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024533.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024532.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024531.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024530.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024528.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024527.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024526.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024523.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024522.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024517.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024516.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024513.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024512.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024508.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024506.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024505.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024503.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024499.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024497.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024496.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024495.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024494.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024490.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024489.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024488.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024486.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024485.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024484.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024481.png"
+    ],
+    "original_modifier": "change copper for silver.",
+    "generation_target_ids": [
+      "numismatics_024503",
+      "numismatics_024563",
+      "numismatics_024517"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1944",
+    "csv_row": 1944,
+    "reference_id": "numismatics_024570",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+    "target_ids": [
+      "numismatics_024565",
+      "numismatics_024557",
+      "numismatics_024556",
+      "numismatics_024549",
+      "numismatics_024548",
+      "numismatics_024537",
+      "numismatics_024534",
+      "numismatics_024525",
+      "numismatics_024510",
+      "numismatics_024507",
+      "numismatics_024504",
+      "numismatics_024482",
+      "numismatics_024474",
+      "numismatics_024464",
+      "numismatics_024433",
+      "numismatics_024418",
+      "numismatics_024416",
+      "numismatics_024411",
+      "numismatics_024407",
+      "numismatics_024405",
+      "numismatics_024371",
+      "numismatics_024367",
+      "numismatics_024361",
+      "numismatics_024360",
+      "numismatics_024357",
+      "numismatics_024354",
+      "numismatics_024352",
+      "numismatics_024351",
+      "numismatics_024387",
+      "numismatics_024384",
+      "numismatics_024376",
+      "numismatics_024375",
+      "numismatics_024332",
+      "numismatics_024328",
+      "numismatics_026860",
+      "numismatics_026859",
+      "numismatics_026851",
+      "numismatics_026832",
+      "numismatics_026791",
+      "numismatics_026787",
+      "numismatics_026782",
+      "numismatics_026774",
+      "numismatics_026724",
+      "numismatics_026712",
+      "numismatics_026706",
+      "numismatics_026696",
+      "numismatics_026630",
+      "numismatics_026690",
+      "numismatics_026689",
+      "numismatics_026012"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024565.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024557.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024556.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024549.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024548.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024537.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024534.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024525.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024510.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024507.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024504.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024482.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024474.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024464.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024433.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024418.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024416.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024411.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024407.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024405.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024371.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024367.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024361.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024360.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024357.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024354.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024352.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024351.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_024387.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024384.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024376.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024375.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024332.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_024328.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026860.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026859.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026851.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026832.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026791.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026787.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026782.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026774.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026724.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026712.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026706.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026696.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026630.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026690.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026689.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_026012.png"
+    ],
+    "original_modifier": "change copper for gold.",
+    "generation_target_ids": [
+      "numismatics_024371",
+      "numismatics_026860",
+      "numismatics_024375"
+    ],
+    "modifier": "Replace the coin with a gold one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1945",
+    "csv_row": 1945,
+    "reference_id": "numismatics_027300",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027300.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025162",
+      "numismatics_024570",
+      "numismatics_025877"
+    ],
+    "modifier": "Change the coin to a dark, tarnished one with crown and shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1946",
+    "csv_row": 1946,
+    "reference_id": "numismatics_027303",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027303.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_025162",
+      "numismatics_024570"
+    ],
+    "modifier": "Change the coin to a dark, tarnished one with crown and shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1947",
+    "csv_row": 1947,
+    "reference_id": "numismatics_027309",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027309.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_025162",
+      "numismatics_024570"
+    ],
+    "modifier": "Change the coin to one with a crown and shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1948",
+    "csv_row": 1948,
+    "reference_id": "numismatics_027309",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027309.png",
+    "target_ids": [
+      "numismatics_027327",
+      "numismatics_027334",
+      "numismatics_027341",
+      "numismatics_027342",
+      "numismatics_027365",
+      "numismatics_027393",
+      "numismatics_027400",
+      "numismatics_027402",
+      "numismatics_027409",
+      "numismatics_027416",
+      "numismatics_027300",
+      "numismatics_027303",
+      "numismatics_027419",
+      "numismatics_027360",
+      "numismatics_027985",
+      "numismatics_028178",
+      "numismatics_028190",
+      "numismatics_028154",
+      "numismatics_028156",
+      "numismatics_028157",
+      "numismatics_028194",
+      "numismatics_028198",
+      "numismatics_028201",
+      "numismatics_028205",
+      "numismatics_028143",
+      "numismatics_028210",
+      "numismatics_028035",
+      "numismatics_028044",
+      "numismatics_028051",
+      "numismatics_028123",
+      "numismatics_028129",
+      "numismatics_028130",
+      "numismatics_028055",
+      "numismatics_028056",
+      "numismatics_028057",
+      "numismatics_028061",
+      "numismatics_028064",
+      "numismatics_028065",
+      "numismatics_027994",
+      "numismatics_027995",
+      "numismatics_028001",
+      "numismatics_027880",
+      "numismatics_028018",
+      "numismatics_028008",
+      "numismatics_028009",
+      "numismatics_027885",
+      "numismatics_027952",
+      "numismatics_028016",
+      "numismatics_027954",
+      "numismatics_028084"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_027327.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027334.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027341.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027342.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027365.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027393.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027400.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027402.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027409.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027416.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027300.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027303.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027419.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027360.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027985.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028178.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028190.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028154.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028156.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028157.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028194.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028198.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028201.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028205.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028143.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028210.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028035.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028044.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028051.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028123.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028129.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028130.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028055.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028056.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028057.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028061.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028064.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028065.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027994.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027995.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028001.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027880.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028018.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028008.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028009.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027885.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027952.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_028016.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027954.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_028084.png"
+    ],
+    "original_modifier": "change silver for gold.",
+    "generation_target_ids": [
+      "numismatics_028198",
+      "numismatics_027985",
+      "numismatics_027303"
+    ],
+    "modifier": "Make it gold-colored.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1949",
+    "csv_row": 1949,
+    "reference_id": "numismatics_027310",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/numismatics_027310.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_024570",
+      "numismatics_022560"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1950",
+    "csv_row": 1950,
+    "reference_id": "numismatics_027312",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027312.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_024570",
+      "numismatics_022560"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1951",
+    "csv_row": 1951,
+    "reference_id": "numismatics_027313",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027313.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_022560",
+      "numismatics_025162",
+      "numismatics_025877"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1952",
+    "csv_row": 1952,
+    "reference_id": "numismatics_027315",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027315.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_024570",
+      "numismatics_025877",
+      "numismatics_022560"
+    ],
+    "modifier": "Replace the coin with one showing 'PRO LIBERTATE' and a crown.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1953",
+    "csv_row": 1953,
+    "reference_id": "numismatics_027316",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027316.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_022560",
+      "numismatics_025162"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1954",
+    "csv_row": 1954,
+    "reference_id": "numismatics_027317",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027317.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_024570"
+    ],
+    "modifier": "Swap the two coins shown.",
+    "modifier_reviewed": true
+  },
+  {
+    "query_id": "test_ood:1955",
+    "csv_row": 1955,
+    "reference_id": "numismatics_027319",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027319.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1956",
+    "csv_row": 1956,
+    "reference_id": "numismatics_027320",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027320.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_022560",
+      "numismatics_025877",
+      "numismatics_025162"
+    ],
+    "modifier": "Replace the coin with a darker, tarnished one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1957",
+    "csv_row": 1957,
+    "reference_id": "numismatics_027322",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027322.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_022560",
+      "numismatics_025162",
+      "numismatics_025877"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1958",
+    "csv_row": 1958,
+    "reference_id": "numismatics_027323",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027323.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_025877"
+    ],
+    "modifier": "Change the coin to show 'PRO LIBERTATE' on the top.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1959",
+    "csv_row": 1959,
+    "reference_id": "numismatics_027327",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027327.png",
+    "target_ids": [
+      "numismatics_027329",
+      "numismatics_027330",
+      "numismatics_027331",
+      "numismatics_027332",
+      "numismatics_027333",
+      "numismatics_027335",
+      "numismatics_027336",
+      "numismatics_027337",
+      "numismatics_027338",
+      "numismatics_027339",
+      "numismatics_027340",
+      "numismatics_027343",
+      "numismatics_027344",
+      "numismatics_027345",
+      "numismatics_027366",
+      "numismatics_027368",
+      "numismatics_027369",
+      "numismatics_027370",
+      "numismatics_027372",
+      "numismatics_027373",
+      "numismatics_027374",
+      "numismatics_027375",
+      "numismatics_027376",
+      "numismatics_027377",
+      "numismatics_027378",
+      "numismatics_027379",
+      "numismatics_027380",
+      "numismatics_027381",
+      "numismatics_027382",
+      "numismatics_027383",
+      "numismatics_027385",
+      "numismatics_027388",
+      "numismatics_027389",
+      "numismatics_027391",
+      "numismatics_027392",
+      "numismatics_027394",
+      "numismatics_027395",
+      "numismatics_027397",
+      "numismatics_027398",
+      "numismatics_027403",
+      "numismatics_027404",
+      "numismatics_027407",
+      "numismatics_027408",
+      "numismatics_027410",
+      "numismatics_027411",
+      "numismatics_027412",
+      "numismatics_027347",
+      "numismatics_027350",
+      "numismatics_027353",
+      "numismatics_027354"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_027329.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027330.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027331.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027332.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027333.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027335.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027336.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027337.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027338.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027339.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027340.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027343.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027344.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027345.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027366.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027368.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027369.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027370.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027372.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027373.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027374.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027375.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027376.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027377.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027378.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027379.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027380.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027381.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027382.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027383.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027385.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027388.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027389.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027391.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027392.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027394.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027395.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027397.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027398.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027403.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027404.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027407.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027408.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027410.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027411.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027412.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027347.png",
+      "/data/data_fxu/GLAM/raw/val/numismatics_027350.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027353.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_027354.png"
+    ],
+    "original_modifier": "change gold for silver.",
+    "generation_target_ids": [
+      "numismatics_027411",
+      "numismatics_027344",
+      "numismatics_027398"
+    ],
+    "modifier": "Replace the gold coin with a silver one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1960",
+    "csv_row": 1960,
+    "reference_id": "numismatics_027327",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027327.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "modifier": "Change the coin to a silver one with crown and shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1961",
+    "csv_row": 1961,
+    "reference_id": "numismatics_027329",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027329.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_022560",
+      "numismatics_025162"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1962",
+    "csv_row": 1962,
+    "reference_id": "numismatics_027330",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027330.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png"
+    ],
+    "original_modifier": "change silver for copper.",
+    "generation_target_ids": [
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "modifier": "Flip the coin over to show the other side.",
+    "modifier_reviewed": true
+  },
+  {
+    "query_id": "test_ood:1963",
+    "csv_row": 1963,
+    "reference_id": "numismatics_027334",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/numismatics_027334.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_024570"
+    ],
+    "modifier": "Replace the gold coin with a silver one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1964",
+    "csv_row": 1964,
+    "reference_id": "numismatics_027341",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027341.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "modifier": "Change the eagle to a crowned shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1965",
+    "csv_row": 1965,
+    "reference_id": "numismatics_027342",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027342.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_025162",
+      "numismatics_024570"
+    ],
+    "modifier": "Change the eagle to a crowned shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1966",
+    "csv_row": 1966,
+    "reference_id": "numismatics_027365",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027365.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_024570",
+      "numismatics_025877",
+      "numismatics_022560"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1967",
+    "csv_row": 1967,
+    "reference_id": "numismatics_027393",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027393.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_022560",
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "modifier": "Change the coin to a silver one with crown and shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1968",
+    "csv_row": 1968,
+    "reference_id": "numismatics_027400",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027400.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_022560",
+      "numismatics_024570",
+      "numismatics_025877"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1969",
+    "csv_row": 1969,
+    "reference_id": "numismatics_027402",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027402.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560"
+    ],
+    "modifier": "Replace the gold coin with a silver coin.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1970",
+    "csv_row": 1970,
+    "reference_id": "numismatics_027409",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027409.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_025877",
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "modifier": "Change the eagle to a crowned shield.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1971",
+    "csv_row": 1971,
+    "reference_id": "numismatics_027416",
+    "reference_path": "/data/data_fxu/GLAM/raw/train/numismatics_027416.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162",
+      "numismatics_022560",
+      "numismatics_025877"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_022560.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025877.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_022560",
+      "numismatics_025162",
+      "numismatics_024570"
+    ],
+    "modifier": "Replace the coin with a different one.",
+    "modifier_reviewed": false
+  },
+  {
+    "query_id": "test_ood:1972",
+    "csv_row": 1972,
+    "reference_id": "numismatics_027419",
+    "reference_path": "/data/data_fxu/GLAM/raw/val/numismatics_027419.png",
+    "target_ids": [
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "target_paths": [
+      "/data/data_fxu/GLAM/raw/train/numismatics_024570.png",
+      "/data/data_fxu/GLAM/raw/train/numismatics_025162.png"
+    ],
+    "original_modifier": "change gold for copper.",
+    "generation_target_ids": [
+      "numismatics_024570",
+      "numismatics_025162"
+    ],
+    "modifier": "Replace the gold coin with a silver one.",
+    "modifier_reviewed": false
+  }
+]
