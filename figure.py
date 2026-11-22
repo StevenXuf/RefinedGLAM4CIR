@@ -28,6 +28,7 @@ def retrieval_caption(ax, rank, score):
         pad=0,
         sep=0,
     )
+
     ax.add_artist(
         AnchoredOffsetbox(
             loc='lower center',
@@ -60,8 +61,10 @@ def visualize(cfg, records, gallery, retrieval):
     selected = set(example_ids(cfg, records))
     directory = output_path(cfg, '')
     directory.mkdir(parents=True, exist_ok=True)
+    
     size, top_k = cfg['visualization']['image_size'], cfg['visualization']['top_k']
     plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 9})
+
     for item in records:
         if item['query_id'] not in selected:
             continue

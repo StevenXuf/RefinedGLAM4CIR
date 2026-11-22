@@ -13,11 +13,12 @@ ROOT = Path(__file__).resolve().parent
 
 def get_config(path=None, split=None, extractor=None):
     """Load YAML, resolve paths, and select the inference split and extractor."""
+    from loading_data import validate_split
+
     path = Path(path or ROOT / 'config.yaml').resolve()
     cfg = yaml.safe_load(path.read_text())
     cfg['split'] = split or cfg['split']
     cfg['retrieval']['model'] = extractor or cfg['retrieval']['model']
-    from loading_data import validate_split
 
     validate_split(cfg)
     cfg['paths'] = {
@@ -59,6 +60,7 @@ def get_device(cfg):
     device = torch.device(
         f'cuda:{cfg["runtime"]["gpu_id"]}' if torch.cuda.is_available() else 'cpu'
     )
+
     if device.type == 'cuda':
         torch.cuda.set_device(device)
     return device
@@ -85,6 +87,7 @@ def output_path(cfg, name, *, retrieval=True):
     models = [cfg['generation']['model']]
     if retrieval:
         models.append(cfg['retrieval']['model'])
+        
     suffix = '_'.join([*models, 'seed', str(cfg['seed'])])
     return path.with_stem(f'{path.stem}_{suffix}')
 

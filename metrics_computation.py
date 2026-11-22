@@ -1,8 +1,4 @@
-"""Multi-positive macro recall, mAP, and MRR with reference masking.
-
-Recall follows the original torchmetrics RetrievalRecall definition: recovered
-relevant images / all relevant images, averaged over queries, reported in percent.
-"""
+"""Multi-positive macro recall, mAP, and MRR with reference masking."""
 
 import logging
 
@@ -14,15 +10,20 @@ from torchmetrics.retrieval import RetrievalMAP, RetrievalMRR, RetrievalRecall
 def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude_reference=True):
     if len(set(gallery_ids)) != len(gallery_ids):
         raise ValueError('Duplicate gallery IDs')
+    
     if len(queries) != len(query_features) or len(gallery_ids) != len(gallery_features):
         raise ValueError('Feature/metadata length mismatch')
+    
     scores = (
         F.normalize(query_features.float(), dim=-1)
         @ F.normalize(gallery_features.float(), dim=-1).T
     )
+
     if not torch.isfinite(scores).all():
         raise ValueError('Non-finite retrieval scores')
+    
     index = {name: i for i, name in enumerate(gallery_ids)}
+
     for row, query in enumerate(queries):
         if exclude_reference and query['reference_id'] in query['target_ids']:
             raise ValueError('Reference image is also a relevant target')
@@ -30,6 +31,7 @@ def rank_queries(query_features, gallery_features, gallery_ids, queries, exclude
             scores[row, index[query['reference_id']]] = -torch.inf
     # Stable order gives deterministic handling of ties.
     order = torch.argsort(scores, dim=1, descending=True, stable=True)
+
     rankings = []
     for row, query in enumerate(queries):
         rankings.append(
@@ -46,14 +48,17 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
     """Compute unmodified TorchMetrics module outputs, grouping candidates by query."""
     if not rankings or len(rankings) != len(queries):
         raise ValueError('Need aligned, nonempty rankings and queries')
+    
     if (
         not top_ks
         or any(type(k) is not int or k < 1 for k in top_ks)
         or len(set(top_ks)) != len(top_ks)
     ):
         raise ValueError('top_ks must contain positive integers')
+    
     if len(set(gallery_ids)) != len(gallery_ids):
         raise ValueError('Duplicate gallery IDs')
+    
     available = set(gallery_ids)
     predictions, targets, query_indexes = [], [], []
     for query_index, (ranking, query) in enumerate(zip(rankings, queries)):
@@ -74,9 +79,11 @@ def compute_metrics(rankings, queries, top_ks, gallery_ids, exclude_reference=Tr
         predictions.append(torch.arange(len(ranking), 0, -1, dtype=torch.float32))
         targets.append(torch.tensor([name in relevant for name in ranking], dtype=torch.bool))
         query_indexes.append(torch.full((len(ranking),), query_index, dtype=torch.long))
+
     if not predictions:
         raise ValueError('No queries have available relevant targets')
     preds, target, indexes = map(torch.cat, (predictions, targets, query_indexes))
+    
     results = {}
     for family, metric_class in (
         ('Recall', RetrievalRecall),

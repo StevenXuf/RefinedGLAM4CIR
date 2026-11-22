@@ -30,6 +30,7 @@ class DirectQwen:
     @torch.inference_mode()
     def generate(self, prompts, image_groups):
         messages, images = [], []
+
         for prompt, paths in zip(prompts, image_groups):
             content = [{'type': 'text', 'text': prompt}]
             for index, path in enumerate(paths):
@@ -37,6 +38,7 @@ class DirectQwen:
                 content.extend([{'type': 'text', 'text': label}, {'type': 'image'}])
                 images.append(load_image(path))
             messages.append([{'role': 'user', 'content': content}])
+
         texts = [
             self.processor.apply_chat_template(message, tokenize=False, add_generation_prompt=True)
             for message in messages
@@ -44,8 +46,10 @@ class DirectQwen:
         inputs = self.processor(text=texts, images=images, return_tensors='pt', padding=True).to(
             self.model.device
         )
+
         if 'pixel_values' in inputs:
             inputs['pixel_values'] = inputs['pixel_values'].to(self.model.dtype)
+
         tokens = self.model.generate(**inputs, max_new_tokens=self.max_tokens, do_sample=False)
         outputs = self.processor.batch_decode(
             tokens[:, inputs['input_ids'].shape[1] :], skip_special_tokens=True
@@ -69,6 +73,7 @@ def verify_modifiers(model, cfg, modifiers, image_groups, logger):
     modifiers = list(modifiers)
     outliers = [i for i, text in enumerate(modifiers) if modifier_is_outlier(text, settings)]
     logger.info('Qwen modifier review: %d/%d outliers', len(outliers), len(modifiers))
+
     if outliers:
         corrected = model.generate(
             [prompts.MODIFIER_REVIEW.format(modifier=modifiers[i], **settings) for i in outliers],
@@ -95,20 +100,24 @@ def analyze_modifiers(cfg, seeds):
             q['original_modifier'] for q in GLAMQueryDataset(cfg).records
         ]
     }
+
     for seed in seeds:
         records = utils.read_json(
             utils.output_path(dict(cfg, seed=seed), 'modifiers.json', retrieval=False)
         )
         corpora[f'generated_{model}_seed_{seed}'] = [r['modifier'] for r in records]
+
     stats = {
         name: dict(utils.modifier_length_statistics(texts), unique_words=utils.count_unique_words(texts))
         for name, texts in corpora.items()
     }
+
     table = pd.json_normalize(stats.values()).set_axis(stats)
     averages = table.iloc[1:][['words.mean', 'characters.mean', 'unique_words']].agg(['mean', 'std'])
     pooled_unique_words = utils.count_unique_words(
         text for texts in list(corpora.values())[1:] for text in texts
     )
+
     summary = dict(
         split=cfg['split'],
         seeds=seeds,
@@ -119,10 +128,12 @@ def analyze_modifiers(cfg, seeds):
     tag = f'{model}_seeds_' + '_'.join(map(str, seeds))
     utils.save_json(directory / f'modifier_lengths_{tag}.json', summary)
     settings = cfg['modifier_analysis']['wordcloud']
+
     for name, texts in corpora.items():
         utils.plot_wordcloud(
             texts, directory / f'wordcloud_{name}.pdf', int(name.rsplit('_', 1)[1]), settings
         )
+        
     print(cfg['split'], table.to_markdown(floatfmt='.4f'), sep='\n')
     print('Across seeds (mean and sample SD):', averages.to_markdown(floatfmt='.4f'), sep='\n')
     print('Generated unique words across all seeds:', pooled_unique_words)

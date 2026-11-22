@@ -5,7 +5,7 @@ missing_gallery_policy: available
 image_storage_folders: [train, val, test_id, test_ood]
 
 paths:
-  glam_root: /GLAM/raw
+  glam_root: /data/data_fxu/GLAM/raw
   cir_file: cir_db.csv
   db_processed_name: db_processed.txt
   output_dir: outputs

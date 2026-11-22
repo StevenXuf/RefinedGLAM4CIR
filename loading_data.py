@@ -122,6 +122,7 @@ class GLAMQueryDataset(ImageDataset):
         logger = logger or logging.getLogger(__name__)
         self.df = process_df(cfg, logger)
         super().__init__([], 'reference_path')
+
         for row in self.df.to_dict('records'):
             reference = search_image_path(
                 row['id1'][:1], cfg['image_storage_folders'], cfg['paths']['glam_root']
@@ -144,6 +145,7 @@ class GLAMQueryDataset(ImageDataset):
                     'original_modifier': row['query'],
                 }
             )
+
         if not self.records:
             raise ValueError('No valid queries; check split and local image paths')
 
@@ -160,16 +162,19 @@ class GLAMGalleryDataset(ImageDataset):
         by_id = {p.stem: str(p) for p in paths}
         required = {name for q in (queries or []) for name in q['target_ids']}
         missing = required - by_id.keys()
+
         if missing:
             raise ValueError(f'Relevant targets absent from split gallery: {sorted(missing)}')
         total = len(by_id)
         absent = sorted(set(names) - by_id.keys())
         self.declared_size = len(names)
         self.missing_ids = absent
+
         if absent and cfg.get('missing_gallery_policy', 'available') == 'strict':
             raise FileNotFoundError(
                 f'Full {cfg["split"]} gallery has {len(absent)} missing images: {absent[:10]}'
             )
+        
         if absent:
             logger.warning(
                 'Using ALL %d available %s gallery images; %d/%d declared files are missing. No sampling.',
@@ -179,8 +184,10 @@ class GLAMGalleryDataset(ImageDataset):
                 len(names),
             )
         super().__init__([{'image_id': name, 'path': path} for name, path in sorted(by_id.items())])
+
         if not self.records:
             raise ValueError('No gallery images available')
+        
         logger.info(
             'Gallery: full available=%d selected=%d relevant=%d scope=%s',
             total,

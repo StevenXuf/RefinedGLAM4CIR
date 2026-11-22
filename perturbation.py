@@ -39,6 +39,7 @@ def library_corruption(text, kind, fraction, rng, settings):
         aug_char_max=1,
         aug_char_p=0,
     )
+
     if kind == 'character_substitution':
         augmenter = nac.KeyboardAug(
             **options,
@@ -55,6 +56,7 @@ def library_corruption(text, kind, fraction, rng, settings):
             candidates=list(settings['insertion_characters']),
         )
         excluded = [char for char in set(text) if char.isspace()]
+        
     capacity = sum(char not in excluded for char in text)
     count = edit_count(fraction, capacity)
     augmenter.stopwords = excluded
@@ -69,6 +71,7 @@ def swap_sites(text, rng):
         i for i in range(len(text) - 1) if text[i : i + 2].isalnum() and text[i] != text[i + 1]
     ]
     rng.shuffle(candidates)
+
     sites, occupied = [], set()
     for index in candidates:
         if occupied.isdisjoint([index, index + 1]):
@@ -89,17 +92,20 @@ def simple_corruption(text, kind, fraction, rng):
         sites = [i for i, char in enumerate(text) if char.isalnum()]
     count = edit_count(fraction, len(sites))
     selected = set(rng.sample(sites, count))
+
     if kind == 'adjacent_character_transposition':
         chars = list(text)
         for index in selected:
             chars[index], chars[index + 1] = chars[index + 1], chars[index]
         return ''.join(chars), len(sites), count
+    
     if kind == 'space_deletion':
         replacements = dict.fromkeys(selected, '')
     elif kind == 'space_insertion':
         replacements = {i: ' ' + text[i] for i in selected}
     else:
         replacements = {i: text[i] * 2 for i in selected}
+        
     return ''.join(replacements.get(i, char) for i, char in enumerate(text)), len(sites), count
 
 

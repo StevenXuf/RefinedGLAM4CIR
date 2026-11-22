@@ -91,6 +91,7 @@ def encode_images(records, path_key, extractor, cfg):
         num_workers=cfg['runtime']['num_workers'],
         collate_fn=collate_samples,
     )
+
     return torch.cat(
         [extractor.get_image_features(batch['pil_image']).cpu() for batch in loader]
     ).to(extractor.device)
@@ -106,6 +107,7 @@ def evaluate(cfg, records, gallery, logger=None, examples_only=False):
     """Use unit image/text vectors, normalized element-wise sums, and full-gallery cosine ranks."""
     logger = logger or logging.getLogger('glam')
     selected = set(example_ids(cfg, records))
+
     if examples_only:
         records = [record for record in records if record['query_id'] in selected]
     extractor = FeatureExtractor(cfg)
@@ -113,6 +115,7 @@ def evaluate(cfg, records, gallery, logger=None, examples_only=False):
     references = encode_images(records, 'reference_path', extractor, cfg)
     gallery_ids = [item['image_id'] for item in gallery.records]
     gallery_index = {name: i for i, name in enumerate(gallery_ids)}
+
     metrics, examples = {}, {}
     conditions = [*BASELINES, 'unperturbed', *cfg['perturbation']['operations']]
     for condition in conditions:
@@ -175,6 +178,7 @@ def print_metrics(cfg, metrics, count, gallery):
         len(gallery),
         gallery.declared_size,
     )
+
     for family in ['Recall', 'MRR', 'mAP']:
         columns = [f'{family}@{k}' for k in cfg['evaluation']['top_ks']] + [f'{family}_AVG']
         logger.info('\n%s', table[columns].to_markdown(floatfmt='.2f'))
@@ -209,6 +213,7 @@ def save_metrics(cfg, records, gallery, metrics):
             },
         ),
     )
+    
     print_metrics(cfg, metrics, len(records), gallery)
     table = pd.DataFrame.from_dict(statistics, orient='index').rename_axis('Perturbation')
     logging.getLogger('glam').info(

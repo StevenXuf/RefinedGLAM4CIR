@@ -21,6 +21,7 @@ def render_report(runs, top_ks):
         f'{runs[0]["split"]}, {runs[0]["retrieval"]["model"]}: '
         f'seeds {", ".join(str(run["seed"]) for run in runs)}; scores: %.'
     ]
+    
     for family in ['Recall', 'MRR', 'mAP']:
         columns = [f'{family}@{k}' for k in top_ks] + [f'{family}_AVG']
         lines.extend(
