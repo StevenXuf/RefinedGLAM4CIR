@@ -1,11 +1,11 @@
 seed: 42
 split: test_ood
 remove_duplicates: true
-missing_gallery_policy: available
+missing_gallery_policy: available # if "strict", will stop with missing gallery images
 image_storage_folders: [train, val, test_id, test_ood]
 
 paths:
-  glam_root: /data/data_fxu/GLAM/raw
+  glam_root: /GLAM/raw
   cir_file: cir_db.csv
   db_processed_name: db_processed.txt
   output_dir: outputs
@@ -19,7 +19,7 @@ runtime:
   cpu_threads: 4
 
 subset:
-  query_limit: null
+  query_limit: null #use all queries if null, otherwise limit to a number of queries
 
 generation:
   model: qwen
