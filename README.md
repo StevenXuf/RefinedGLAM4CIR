@@ -35,7 +35,7 @@ Use `--stage data|generate|perturb|evaluate|visualize` for individual components
 
 ```bash
 python report_seeds.py --seeds 42 43 44  # Metrics: per-seed and mean/sample SD
-python generation.py --seeds 42 43 44    # Modifier lengths, vocabulary, PDF word clouds
+python generation.py --seeds 42 43 44    # Modifier lengths, vocabulary, word clouds
 ```
 
 Both analysis commands accept `--extractor`.
