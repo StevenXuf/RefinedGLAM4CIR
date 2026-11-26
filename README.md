@@ -18,7 +18,7 @@ bash run_splits.sh config.yaml --extractor openclip --seed 42 --gpu 0
 ```
 
 Uses existing `test_id`/`test_ood` triplets from `cir_db.csv` and local images
-(default: `/GLAM/raw`). Retrieval always uses the full available
+(default: `/GLAM/raw`). Check [this repo](https://github.com/StevenXuf/MLLMBasedCIR4GLAM) for image downloading. Retrieval always uses the full available
 gallery and all available annotated targets.
 
 - **Generate:** Qwen3-VL-8B compares a reference with up to three targets to produce
